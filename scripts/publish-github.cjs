@@ -427,6 +427,31 @@ if (pr.status !== 0) {
   process.exit(1);
 }
 
+/* ---------------- 修补远程跟踪引用 ---------------- */
+
+// 本机环境的 git 有个怪癖：push -u 之后 branch.<name>.remote 写进去了，
+// 但 .git/refs/remotes/origin/ 这个目录和里面的 ref 文件没落盘，
+// 于是 git status 一直显示 [gone]，像是分支"跟丢了"。
+// 手动先建目录、再直接写文件就正常，所以这里补一刀。
+{
+  const refName = "refs/remotes/origin/" + BRANCH;
+  const resolved = gitOk(["rev-parse", "--verify", refName]);
+  if (resolved.code !== 0) {
+    try {
+      const sha = git(["rev-parse", "HEAD"]).trim();
+      const refPath = path.join(ROOT, ".git", "refs", "remotes", "origin", BRANCH);
+      fs.mkdirSync(path.dirname(refPath), { recursive: true });   // ← 关键就是这一步
+      fs.writeFileSync(refPath, sha + "\n");
+      const back = gitOk(["rev-parse", "--verify", refName]);
+      if (back.code === 0) {
+        console.log("   · 已补写远程跟踪引用 " + refName + "（否则 status 会显示 [gone]）");
+      }
+    } catch (e) {
+      console.log("   · 远程跟踪引用修补失败（不影响推送本身）：" + String(e.message).split("\n")[0]);
+    }
+  }
+}
+
 /* ---------------- 完成 ---------------- */
 
 console.log("");
