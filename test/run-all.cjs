@@ -1,7 +1,7 @@
 /*
  * 一条命令跑完全部测试套件。
  *
- * 为什么需要它：12 个套件里有 4 个（server / ui / ui-theme / ui-backup）需要先有一个
+ * 为什么需要它：13 个套件里有 4 个（server / ui / ui-theme / ui-backup）需要先有一个
  * 运行中的实例，且该实例必须用【隔离的临时 config + 临时 uploads】启动——直接用仓库里的
  * public/config.json 会把真实导航数据改掉。手工拼环境变量很容易漏，所以固化在这里。
  *
@@ -36,6 +36,7 @@ const SUITES = [
   ["ui-discover.test.cjs", false],
   ["ui-library.test.cjs", false],
   ["checkdeploy.test.cjs", false],
+  ["imagecompose.test.cjs", false],
 ];
 
 // 可选过滤：node test/run-all.cjs ui-backup → 只跑文件名包含该子串的套件

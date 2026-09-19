@@ -2,6 +2,9 @@
 
 参考 [sun-panel](https://github.com/hslr-s/sun-panel) 核心思路实现的轻量级个人导航面板：**前端可视化编辑 + 零依赖 Node 后端**的 All-in-One Docker 镜像，开箱即用。
 
+> **已经发布预构建镜像**：`ghcr.io/mijunyi/navi-homepage`（含 `linux/amd64` 与 `linux/arm64`）。
+> 不想构建、不想传源码，只想在另一台机器上一条命令跑起来 → 直接看 **[`docs/image-deploy-guide.html`](docs/image-deploy-guide.html)**（拉取镜像部署指南）。
+
 ## 特性
 
 - **前端可视化编辑（类 sun-panel）**：点击右上角「编辑」进入编辑模式——
@@ -40,6 +43,32 @@
 
 ## 快速开始（Docker）
 
+### 方式 A：拉预构建镜像（最省事，不需要构建）
+
+镜像由 GitHub Actions 在打 tag 时自动构建并推送到 GHCR，同时提供 `linux/amd64` 与 `linux/arm64`：
+
+```bash
+mkdir -p data
+
+# ① 从镜像里导出初始配置（挂载会遮住镜像内置的示例配置，这步不能省）
+docker run --rm ghcr.io/mijunyi/navi-homepage:latest cat /app/data/config.json > data/config.json
+
+# ② 写下访问密码（compose 用 ${NAVI_PASSWORD:?...} 强制校验，缺了会直接报错退出）
+echo 'NAVI_PASSWORD=你的强密码' > .env
+
+# ③ 先 pull 再起（直接 up 会复用本地旧镜像，升级时最容易踩这个坑）
+docker compose -f docker-compose.image.yml pull
+docker compose -f docker-compose.image.yml up -d
+```
+
+> 完整说明见 **[`docs/image-deploy-guide.html`](docs/image-deploy-guide.html)**：包可见性与登录凭据、
+> 国内访问 ghcr.io 的三种对策、CPU 架构匹配、图形界面部署要点、升级回滚与 12 项排查表。
+>
+> ⚠️ **两个常见前提**：① 镜像首次发布前 `pull` 会报 `manifest unknown`，需先去 Actions 触发一次构建；
+> ② GHCR 的包默认可能是 private，需在包设置里改成 public（否则目标机要先 `docker login ghcr.io`）。
+
+### 方式 B：从源码构建
+
 ```bash
 # 构建镜像
 docker build -t navi .
@@ -56,12 +85,22 @@ docker run -d --name navi \
   navi
 ```
 
-或使用 docker compose：
+或使用 docker compose（**源码构建模式**，会先在本机构建）：
 
 ```bash
 mkdir -p data && cp public/config.example.json data/config.json
 docker compose up -d
 ```
+
+> 仓库里有**两份**编排文件，是二选一的关系，靠 `-f` 切换：
+>
+> | 文件 | 行为 | 用途 |
+> | --- | --- | --- |
+> | `docker-compose.yml` | 先 `build: .` 再起容器 | 改了代码要重建时用 |
+> | `docker-compose.image.yml` | 不含 `build:`，只拉 `ghcr.io` 上的预构建镜像 | 部署到别的机器时用 |
+>
+> 可用 `node scripts/check-compose.cjs` 自检（会强制校验「纯拉取编排不得含 `build:`」、
+> 密码护栏仍是 `:?`、数据目录是整目录挂载）。
 
 访问 `http://localhost:8080` 或 `http://[你的IPv6地址]:8080`。
 
@@ -90,6 +129,11 @@ docker compose up -d
 | `NAVI_ICON_PROBE_BASE` | 图标探测的 CDN 基址，可指向自建镜像（须保持上游目录结构） | `https://cdn.jsdelivr.net/gh/` |
 | `NAVI_SCAN_LOCAL` | 设为 `0` 关闭本机监听端口扫描（只用 Docker 容器发现） | `1` |
 | `NAVI_DISCOVER_TIMEOUT` | 单次 Docker API 超时（毫秒） | `2500` |
+| `NAVI_IMAGE` | **仅 compose 读取**：换用 GHCR 镜像站 / 自建代理（国内直连 ghcr.io 常不通） | `ghcr.io/mijunyi/navi-homepage` |
+| `NAVI_TAG` | **仅 compose 读取**：固定镜像版本，避免 `latest` 漂移（可填 `1.2.3` / `1.2` / `edge`） | `latest` |
+
+> `NAVI_IMAGE` / `NAVI_TAG` 是 **compose 插值变量**，不是容器内的环境变量 ——
+> 它们只在解析编排文件时生效，不会被注入容器。其余变量才是在容器里被 `server.js` 读取的。
 
 ## 访问密码保护
 
@@ -193,7 +237,7 @@ sudo bash scripts/migrate-to-dir-mount.sh --no-compose
 本项目源码可安全开源，私有数据请**不要**提交仓库。仓库已内置 `.gitignore` 完成默认排除，发布前请复核：
 
 1. **已排除**：`public/config.json`（你的真实导航链接/内网地址）、`public/uploads/`（你的 Logo 图片）、`data/`（挂载的数据目录）、`.env`（真实密码）、`.workbuddy/`、`.wbapp_*.genie`、`preview-launcher.js`、`*.tmp`、`node_modules` 等。
-2. **保留提交**：`public/config.example.json`、`.env.example`、`server.js`、`discovery.js`、`Dockerfile`、`docker-compose.yml`（密码位置已改为变量引用，不含明文）、前端文件、`test/`、`README.md`、`LICENSE`。
+2. **保留提交**：`public/config.example.json`、`.env.example`、`server.js`、`discovery.js`、`Dockerfile`、`docker-compose.yml`、`docker-compose.image.yml`、`.github/workflows/`（镜像发布工作流）、前端文件、`test/`、`README.md`、`LICENSE`。
 3. **密码只走 `.env`**：`docker-compose.yml` 中为 `NAVI_PASSWORD=${NAVI_PASSWORD:?...}`，真实密码写在项目根目录的 `.env`（已被 gitignore / dockerignore 排除）。首次部署：
 
    ```bash
@@ -207,6 +251,39 @@ sudo bash scripts/migrate-to-dir-mount.sh --no-compose
    ```bash
    node -e "console.log(require('crypto').createHash('sha256').update('navi-site:'+process.argv[1]).digest('hex'))" '你的密码'
    ```
+
+## 发布预构建镜像（GHCR）
+
+`.github/workflows/docker-publish.yml` 会在 **GitHub 的机器上**自动构建镜像并推送到 GHCR，
+把用户侧的操作从「clone + build」压缩成「一句 `pull`」——**本地完全不需要装 Docker**。
+
+| 触发方式 | 产出的标签 | 备注 |
+| --- | --- | --- |
+| 推送 `main` | `edge` | 开发中的最新代码，**不会**动 `latest` |
+| 打 tag `v1.2.3` | `1.2.3`、`1.2`、`latest` | 正式发布，只有这条路径更新 `latest` |
+| Actions 页面手动触发 | `edge` | 不想改代码、只想立刻构建一次时用 |
+
+发布一个正式版本：
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+工作流包含两个作业：
+
+1. **构建并推送** —— 通过 QEMU 在 amd64 runner 上同时产出 `linux/amd64` 与 `linux/arm64` 两个架构；
+2. **冒烟验证** —— 构建完成后**真实启动一次容器**，校验镜像架构、暴露端口、声明的数据卷，
+   并请求 `/api/health` 确认返回 `"ok":true`。「构建成功」不等于「跑得起来」，这一步把后者也变成事实。
+
+> ⚠️ **首次发布后请把包改成 public**：GHCR 上的包可见性与代码仓库**不完全联动**，
+> 手动推送创建的包默认可能是 private。去
+> `https://github.com/users/<用户名>/packages/container/navi-homepage/settings` →
+> Danger Zone → Change package visibility 改成 Public，否则目标机器要先 `docker login ghcr.io`。
+>
+> 这条链路的不变量由 `test/imagecompose.test.cjs`（72 项）固化：多架构构建、`packages: write` 权限、
+> `latest` 只在打 tag 时更新、纯拉取编排不得含 `build:`、两条部署路径的环境变量/端口/挂载不得漂移，
+> 并**反向验证** `scripts/check-compose.cjs` 确实能抓到「护栏被拆掉」（4 类畸形夹具必须判失败）。
 
 ## 数据备份与恢复
 
@@ -336,7 +413,7 @@ sudo bash scripts/migrate-to-dir-mount.sh --no-compose
 - **纯静态、零依赖**：不启动 Node、不联网也能打开；不读写任何配置文件，所有交互都在浏览器本地完成。
 - **含交互式界面复刻**：主题变量、卡片样式、图标解析与内网识别规则均取自项目源码，演示数据与 `config.json` 一致。可直接体验：搜索（`/` 聚焦）、日/夜切换、内外网切换、编辑模式、服务发现弹窗、图床库 / 在线图标库。
 - **含真实截图画廊**：8 张截图全部来自 `test/` 下由 Playwright 在真实浏览器中自动生成的运行截图，点击可放大。
-- **含功能、测试与部署说明**：355 项断言的分套件结果、接口清单、数据结构与三种部署方式。
+- **含功能、测试与部署说明**：427 项断言的分套件结果、接口清单、数据结构与三种部署方式。
 
 > 该页面用于**展示与验收**，不具备后端能力（不写盘、不扫端口、不真实上传）。要体验完整功能请按下文启动服务或使用 Docker。
 
@@ -344,19 +421,27 @@ sudo bash scripts/migrate-to-dir-mount.sh --no-compose
 
 ```
 ├── Dockerfile                  # All-in-One 镜像（node:22-alpine，零依赖，含 /app/data 数据目录）
-├── docker-compose.yml          # 双栈端口 + 整目录数据卷挂载（./data:/app/data）
+├── docker-compose.yml          # 【源码构建模式】双栈端口 + 整目录数据卷挂载（./data:/app/data）
+├── docker-compose.image.yml    # 【纯拉取模式】无 build:，直接拉 ghcr.io 上的预构建镜像（二选一，靠 -f 切换）
+├── .github/workflows/
+│   └── docker-publish.yml      # 打 tag / 推 main 时自动构建多架构镜像并发布到 GHCR + 冒烟启动验证
 ├── .gitignore                  # 排除私有/运行时数据（config.json、uploads、data、backups 等），发布 GitHub 前必备
 ├── server.js                   # 静态托管 + /api/config 读写 + 备份/恢复 + 图床库 / Logo 上传 + 服务发现（仅 Node 内置模块）
 ├── discovery.js                # 服务发现模块：Docker Engine API / 本机端口扫描 / 服务指纹库 / 图标匹配 / 地址拼装
 ├── preview.html                # 静态效果预览页（界面复刻 + 真实截图画廊 + 功能/测试说明，浏览器直接打开）
 ├── docs/
 │   ├── fnos-deploy-guide.html  # ★ 飞牛 fnOS 部署指南（存储路径约定 / 图形界面 Compose 限制 / 文件属主权限 / 故障排查 / 检查清单）
+│   ├── image-deploy-guide.html # ★ 拉取镜像部署指南（包可见性 / 国内网络对策 / 架构匹配 / 升级回滚 / 排查表）
 │   └── docker-guide.html       # 通用 Docker 部署指南（可用浏览器打印为 PDF）
 ├── scripts/
 │   ├── migrate-to-dir-mount.sh # 从旧版单文件挂载平滑升级到整目录挂载的一键脚本
-│   └── check-deploy.cjs        # ★ 部署判定探针：一条命令判断「线上跑的是不是最新代码」
+│   ├── check-compose.cjs       # ★ compose 自检：缩进折叠 / 密码护栏 / 纯拉取编排不得含 build: / 整目录挂载
+│   ├── check-deploy.cjs        # ★ 部署判定探针：一条命令判断「线上跑的是不是最新代码」
+│   ├── check-github-net.cjs    # GitHub 连通性诊断：区分「网络不通」与「令牌无权限」
+│   └── publish-github.cjs      # 预检 → 提交 → 建仓 → 推送（凭据从环境变量或 .env 读，不进 argv）
 ├── test/
-│   ├── run-all.cjs             # 一键跑完全部 12 个套件（自动拉起隔离实例，用临时 config/uploads）
+│   ├── run-all.cjs             # 一键跑完全部 13 个套件（自动拉起隔离实例，用临时 config/uploads）
+│   ├── lib/hermetic.cjs        # 让 UI 套件真正自包含：外部图标 CDN 请求就地应答（否则网络抖动会伪装成 JS 错误）
 │   ├── server.test.js          # 服务端集成测试（静态资源 / API / 校验 / 防护 / IPv6）
 │   ├── auth.test.js            # 密码保护专项测试（拦截/登录/会话/伪造/过期/登出/限流/联合登录）
 │   ├── backup.test.js          # 备份/恢复/上传专项测试（导出/校验/恢复异常/图片魔数/体积）
@@ -368,6 +453,7 @@ sudo bash scripts/migrate-to-dir-mount.sh --no-compose
 │   ├── ui-discover.test.cjs    # 服务发现 UI 测试（自启动伪造 Docker API，覆盖勾选/忽略/加入/保存）
 │   ├── ui-library.test.cjs     # 图床库 UI 测试（批量上传/搜索/点选回填/在线图标/批量删除/引用保护）
 │   ├── checkdeploy.test.cjs    # 部署判定探针自检（正反双向验证 scripts/check-deploy.cjs）
+│   ├── imagecompose.test.cjs   # ★ 镜像发布契约自检（多架构/权限/无 build:/两条路径不漂移 + 反向验证自检脚本）
 │   └── ui-theme.test.cjs       # 日/夜模式切换 UI 测试
 └── public/
     ├── index.html              # 单页入口（含编辑弹窗、图床库弹窗、退出按钮）
@@ -419,14 +505,14 @@ node scripts/check-deploy.cjs http://NAS的IP:端口 你的密码
 
 ## 自动化测试
 
-**推荐：一条命令跑完全部 12 个套件（355 项断言）**
+**推荐：一条命令跑完全部 13 个套件（427 项断言）**
 
 ```bash
 NODE_PATH=<已装 playwright 的 node_modules> node test/run-all.cjs
 ```
 
 `run-all.cjs` 会自动用「临时 config + 临时 uploads」在 8633 端口拉起隔离实例，
-跑完 4 个需要实例的套件后再依次跑 8 个自包含套件，最后汇总通过/失败数——**不会碰真实数据**。
+跑完 4 个需要实例的套件后再依次跑 9 个自包含套件，最后汇总通过/失败数——**不会碰真实数据**。
 
 排查单个功能时可按文件名过滤，只跑关心的套件（如 `ui-backup`、`discover`）：
 
@@ -468,7 +554,19 @@ node test/ui-library.test.cjs
 
 # 9. 部署判定探针自检（自包含：正反双向验证 scripts/check-deploy.cjs 能准确区分新旧代码）
 node test/checkdeploy.test.cjs
+
+# 10. 镜像发布契约自检（自包含：多架构构建 / GHCR 推送 / 纯拉取编排不得含 build: /
+#     两条部署路径不漂移；并反向验证 scripts/check-compose.cjs 能抓到护栏被拆掉）
+node test/imagecompose.test.cjs
 ```
+
+> **关于「无 JS 错误」断言与网络**：多个 UI 套件都有一条「全程无 JS 错误」断言。
+> 页面里的卡片图标指向公共 CDN，而 Chromium 在图片加载失败时会发一条
+> `Failed to load resource: net::ERR_CONNECTION_CLOSED` 的 console error ——
+> 于是**外部 CDN 抖一下就会被误报成「代码有 Bug」**（实测偶发过一次）。
+> `test/lib/hermetic.cjs` 统一解决：非本机请求就地应答成一张 1×1 PNG，把套件变成真正自包含；
+> 同时把「资源加载失败」类消息排除出 JS 错误统计——它不是代码缺陷，是网络事实。
+> 注意它只替换**响应**、不替换 URL，所以「图标地址是否正确」的断言依然有效。
 
 ## License
 

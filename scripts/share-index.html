@@ -109,7 +109,7 @@
     <ul class="stats">
       <li><b>0</b> 运行时依赖</li>
       <li>自动发现 <b>33</b> 类服务指纹</li>
-      <li>测试 <b>11</b> 套 / <b>355</b> 项断言</li>
+      <li>测试 <b>13</b> 套 / <b>427</b> 项断言</li>
       <li>支持 <b>fnOS · Docker · 裸机</b></li>
     </ul>
   </header>
@@ -147,13 +147,23 @@
         <span class="go">阅读指南</span>
       </div>
     </a>
+    <a class="card" href="docs/image-deploy-guide.html">
+      <div class="ico">📦</div>
+      <h3>拉取镜像部署指南</h3>
+      <p>不构建、不传源码：镜像由 GitHub Actions 自动发布到 GHCR（含 amd64 / arm64），目标机器只需一条 pull 命令。</p>
+      <div class="meta">
+        <span class="tag">GHCR</span><span class="tag">免构建</span><span class="tag">多架构</span>
+        <span class="go">阅读指南</span>
+      </div>
+    </a>
     <div class="card">
       <div class="ico">📄</div>
       <h3>PDF 离线版下载</h3>
-      <p>两份指南的 PDF 版本，方便打印或在没有网络的环境下逐条对照执行。</p>
+      <p>三份指南的 PDF 版本，方便打印或在没有网络的环境下逐条对照执行。</p>
       <div class="dl">
-        <a href="docs/Navi-fnOS-deploy-guide.pdf">飞牛 fnOS 部署指南<small>PDF · 约 620 KB</small></a>
-        <a href="docs/Navi-docker-deploy-guide.pdf">Docker 部署指南<small>PDF · 约 486 KB</small></a>
+        <a href="docs/Navi-fnOS-deploy-guide.pdf">飞牛 fnOS 部署指南<small>PDF</small></a>
+        <a href="docs/Navi-docker-deploy-guide.pdf">Docker 部署指南<small>PDF</small></a>
+        <a href="docs/Navi-image-deploy-guide.pdf">拉取镜像部署指南<small>PDF</small></a>
       </div>
     </div>
   </div>

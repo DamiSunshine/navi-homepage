@@ -12,6 +12,7 @@ const os = require("os");
 const path = require("path");
 const { spawn } = require("child_process");
 const { chromium } = require("playwright");
+const { stubExternal, isNotJsError } = require("./lib/hermetic.cjs");
 
 const PORT = 8661;
 const DOCKER_PORT = 8662;
@@ -106,9 +107,17 @@ function cleanup() {
   catch (e) { browser = await chromium.launch({ channel: "chrome" }); }
 
   const page = await browser.newPage();
+  // 本套件声称"自包含"，就必须真的不依赖外网：图标 CDN 的请求就地应答。
+  // 否则 CDN 抖一下会以 "Failed to load resource: ERR_CONNECTION_CLOSED" 的形式
+  // 混进下面的「全程无 JS 错误」断言，看起来像被测代码有 Bug（曾实测偶发 1 失败）。
+  await stubExternal(page);
   const pageErrors = [];
   page.on("pageerror", (e) => pageErrors.push(String(e)));
-  page.on("console", (m) => { if (m.type() === "error") pageErrors.push(m.text()); });
+  page.on("console", (m) => {
+    if (m.type() !== "error") return;
+    if (!isNotJsError(m.text())) return;
+    pageErrors.push(m.text());
+  });
 
   console.log("== 入口可见性 ==");
   await page.goto(BASE + "/", { waitUntil: "domcontentloaded" });

@@ -12,6 +12,7 @@ const os = require("os");
 const path = require("path");
 const { spawn } = require("child_process");
 const { chromium } = require("playwright");
+const { stubExternal, isNotJsError } = require("./lib/hermetic.cjs");
 
 const PORT = 8692;
 
@@ -77,12 +78,13 @@ function cleanup() {
   catch (e) { browser = await chromium.launch({ channel: "chrome" }); }
 
   const page = await browser.newPage();
+  await stubExternal(page);   // 外部图标 CDN 就地应答，套件不再依赖外网
   const pageErrors = [];
   // 只收集真正的 JS 异常与脚本错误；外部图标 CDN 加载失败不算（离线环境应能正常降级）
   page.on("pageerror", (e) => pageErrors.push(String(e)));
   page.on("console", (m) => {
     if (m.type() !== "error") return;
-    if (/Failed to load resource|net::ERR|ERR_NAME_NOT_RESOLVED/i.test(m.text())) return;
+    if (!isNotJsError(m.text())) return;
     pageErrors.push(m.text());
   });
 

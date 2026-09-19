@@ -5,6 +5,7 @@
 "use strict";
 
 const { chromium } = require("playwright");
+const { stubExternal, isNotJsError } = require("./lib/hermetic.cjs");
 
 const BASE = process.argv[2] || "http://127.0.0.1:8632";
 
@@ -21,9 +22,10 @@ const themeAttr = (page) => page.locator("html").getAttribute("data-theme");
   try { browser = await chromium.launch({ channel: "msedge" }); }
   catch (e) { browser = await chromium.launch({ channel: "chrome" }); }
   const page = await browser.newPage();
+  await stubExternal(page);   // 外部图标 CDN 就地应答，避免网络抖动污染「无 JS 错误」断言
   const pageErrors = [];
   page.on("pageerror", (e) => pageErrors.push(String(e)));
-  page.on("console", (m) => { if (m.type() === "error") pageErrors.push(m.text()); });
+  page.on("console", (m) => { if (m.type() === "error" && isNotJsError(m.text())) pageErrors.push(m.text()); });
 
   try {
     // 清掉历史主题记录，验证可无痕初始化（首次 goto 前一次性清除，不污染后续 reload）

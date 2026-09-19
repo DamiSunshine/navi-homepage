@@ -19,7 +19,7 @@ const bad = (m) => { fails.push(m); console.log('  ✗ ' + m); };
   (await page.title()).includes('Navi') ? ok('标题：' + (await page.title())) : bad('标题异常');
 
   const cardCount = await page.locator('.card').count();
-  cardCount === 4 ? ok('卡片数 = 4 (预览 / fnOS / Docker / PDF)') : bad('卡片数 = ' + cardCount);
+  cardCount === 5 ? ok('卡片数 = 5 (预览 / fnOS / Docker / 拉取镜像 / PDF)') : bad('卡片数 = ' + cardCount);
 
   // 落地页上的所有链接都应有 200/正常响应
   const links = await page.locator('a[href]').evaluateAll((as) => as.map((a) => a.getAttribute('href')));
@@ -55,7 +55,7 @@ const bad = (m) => { fails.push(m); console.log('  ✗ ' + m); };
 
   // ---------- 3. 文档页 ----------
   console.log('[3] 部署文档');
-  for (const d of ['/docs/fnos-deploy-guide.html', '/docs/docker-guide.html']) {
+  for (const d of ['/docs/fnos-deploy-guide.html', '/docs/docker-guide.html', '/docs/image-deploy-guide.html']) {
     await page.goto(BASE + d, { waitUntil: 'domcontentloaded' });
     const h = await page.locator('h1, h2').first().innerText().catch(() => '');
     h.trim().length > 0 ? ok(d + ' → ' + h.trim().slice(0, 26)) : bad(d + ' 无标题');
@@ -67,10 +67,11 @@ const bad = (m) => { fails.push(m); console.log('  ✗ ' + m); };
   // 只看 HTTP 200 抓不到「发了旧内容」，这里校验本次改动的关键标记。
   console.log('[4] 内容新鲜度');
   const markers = [
-    ['/', ['355'], ['348', '333', '325', '317']],
-    ['/preview.html', ['355', '非安全上下文', 'checkdeploy.test.cjs'], ['348', '333', '325', '317']],
-    ['/docs/fnos-deploy-guide.html', ['导入自己刚导出的备份', '重建容器时要不要清空这个目录', '确认新代码真的生效'], []],
-    ['/docs/docker-guide.html', ['关于「完整性校验失败」', '355', 'check-deploy.cjs'], ['348', '333', '325']],
+    ['/', ['<b>13</b> 套', '427'], ['355', '348', '333', '325', '317']],
+    ['/preview.html', ['427', '非安全上下文', 'checkdeploy.test.cjs', 'imagecompose.test.cjs'], ['355', '348', '333', '325', '317']],
+    ['/docs/fnos-deploy-guide.html', ['导入自己刚导出的备份', '重建容器时要不要清空这个目录', '确认新代码真的生效', 'ghcr.io'], []],
+    ['/docs/docker-guide.html', ['关于「完整性校验失败」', '427', 'check-deploy.cjs', 'docker-compose.image.yml'], ['355', '348', '333', '325']],
+    ['/docs/image-deploy-guide.html', ['docker-compose.image.yml', 'ghcr.io', 'linux/arm64', 'config.json', 'Change package visibility'], []],
   ];
   for (const [url, musts, mustNots] of markers) {
     await page.goto(BASE + url, { waitUntil: 'domcontentloaded' });

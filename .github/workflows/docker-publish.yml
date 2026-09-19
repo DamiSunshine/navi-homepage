@@ -1,0 +1,150 @@
+# ============================================================
+# 构建多架构镜像并发布到 GHCR —— 让「docker pull 直接跑」成为可能
+#
+# 为什么要有它：
+#   此前项目只发源码，用户想在别的机器上跑就得先 clone + build，
+#   而 git 主机与基础镜像源在国内都不稳定。改为在 GitHub 自己的机器上构建，
+#   用户侧只剩一句 pull —— 本机不需要 Docker，也不需要能访问 github.com。
+#
+# 触发与产物：
+#   打 tag v1.2.3  → ghcr.io/<owner>/<repo>:1.2.3 / :1.2 / :latest
+#   推 main       → ghcr.io/<owner>/<repo>:edge
+#   手动触发     → 同 main（可在 Actions 页面点 Run workflow）
+#
+# 首次发布后请去仓库的 Packages 页面把包可见性改成 public，
+# 否则目标机器必须先 docker login ghcr.io 才能拉取。
+# ============================================================
+name: 构建并发布镜像（GHCR）
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+# GITHUB_TOKEN 默认只有 contents:read；推包必须显式申请 packages:write。
+permissions:
+  contents: read
+  packages: write
+
+# 同一分支连续提交时，取消掉还没跑完的旧任务，省时间也省配额。
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 构建并推送（amd64 + arm64）
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.name.outputs.image }}
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+
+      # GHCR 的镜像名只接受小写；GitHub 用户名/仓库名可能含大写，
+      # 这里统一转小写，避免推送时报 "invalid reference format"。
+      - name: 计算镜像名（小写）
+        id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      # QEMU 让 amd64 的 runner 能构建 arm64 层（多架构必需）。
+      - name: 准备 QEMU（跨架构构建）
+        uses: docker/setup-qemu-action@v3
+
+      - name: 准备 Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 按触发来源生成标签；latest 只在打 tag 时更新，
+      # 这样日常往 main 推代码不会污染用户的 latest。
+      - name: 生成镜像标签
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.name.outputs.image }}
+          tags: |
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: 构建并推送
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # 关掉 provenance / sbom：它们会往清单里塞 "unknown/unknown" 平台条目，
+          # 虽然能正常 pull，但会让 buildx imagetools 的输出难以理解。
+          # 这个项目的用户只需要「拉下来能跑」，可预期性优先。
+          provenance: false
+          sbom: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 光"构建成功"不等于"跑得起来"。这里真实启动一次容器并打健康接口，
+  # 把「镜像能启动」变成可验证的事实。
+  smoke:
+    name: 冒烟验证（真实启动容器）
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+
+      - name: 准备 Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 多架构清单没法直接 load 进本地，所以这里只构建 amd64 并加载。
+      # 复用上面的 GHA 缓存，因此这一步通常很快。
+      - name: 构建本地镜像（仅 amd64）
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: navi:smoke
+          cache-from: type=gha
+
+      - name: 校验镜像契约（端口 / 数据卷 / 架构）
+        run: |
+          arch=$(docker image inspect -f '{{.Architecture}}' navi:smoke)
+          echo "架构：$arch"
+          test "$arch" = "amd64"
+
+          ports=$(docker image inspect -f '{{json .Config.ExposedPorts}}' navi:smoke)
+          echo "暴露端口：$ports"
+          echo "$ports" | grep -q '80/tcp'
+
+          vols=$(docker image inspect -f '{{json .Config.Volumes}}' navi:smoke)
+          echo "数据卷：$vols"
+          echo "$vols" | grep -q '/app/data'
+
+      - name: 启动容器并请求健康接口
+        run: |
+          docker run -d --name navi-smoke -p 8080:80 navi:smoke
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/api/health -o /tmp/health.json; then ok=1; break; fi
+            sleep 1
+          done
+          if [ "$ok" != "1" ]; then
+            echo "容器 30 秒内没有响应 /api/health，下面是容器日志："
+            docker logs navi-smoke
+            exit 1
+          fi
+          echo "健康接口返回：$(cat /tmp/health.json)"
+          grep -qE '"ok"[[:space:]]*:[[:space:]]*true' /tmp/health.json
+
+      - name: 清理
+        if: always()
+        run: docker rm -f navi-smoke || true

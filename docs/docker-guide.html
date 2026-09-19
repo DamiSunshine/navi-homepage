@@ -221,6 +221,25 @@ docker compose ps</pre>
 <div class="danger"><strong>挂载 Docker Socket 的安全提示：</strong>容器内进程将获得<strong>等价于宿主机 root 的 Docker 控制权</strong>——可读取所有容器的环境变量（常含数据库密码、API Key），也能启动特权容器读写宿主机任意文件。另需注意 <code class="inline">:ro</code> 只是把 socket 文件标记为只读，<strong>并不能限制通过该 socket 发起的 Docker API 调用</strong>，不要误以为加了它就安全了。<br>
 因此：仅在你信任镜像来源、且该端口只在内网可访问时开启。不想挂 socket 的话，可改用 <code class="inline">DOCKER_HOST_NAME</code> + <code class="inline">DOCKER_HOST_PORT</code> 连接远程 Docker API，但裸开 2375 端口同样是未加密无认证的；<strong>不开启服务发现也不影响其它任何功能</strong>。</div>
 
+<h3>另一种做法：拉预构建镜像（完全不构建）</h3>
+<p>项目已把镜像发布到 GHCR，因此可以跳过 <code class="inline">docker build</code>，直接拉取运行。
+差别只在<strong>换一个编排文件</strong>（两者是二选一的关系）：</p>
+<table>
+  <tr><th>编排文件</th><th>行为</th><th>什么时候用</th></tr>
+  <tr><td><code>docker-compose.yml</code></td><td>先 <code>build: .</code> 再起容器</td><td>你想改代码、需要重建</td></tr>
+  <tr><td><code>docker-compose.image.yml</code></td><td>不含 <code>build:</code>，只拉 <code>ghcr.io</code> 上的预构建镜像</td><td>只是想把服务跑起来</td></tr>
+</table>
+<pre><span class="c"># 1. 从镜像里导出初始配置（挂载会遮住镜像内置示例，这步不能省）</span>
+docker run --rm ghcr.io/mijunyi/navi-homepage:latest cat /app/data/config.json &gt; data/config.json
+
+<span class="c"># 2. 先 pull 再起（直接 up 会复用本地旧镜像，升级时最容易踩）</span>
+docker compose -f docker-compose.image.yml pull
+docker compose -f docker-compose.image.yml up -d</pre>
+<p>镜像同时提供 <code class="inline">linux/amd64</code> 与 <code class="inline">linux/arm64</code>，Docker 会自动挑对的架构。
+可用 <code class="inline">NAVI_IMAGE</code>（换镜像站）与 <code class="inline">NAVI_TAG</code>（固定版本）两个变量覆盖，二者只在解析编排文件时生效、不会注入容器。</p>
+<div class="tip"><strong>完整说明见 <code class="inline">docs/image-deploy-guide.html</code></strong>：包可见性与登录凭据、
+国内访问 <code class="inline">ghcr.io</code> 的三种对策、架构匹配、图形界面部署要点、升级回滚与 12 项排查表。</div>
+
 <!-- ==================== 5 密码 ==================== -->
 <h2>5. 配置访问密码</h2>
 <h3>方式一：明文密码（简单）</h3>
@@ -339,7 +358,7 @@ docker run -d --name navi <span class="c"># …与初次启动相同的参数</s
 <div class="step"><span class="no">2</span><span class="t">页面访问</span></div>
 <p>浏览器打开 <code class="inline">http://服务器IP:8080</code> → 应跳转登录页 → 输入用户名 / 密码 → 看到导航卡片。</p>
 <div class="step"><span class="no">3</span><span class="t">自动化测试（可选）</span></div>
-<p>项目内置 <strong>355 项断言 / 12 个套件</strong>。最省事的方式是一条命令全跑（它会自动用「临时 config + 临时 uploads」在 8633 端口拉起隔离实例，不碰真实数据）：</p>
+<p>项目内置 <strong>427 项断言 / 13 个套件</strong>。最省事的方式是一条命令全跑（它会自动用「临时 config + 临时 uploads」在 8633 端口拉起隔离实例，不碰真实数据）：</p>
 <pre>NODE_PATH=&lt;已装 playwright 的 node_modules&gt; node test/run-all.cjs
 
 <span class="c"># 排查单个功能时按文件名过滤，只跑关心的套件</span>

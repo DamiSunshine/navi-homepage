@@ -196,8 +196,12 @@
       做法：在 compose 同目录放一份 <code>.env</code>（见第 6 节）。</td>
   </tr>
   <tr>
-    <td><strong>③ 没有预构建镜像，需要自己 build</strong></td>
-    <td>本项目<strong>没有发布到任何镜像仓库</strong>，<code>image: navi:latest</code> 指的是「本机构建出来的镜像」。所以要么在 NAS 上 <code>docker build</code>（需联网拉取 <code>node:22-alpine</code>），要么在别的电脑构建后导出再导入（见第 5 节方式 B）。</td>
+    <td><strong>③ 可以完全不构建：直接拉预构建镜像</strong></td>
+    <td>镜像已由 GitHub Actions 自动构建并发布到 GHCR：<code class="inline">ghcr.io/mijunyi/navi-homepage</code>（含 <code>amd64</code> 与 <code>arm64</code>）。
+      把它换成同仓库的 <code class="inline">docker-compose.image.yml</code> 即可 —— 该文件不含 <code>build:</code>，只拉镜像起容器。
+      <strong>这对 NAS 反而更合适</strong>：飞牛图形界面的 Compose 项目本来就不支持构建，少一个必须绕开的坑。
+      完整说明见 <code>docs/image-deploy-guide.html</code>。<br>
+      仍然需要自建的两种情形：你想改代码；或 NAS 连不上 <code>ghcr.io</code>（此时改用第 5 节的方式 B 跨机导入）。</td>
   </tr>
 </table>
 

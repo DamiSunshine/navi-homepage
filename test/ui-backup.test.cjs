@@ -5,6 +5,7 @@
 "use strict";
 
 const { chromium } = require("playwright");
+const { stubExternal, isNotJsError } = require("./lib/hermetic.cjs");
 const fs = require("fs");
 const path = require("path");
 
@@ -34,9 +35,10 @@ const PNG_1x1 = Buffer.from(
   try { browser = await chromium.launch({ channel: "msedge" }); }
   catch (e) { browser = await chromium.launch({ channel: "chrome" }); }
   const page = await browser.newPage();
+  await stubExternal(page);   // 外部图标 CDN 就地应答，套件不再依赖外网
   const pageErrors = [];
   page.on("pageerror", (e) => pageErrors.push(String(e)));
-  page.on("console", (m) => { if (m.type() === "error") pageErrors.push(m.text()); });
+  page.on("console", (m) => { if (m.type() === "error" && isNotJsError(m.text())) pageErrors.push(m.text()); });
 
   try {
     await page.goto(BASE + "/", { waitUntil: "domcontentloaded" });
@@ -108,6 +110,7 @@ const PNG_1x1 = Buffer.from(
 
     // 2) 非安全上下文：模拟 http:// + 局域网 IP（crypto.subtle 不可用）
     const page2 = await browser.newPage();
+    await stubExternal(page2);
     await page2.addInitScript(() => {
       try { Object.defineProperty(window.crypto, "subtle", { configurable: true, get: () => undefined }); } catch (e) {}
     });

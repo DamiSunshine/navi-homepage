@@ -4,6 +4,7 @@
 "use strict";
 
 const { chromium } = require("playwright");
+const { stubExternal, isNotJsError } = require("./lib/hermetic.cjs");
 
 const BASE = process.argv[2] || "http://127.0.0.1:8632";
 
@@ -21,10 +22,11 @@ function check(name, cond, extra) {
     browser = await chromium.launch({ channel: "chrome" });
   }
   const page = await browser.newPage();
+  await stubExternal(page);   // 外部图标 CDN 就地应答，避免网络抖动污染「无 JS 错误」断言
 
   const pageErrors = [];
   page.on("pageerror", (e) => pageErrors.push(String(e)));
-  page.on("console", (m) => { if (m.type() === "error") pageErrors.push(m.text()); });
+  page.on("console", (m) => { if (m.type() === "error" && isNotJsError(m.text())) pageErrors.push(m.text()); });
 
   // 记录初始卡片数（自动读取 API 配置）
   const apiCfg = await (await fetch(BASE + "/api/config")).json();

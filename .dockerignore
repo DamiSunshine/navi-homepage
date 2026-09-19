@@ -1,8 +1,10 @@
 .git
+.github
 .gitignore
 .dockerignore
 Dockerfile
 docker-compose.yml
+docker-compose.image.yml
 README.md
 .workbuddy
 .wbapp_*.genie

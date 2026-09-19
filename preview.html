@@ -593,7 +593,7 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
 
     <div class="stats">
       <div class="stat"><b>11<span class="u">套</span></b><span>测试套件</span></div>
-      <div class="stat"><b>355<span class="u">项</span></b><span>断言全通过 · 0 失败</span></div>
+      <div class="stat"><b>427<span class="u">项</span></b><span>断言全通过 · 0 失败</span></div>
       <div class="stat"><b>0<span class="u">个</span></b><span>第三方运行时依赖</span></div>
       <div class="stat"><b>15<span class="u">个</span></b><span>HTTP 接口</span></div>
       <div class="stat"><b>IPv6<span class="u">双栈</span></b><span>默认监听</span></div>
@@ -831,7 +831,8 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
           <tr><td><code>ui-discover.test.cjs</code></td><td>真实浏览器</td><td>36</td><td>发现弹窗勾选 / 忽略 / 加入 / 保存（自启伪造 Docker）</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>ui-library.test.cjs</code></td><td>真实浏览器</td><td>47</td><td>批量上传 / 选择回填 / 在线图标库 / 引用保护</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>checkdeploy.test.cjs</code></td><td>部署判定</td><td>22</td><td>「部署的是不是新代码」探针自检：<strong>正反双向</strong>（新代码判新 / 旧行为判旧）+ <strong>无密码时降级判定</strong> + 参数异常</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
-          <tr><td colspan="2"><strong>合计 12 套</strong></td><td><strong>355</strong></td><td colspan="2" class="ok"><span class="pass">✅ 全部通过 · 0 失败</span></td></tr>
+          <tr><td><code>imagecompose.test.cjs</code></td><td>发布契约</td><td>72</td><td>「拉预构建镜像」这条路不变量：<strong>多架构构建 + 推送 GHCR + 冒烟启动容器</strong>、镜像编排<strong>不得含 build:</strong>、两条部署路径不得漂移、<strong>反向验证自检脚本能抓到护栏被拆</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td colspan="2"><strong>合计 13 套</strong></td><td><strong>427</strong></td><td colspan="2" class="ok"><span class="pass">✅ 全部通过 · 0 失败</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -839,7 +840,7 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
     <div class="tip">
       <span class="em">🧪</span>
       <span>
-        <b>如何复跑</b>：项目根目录执行 <code>node test/run-all.cjs</code> 可一次跑完全部 12 套
+        <b>如何复跑</b>：项目根目录执行 <code>node test/run-all.cjs</code> 可一次跑完全部 13 套
         （它会自动用「临时 config + 临时 uploads」拉起隔离实例，端口 8633，不碰真实数据）；
         也可只跑某几套，如 <code>node test/run-all.cjs ui-backup</code>（按文件名过滤），
         或单独跑 <code>node test/discover.test.js</code>。

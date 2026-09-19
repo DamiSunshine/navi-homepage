@@ -14,6 +14,7 @@ const DOCS_DIR = path.join(__dirname, "..", "docs");
 const DOCS = [
   ["fnos-deploy-guide.html", "Navi-飞牛fnOS部署指南.pdf"],
   ["docker-guide.html", "Navi-Docker部署指南.pdf"],
+  ["image-deploy-guide.html", "Navi-拉取镜像部署指南.pdf"],
 ];
 
 (async () => {

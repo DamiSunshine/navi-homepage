@@ -1,19 +1,38 @@
 # ============================================================
-# Navi · 源码构建模式（默认）
+# Navi · 纯拉取模式（不构建，直接用预构建镜像）
 #
-#   本文件会先在本机构建镜像（build: .），改完代码重建就走这里。
-#   若目标机器不想构建、希望直接拉预构建镜像，改用同目录的
-#   docker-compose.image.yml（两者是二选一的关系，靠 -f 切换）：
-#     docker compose -f docker-compose.image.yml up -d
+#   适用：目标机器不想/不能构建镜像时使用。
+#   镜像由 GitHub Actions 在每次打 tag 时自动构建并推送到 GHCR
+#   （见 .github/workflows/docker-publish.yml），支持 amd64 与 arm64。
+#
+#   用法（与 docker-compose.yml 是「二选一」的关系，靠 -f 切换）：
+#     ① 首次初始化数据目录（见下方"首次初始化"，只需做一次）
+#     ② docker compose -f docker-compose.image.yml pull     # 先取最新镜像
+#     ③ docker compose -f docker-compose.image.yml up -d
+#
+#   ★ 首次初始化：宿主机 data/config.json 必须先存在，
+#     因为 ./data:/app/data 会遮住镜像内置的示例配置，缺文件会让服务启动即失败。
+#       mkdir -p data
+#       docker run --rm ghcr.io/mijunyi/navi-homepage:latest \
+#         cat /app/data/config.json > data/config.json
+#     或直接从源码仓库取示例：cp public/config.example.json data/config.json
+#
+#   本文件必须是「无 build: 键」的 —— 有 build: 时 compose 会去构建，
+#   就回到了源码构建那条路。scripts/check-compose.cjs 会强制校验这一点。
 # ============================================================
 services:
   navi:
-    # 注意：下面这个 image: 只是给「本地构建出来的镜像」起个名字，
-    # 不是远程仓库地址，docker 不会去任何地方拉取它。
-    build: .
-    image: navi:latest
+    # 镜像地址可用环境变量覆盖：
+    #   NAVI_IMAGE  —— 换用 GHCR 镜像站 / 自建代理时很有用（国内直连 ghcr.io 常不通）
+    #   NAVI_TAG    —— 固定版本（如 1.2.3）可避免 latest 漂移
+    # 例：NAVI_IMAGE=ghcr.nju.edu.cn/mijunyi/navi-homepage docker compose -f ... up -d
+    image: ${NAVI_IMAGE:-ghcr.io/mijunyi/navi-homepage}:${NAVI_TAG:-latest}
     container_name: navi
     restart: unless-stopped
+    # 想让每次 up 都去远端核对一次镜像，可取消下面这行注释。
+    # 默认策略下 Docker 会复用本地已有镜像，:latest 就可能在不知不觉中变旧 ——
+    # 所以更推荐用上面的 `docker compose pull` 显式升级。
+    # pull_policy: always
     environment:
       # 可选：覆盖站点标题 / 副标题（仅展示层生效，不写回配置）
       - SITE_TITLE=dami
@@ -29,8 +48,7 @@ services:
       # - NAVI_PASSWORD_HASH=你的sha256哈希
       # 会话有效期（小时），默认 72
       - SESSION_TTL_HOURS=72
-      # 数据目录：把“写文件”从镜像内置目录迁移到挂载的 /app/data（可写、可持久化）
-      # 配置从这里读写，避免直接污染镜像内的 public/config.json
+      # 数据目录：把"写文件"从镜像内置目录迁移到挂载的 /app/data（可写、可持久化）
       - NAVI_CONFIG_PATH=/app/data/config.json
       - NAVI_UPLOAD_DIR=/app/data/uploads
       # ---- 服务发现（可选）----
@@ -38,9 +56,6 @@ services:
       # 注意：socket 会让容器拥有等价于宿主机 root 的 Docker 控制权，
       #      仅在可信环境开启；不挂载则自动退化为扫描本机监听端口。
       # - DOCKER_SOCKET=/var/run/docker.sock
-      # 也可改用远程 Docker API（TCP）而不用挂 socket：
-      # - DOCKER_HOST_NAME=192.168.1.10
-      # - DOCKER_HOST_PORT=2375
       # 内网 / 外网地址基址（不设则自动探测；外网不设时用内网地址兜底）
       # - NAVI_LAN_HOST=192.168.1.10
       # - NAVI_WAN_HOST=nav.example.com
@@ -49,14 +64,11 @@ services:
     ports:
       # IPv4 + IPv6 双栈发布（Docker 默认即绑定双栈，若宿主机启用了 IPv6 会同时监听 :::8080）
       - "8080:80"
-      # 如需强制显式 IPv6 映射，可改为：
-      # - "0.0.0.0:8080:80"
-      # - "[::]:8080:80"
     volumes:
       # 整目录挂载（关键！）：改为挂载整个数据目录而非单个 config.json。
-      # 单文件挂载下写配置会走“跨挂载点 rename”，在部分平台（如飞牛 NAS）触发
+      # 单文件挂载下写配置会走"跨挂载点 rename"，在部分平台（如飞牛 NAS）触发
       # EBUSY/EXDEV 保存失败；整目录挂载 rename 发生在同一挂载点内，天然规避此问题。
-      # 首次启动请先在宿主机放一份 config.json（可拷贝 public/config.example.json）。
+      # 首次启动前请确保宿主机 data/config.json 已存在（见文件头「首次初始化」）。
       - ./data:/app/data
       # 服务发现所需的 Docker Socket（可选，按需取消注释；见上方安全提示）
       # - /var/run/docker.sock:/var/run/docker.sock:ro

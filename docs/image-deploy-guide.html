@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Navi 导航站 · 拉取镜像部署指南</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    color: #1f2937; font-size: 10.5pt; line-height: 1.75;
+    background: #fff;
+  }
+
+  /* ---------- 封面 ---------- */
+  .cover {
+    min-height: 235mm;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center;
+  }
+  .cover .logo {
+    width: 84px; height: 84px; margin-bottom: 26px;
+    display: grid; place-items: center;
+    color: #2563eb;
+    background: linear-gradient(135deg, #dbeafe, #ccfbf1);
+    border-radius: 22px;
+  }
+  .cover .logo svg { width: 44px; height: 44px; }
+  .cover h1 {
+    font-size: 30pt; font-weight: 800; letter-spacing: 1px;
+    background: linear-gradient(90deg, #2563eb, #0d9488);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .cover .sub { margin-top: 12px; font-size: 13pt; color: #6b7280; letter-spacing: 3px; }
+  .cover .meta {
+    margin-top: 54px; font-size: 9.5pt; color: #9ca3af; line-height: 2;
+  }
+  .cover .badge {
+    display: inline-block; margin-top: 18px; padding: 5px 16px;
+    border: 1px solid #bfdbfe; border-radius: 999px;
+    color: #2563eb; font-size: 9pt; letter-spacing: 1px;
+  }
+
+  /* ---------- 正文 ---------- */
+  h2 {
+    font-size: 15pt; font-weight: 700; color: #111827;
+    margin: 24px 0 10px; padding-left: 12px;
+    border-left: 4px solid #2563eb;
+  }
+  h3 {
+    font-size: 11.5pt; font-weight: 700; color: #1f2937;
+    margin: 16px 0 6px;
+  }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0 6px 22px; }
+  li { margin: 3px 0; }
+  strong { color: #111827; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code.inline {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9pt;
+    background: #f1f5f9; color: #be123c;
+    padding: 1px 6px; border-radius: 4px;
+  }
+  pre {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 8.8pt; line-height: 1.6;
+    background: #0f172a; color: #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  pre .c { color: #64748b; }
+  pre .k { color: #7dd3fc; }
+  pre .s { color: #86efac; }
+
+  .tip, .warn, .danger {
+    border-radius: 8px; padding: 10px 14px; margin: 10px 0;
+    font-size: 9.5pt;
+  }
+  .tip { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e40af; }
+  .warn { background: #fff7ed; border-left: 4px solid #f97316; color: #9a3412; }
+  .danger { background: #fef2f2; border-left: 4px solid #dc2626; color: #991b1b; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9.5pt;
+  }
+  th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; font-weight: 700; }
+  td code { font-family: Consolas, monospace; font-size: 8.8pt; color: #be123c; }
+
+  .step {
+    display: flex; gap: 10px; margin: 14px 0 4px; align-items: baseline;
+  }
+  .step .no {
+    flex: none; width: 24px; height: 24px;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, #2563eb, #0d9488);
+    color: #fff; font-weight: 700; font-size: 10pt;
+    border-radius: 50%;
+  }
+  .step .t { font-weight: 700; font-size: 11.5pt; color: #111827; }
+
+  .toc {
+    background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px;
+    padding: 14px 20px; margin: 18px 0;
+  }
+  .toc h3 { margin: 0 0 8px; font-size: 11pt; }
+  .toc ol { margin-left: 20px; font-size: 9.8pt; }
+  .toc li { margin: 2px 0; }
+
+  .check li { list-style: none; margin-left: -18px; }
+  .check li::before { content: "☐ "; color: #9ca3af; }
+
+  .footer-note {
+    margin-top: 30px; padding-top: 10px; border-top: 1px solid #e5e7eb;
+    font-size: 9pt; color: #9ca3af; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== 封面 ==================== -->
+<div class="cover">
+  <span class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+      <line x1="12" y1="22.08" x2="12" y2="12"></line>
+    </svg>
+  </span>
+  <h1>Navi 个人导航站</h1>
+  <p class="sub">拉取镜像部署指南</p>
+  <p><span class="badge">无需构建 · 无需源码 · 双架构 · 一条 pull 命令搞定</span></p>
+  <div class="meta">
+    适用环境：任意 Linux + Docker（x86_64 / arm64）<br>
+    镜像地址：ghcr.io/mijunyi/navi-homepage<br>
+    文档日期：2026 年 9 月 19 日
+  </div>
+</div>
+
+<!-- ==================== 目录 ==================== -->
+<div class="toc">
+  <h3>目录</h3>
+  <ol>
+    <li><a href="#s1">这份指南解决什么问题</a></li>
+    <li><a href="#s2">部署前必读：三条硬规则</a></li>
+    <li><a href="#s3">前提一：镜像已经存在（如何发布第一个版本）</a></li>
+    <li><a href="#s4">前提二：包可见性与登录凭据</a></li>
+    <li><a href="#s5">前提三：网络能到得了镜像仓库</a></li>
+    <li><a href="#s6">前提四：CPU 架构与容器运行时</a></li>
+    <li><a href="#s7">部署步骤（命令行，推荐）</a></li>
+    <li><a href="#s8">部署步骤（图形界面 / NAS）</a></li>
+    <li><a href="#s9">首次访问与验证</a></li>
+    <li><a href="#s10">升级、回滚与固定版本</a></li>
+    <li><a href="#s11">常见问题与排查</a></li>
+    <li><a href="#s12">部署检查清单</a></li>
+    <li><a href="#s13">命令速查</a></li>
+  </ol>
+</div>
+
+<!-- ==================== 1 ==================== -->
+<h2 id="s1">1. 这份指南解决什么问题</h2>
+
+<p>本项目有两种拿到镜像的方式，本指南只讲第二种（更省事的那种）：</p>
+
+<table>
+  <tr><th style="width:22%">方式</th><th style="width:38%">目标机器要做什么</th><th>适合</th></tr>
+  <tr>
+    <td><strong>源码构建</strong><br><span style="color:#6b7280">docker-compose.yml</span></td>
+    <td>拿到源码 → <code>docker build</code>（需联网拉 <code>node:22-alpine</code>）</td>
+    <td>你想改代码、或镜像源被墙得厉害</td>
+  </tr>
+  <tr>
+    <td><strong>拉取镜像</strong><br><span style="color:#6b7280">docker-compose.image.yml</span></td>
+    <td>只需 <code>docker pull</code></td>
+    <td>不想装构建环境、不想传源码、要在多台机器上重复部署</td>
+  </tr>
+</table>
+
+<p>镜像由 <strong>GitHub Actions 在打 tag 时自动构建</strong>并推送到 GitHub 的镜像仓库 <strong>GHCR</strong>
+（<code class="inline">ghcr.io</code>），同时产出 <code class="inline">linux/amd64</code> 与
+<code class="inline">linux/arm64</code> 两种架构。整个构建过程跑在 GitHub 的机器上，<strong>你本地不需要装 Docker</strong>。</p>
+
+<div class="tip"><strong>一个必须先澄清的概念：</strong>代码仓库 <code class="inline">github.com/mijunyi/navi-homepage</code>
+<strong>不是镜像仓库</strong>，不能直接 <code>docker pull</code>。GitHub 提供的镜像托管是另一个服务
+<code class="inline">ghcr.io</code>。源码推上去了 ≠ 镜像就有了——镜像需要额外发布一次（见第 3 节）。</div>
+
+<!-- ==================== 2 ==================== -->
+<h2 id="s2">2. 部署前必读：三条硬规则</h2>
+
+<p>下面三点如果忽略，会分别导致「拉不到镜像」「容器起不来」「站点裸奔」。</p>
+
+<table>
+  <tr><th style="width:26%">硬规则</th><th>原因与做法</th></tr>
+  <tr>
+    <td><strong>① 先确保 data/config.json 已存在</strong></td>
+    <td>编排文件挂载的是整个 <code>./data</code> 目录，这会<strong>遮住镜像内置的示例配置</strong>。
+      宿主机上若没有 <code>data/config.json</code>，服务启动时会因读不到配置而失败。<br>
+      ✅ 第 7 节的第 1 步就是从镜像里把示例配置导出来，先做这一步。</td>
+  </tr>
+  <tr>
+    <td><strong>② 必须提供访问密码</strong></td>
+    <td>编排文件用的是 <code class="inline">${NAVI_PASSWORD:?...}</code> 强制校验：<strong>缺少该变量时 compose 会直接报错退出</strong>。
+      这是刻意设计——避免静默退化成「无密码开放访问」（任何拿到地址的人都能进编辑模式改你的配置）。<br>
+      做法：在编排文件同目录放一份 <code>.env</code>。</td>
+  </tr>
+  <tr>
+    <td><strong>③ 升级时要显式 pull</strong></td>
+    <td>Docker 默认会复用本地已有镜像。<code>up -d</code> 不会自动去远端核对 <code>latest</code>，
+      <strong>你会在不知情的情况下一直跑旧版本</strong>。升级请先 <code>docker compose ... pull</code>，或固定版本号（见第 10 节）。</td>
+  </tr>
+</table>
+
+<div class="warn"><strong>数据安全：</strong>镜像只是程序，随时可以换；真正不可再生的只有 <code>data/</code>
+目录（<code>config.json</code> + 上传的图片）。升级、重建容器都<strong>不会</strong>动它。
+升级前建议先备份：<code class="inline">tar czf navi-data-$(date +%F).tar.gz -C ./data .</code></div>
+
+<!-- ==================== 3 ==================== -->
+<h2 id="s3">3. 前提一：镜像已经存在（如何发布第一个版本）</h2>
+
+<p>镜像由仓库里的工作流 <code class="inline">.github/workflows/docker-publish.yml</code> 构建。
+它有三个触发入口，对应三种不同的产物：</p>
+
+<table>
+  <tr><th style="width:30%">触发方式</th><th>产出的标签</th><th>用途</th></tr>
+  <tr>
+    <td>推送 <code>main</code> 分支</td>
+    <td><code>edge</code></td>
+    <td>开发中的最新代码，<strong>不会</strong>动 <code>latest</code>，避免污染别人的部署</td>
+  </tr>
+  <tr>
+    <td>打 tag，形如 <code>v1.2.3</code></td>
+    <td><code>1.2.3</code>、<code>1.2</code>、<code>latest</code></td>
+    <td>正式发布。只有这条路径会更新 <code>latest</code></td>
+  </tr>
+  <tr>
+    <td>Actions 页面手动触发（Run workflow）</td>
+    <td>同 <code>main</code> → <code>edge</code></td>
+    <td>不需要改代码，只想立刻构建一次</td>
+  </tr>
+</table>
+
+<div class="warn"><strong>如果现在去 pull 报 <code>manifest unknown</code> 或 <code>not found</code>，
+通常就是「镜像还没发布过」。</strong>按下面任一方式让工作流先跑一次：</div>
+
+<div class="step"><span class="no">A</span><span class="t">手动触发一次（最快，不需要动代码）</span></div>
+<ol>
+  <li>打开 <code class="inline">https://github.com/mijunyi/navi-homepage/actions</code></li>
+  <li>左栏选「构建并发布镜像（GHCR）」</li>
+  <li>右上角 <strong>Run workflow</strong> → 分支选 <code>main</code> → 点绿色按钮</li>
+  <li>等 3～8 分钟（首次要构建两种架构，之后有缓存会快很多）</li>
+  <li>看到两个作业都打勾即可，此时 <code>ghcr.io/mijunyi/navi-homepage:edge</code> 已经可以拉取</li>
+</ol>
+
+<div class="step"><span class="no">B</span><span class="t">打一个正式版本标签</span></div>
+<pre><span class="c"># 在源码仓库里执行（本项目已配好 SSH 通道）</span>
+git tag v1.0.0
+git push origin v1.0.0</pre>
+<p>推送后工作流会自动构建并产出 <code>1.0.0</code> / <code>1.0</code> / <code>latest</code> 三个标签。</p>
+
+<div class="tip"><strong>工作流里的冒烟验证：</strong>构建完成后还有一个独立作业会
+<strong>真实启动一次容器</strong>，校验镜像架构、暴露端口、声明数据卷，并请求 <code>/api/health</code>
+确认返回 <code>"ok":true</code>。所以「作业全绿」意味着这个镜像确实跑得起来，而不只是构建成功。</div>
+
+<!-- ==================== 4 ==================== -->
+<h2 id="s4">4. 前提二：包可见性与登录凭据</h2>
+
+<p>GHCR 上的包有自己的可见性，<strong>与代码仓库的可见性不完全联动</strong>。首次推送后请确认一次。</p>
+
+<table>
+  <tr><th style="width:24%">包的可见性</th><th>目标机器需要什么</th></tr>
+  <tr>
+    <td><strong>public（推荐）</strong></td>
+    <td>无需任何凭据，直接 <code>docker pull</code>。私有化部署场景下这是最省事的</td>
+  </tr>
+  <tr>
+    <td>private</td>
+    <td>必须先登录：<code>docker login ghcr.io -u 你的GitHub用户名</code>，密码填一个带 <code>read:packages</code>
+      权限的访问令牌（注意：<strong>不是账号登录密码</strong>）</td>
+  </tr>
+</table>
+
+<div class="step"><span class="no">1</span><span class="t">把包改成 public</span></div>
+<p>打开 <code class="inline">https://github.com/users/mijunyi/packages/container/navi-homepage/settings</code>，
+拉到最下方 <strong>Danger Zone → Change package visibility</strong>，选 Public 并确认。</p>
+
+<div class="tip"><strong>怎么判断包当前是不是 private？</strong>在一个没登录过 ghcr.io 的机器上执行
+<code class="inline">docker pull ghcr.io/mijunyi/navi-homepage:edge</code>：
+报 <code>unauthorized</code> 或 <code>denied</code> 就是 private（或不存在），能正常下载就是 public。</div>
+
+<div class="warn"><strong>令牌用错会很迷惑：</strong>「访问令牌」不是登录密码。如果目标机器的 Docker 里
+残留着一份过期的 <code>ghcr.io</code> 凭据，pull 会报 <code>unauthorized</code>，
+而你会以为是包不可见。可用 <code class="inline">docker logout ghcr.io</code> 先清掉再重试。</div>
+
+<!-- ==================== 5 ==================== -->
+<h2 id="s5">5. 前提三：网络能到得了镜像仓库</h2>
+
+<p><code class="inline">ghcr.io</code> 的连通性在国内并不稳定，而且<strong>大多数国内 Docker 镜像加速器
+只加速 Docker Hub，对 ghcr.io 无效</strong>。这是本方案最常见的失败点，请提前确认。</p>
+
+<div class="step"><span class="no">1</span><span class="t">先测一下通不通</span></div>
+<pre>curl -sS -o /dev/null -w <span class="s">"http_code=%{http_code} time=%{time_total}s\n"</span> \
+  --max-time 20 https://ghcr.io/v2/</pre>
+<p>返回 <code>401</code> 是<strong>正常</strong>的（说明连接成功、只是需要认证）；超时或连接被重置才是不通。</p>
+
+<div class="step"><span class="no">2</span><span class="t">不通的话，三种对策</span></div>
+<table>
+  <tr><th style="width:26%">对策</th><th>做法</th></tr>
+  <tr>
+    <td><strong>① 换 GHCR 镜像站</strong><br><span style="color:#6b7280">最省事</span></td>
+    <td>编排文件支持用环境变量覆盖镜像地址，不用改文件：<br>
+      <code>NAVI_IMAGE=镜像站域名/mijunyi/navi-homepage docker compose -f docker-compose.image.yml up -d</code><br>
+      或写进 <code>.env</code>：<code class="inline">NAVI_IMAGE=镜像站域名/mijunyi/navi-homepage</code><br>
+      <span style="color:#9a3412">镜像站的可信度与可用性请自行确认——它会看到你拉取的镜像内容。</span></td>
+  </tr>
+  <tr>
+    <td><strong>② 给 Docker 配代理</strong></td>
+    <td>宿主机有可用的 HTTP 代理时（<code class="inline">http://192.168.1.10:7890</code> 之类）：<br>
+      <code>/etc/systemd/system/docker.service.d/http-proxy.conf</code> 写入
+      <code>Environment="HTTPS_PROXY=http://代理地址:端口"</code>，然后
+      <code>systemctl daemon-reload &amp;&amp; systemctl restart docker</code></td>
+  </tr>
+  <tr>
+    <td><strong>③ 改走跨机导入</strong><br><span style="color:#6b7280">断网也能用</span></td>
+    <td>在一台能联网的机器上 <code>docker pull</code> 后导出成文件：
+      <code>docker save ghcr.io/mijunyi/navi-homepage:edge -o navi.tar.gz</code>，
+      拷到目标机器 <code>docker load -i navi.tar.gz</code>。
+      详见飞牛 fnOS 部署指南的「跨机导入镜像」一节。<br>
+      <strong>注意：源机器与目标机器的 CPU 架构必须一致。</strong></td>
+  </tr>
+</table>
+
+<!-- ==================== 6 ==================== -->
+<h2 id="s6">6. 前提四：CPU 架构与容器运行时</h2>
+
+<h3>CPU 架构</h3>
+<p>工作流同时构建两种架构，正常情况 Docker 会自动挑对的那一份。先确认目标机器是哪一种：</p>
+<pre>uname -m       <span class="c"># x86_64 → amd64 ；aarch64 / arm64 → arm64</span></pre>
+<table>
+  <tr><th style="width:26%">目标平台</th><th>架构</th><th>说明</th></tr>
+  <tr><td>常见 x86 PC / 服务器 / 群晖 x86 机型</td><td><code>linux/amd64</code></td><td>默认支持</td></tr>
+  <tr><td>树莓派 4/5、ARM 开发板、Apple Silicon</td><td><code>linux/arm64</code></td><td>默认支持</td></tr>
+</table>
+<div class="danger"><strong>报 <code>no matching manifest for linux/arm64</code> 或容器日志里出现
+<code>exec format error</code></strong>：说明架构不匹配。前者是镜像里没有这个架构的清单
+（检查工作流的 platforms 是否被改过），后者是拉到/导入成了错误架构的镜像（常见于跨机导入）。</div>
+
+<h3>容器运行时</h3>
+<table>
+  <tr><th style="width:26%">运行时</th><th>要求</th></tr>
+  <tr><td><strong>Docker CE</strong>（推荐）</td><td>20.10 及以上。要跑 <code>docker compose -f ...</code> 需 Docker Compose v2（<code>docker compose version</code> 能正常输出版本号）</td></tr>
+  <tr><td>Podman</td><td>可用。compose 部分改用 <code>podman-compose</code>，或直接用第 13 节的
+    <code>podman run</code> 等价命令</td></tr>
+  <tr><td>containerd / nerdctl</td><td>可用，把下文命令里的 <code>docker</code> 换成 <code>nerdctl</code> 即可</td></tr>
+</table>
+<p>镜像基于 <code class="inline">node:22-alpine</code>，体积小、无额外依赖；宿主机<strong>不需要安装 Node.js</strong>，
+也不需要 npm。</p>
+
+<!-- ==================== 7 ==================== -->
+<h2 id="s7">7. 部署步骤（命令行，推荐）</h2>
+
+<div class="step"><span class="no">1</span><span class="t">建立目录并导出初始配置</span></div>
+<pre><span class="c"># 选一个位置，示例用 /opt/navi</span>
+mkdir -p /opt/navi/data
+cd /opt/navi
+
+<span class="c"># 从镜像里直接导出示例配置 —— 只依赖镜像仓库，不需要能访问 github.com</span>
+docker run --rm ghcr.io/mijunyi/navi-homepage:latest \
+  cat /app/data/config.json &gt; data/config.json
+
+<span class="c"># 确认导出来了（应是一个几百字节到几 KB 的 JSON）</span>
+ls -l data/config.json</pre>
+
+<div class="tip">如果拉取用的是其它标签，上面的 <code class="inline">:latest</code> 请也跟着换
+（例如只跑过 main 分支的工作流，那就用 <code class="inline">:edge</code>）。</div>
+
+<div class="step"><span class="no">2</span><span class="t">准备 .env（放访问密码）</span></div>
+<pre>cat &gt; .env &lt;&lt;<span class="s">'EOF'</span>
+NAVI_PASSWORD=换成一个足够强的密码
+<span class="c"># 可选：固定版本，避免 latest 漂移</span>
+<span class="c"># NAVI_TAG=1.0.0</span>
+<span class="c"># 可选：国内换用 GHCR 镜像站</span>
+<span class="c"># NAVI_IMAGE=镜像站域名/mijunyi/navi-homepage</span>
+<span class="s">EOF</span>
+
+chmod 600 .env        <span class="c"># 密码文件不要给别人读</span></pre>
+<div class="warn"><strong>想更彻底一点</strong>（连 .env 里都不放明文密码）：改用哈希。注意服务端比对的是
+<code class="inline">sha256("navi-site:" + 密码)</code>，<strong>必须带 <code>navi-site:</code> 前缀</strong>，
+用裸 sha256 会永远登录失败且不报错：
+<pre>node -e <span class="s">"console.log(require('crypto').createHash('sha256').update('navi-site:'+process.argv[1]).digest('hex'))"</span> <span class="s">'你的密码'</span></pre>
+然后把它写成 <code class="inline">NAVI_PASSWORD_HASH=...</code>，并删掉 <code class="inline">NAVI_PASSWORD</code> 那一行。</div>
+
+<div class="step"><span class="no">3</span><span class="t">拿到编排文件</span></div>
+<p>把源码仓库里的 <code class="inline">docker-compose.image.yml</code> 放到 <code>/opt/navi/</code>：
+</p>
+<pre><span class="c"># 有源码仓库时直接拷；没有的话从网页下载这一个文件即可</span>
+<span class="c"># https://github.com/mijunyi/navi-homepage/blob/main/docker-compose.image.yml</span>
+cp /path/to/repo/docker-compose.image.yml .</pre>
+
+<div class="step"><span class="no">4</span><span class="t">先 pull，再启动</span></div>
+<pre>docker compose -f docker-compose.image.yml pull
+docker compose -f docker-compose.image.yml up -d</pre>
+<div class="warn"><strong>这步顺序不能省。</strong>直接 <code>up -d</code> 也能起，但 Docker 会优先用本地已有的同名镜像——
+升级场景下你会以为更新了，其实跑的还是旧的。</div>
+
+<div class="step"><span class="no">5</span><span class="t">确认起来了</span></div>
+<pre>docker compose -f docker-compose.image.yml ps
+docker logs --tail 30 navi
+curl -s http://127.0.0.1:8080/api/health</pre>
+<p>健康接口应返回形如 <code class="inline">{"ok":true,"ipv6":true,"authEnabled":true}</code>。
+看到 <code class="inline">"authEnabled":true</code> 说明密码保护已生效。</p>
+
+<!-- ==================== 8 ==================== -->
+<h2 id="s8">8. 部署步骤（图形界面 / NAS）</h2>
+
+<p>在飞牛 fnOS、群晖等 NAS 上，用图形界面创建「Compose 项目」更顺手。要点如下：</p>
+
+<div class="step"><span class="no">1</span><span class="t">把 docker-compose.image.yml 的内容粘进编辑器</span></div>
+<p>注意 <strong>NAS 的图形界面通常不支持构建</strong>——而这正好是纯拉取编排的强项：它本来就不需要构建，
+所以比源码构建模式在 NAS 上更顺。</p>
+
+<div class="step"><span class="no">2</span><span class="t">记住两条 YAML 铁律</span></div>
+<ul>
+  <li>同级 <code class="inline">-</code> 必须对齐在同一列；取消注释时最常犯的错就是多删或少删了空格。</li>
+  <li>同时改多行时，别只改一部分——<strong>缩进比同级深一格不会报错</strong>，而是被折进上一条，
+    结果是变量静默失效，部署后表现为「设了却不生效」，极难排查。</li>
+</ul>
+<p>改完可用项目里的自检脚本在线下验一遍（它会解析出真正生效的 environment 并标出被折叠的值）：</p>
+<pre>node scripts/check-compose.cjs docker-compose.image.yml</pre>
+
+<div class="step"><span class="no">3</span><span class="t">数据目录要指向宿主机真实路径</span></div>
+<p>图形界面里 <code class="inline">./data</code> 可能被解释到别处。建议直接写成绝对路径，
+并先把 <code>config.json</code> 放进去：</p>
+<pre>- /vol1/1000/docker/navi/data:/app/data</pre>
+
+<div class="step"><span class="no">4</span><span class="t">密码变量怎么给</span></div>
+<p>图形界面一般没有 <code>.env</code> 的概念，两种做法：把 <code class="inline">${NAVI_PASSWORD:?...}</code>
+整行替换成 <code class="inline">- NAVI_PASSWORD=你的密码</code>（注意别把这个文件提交到任何仓库），
+或者把 <code>.env</code> 和编排文件放同一目录（多数 NAS 的 Compose 项目会读取同目录 .env）。</p>
+
+<div class="step"><span class="no">5</span><span class="t">容器属主问题</span></div>
+<p>容器以 root 运行，写入 <code>data/</code> 的文件属主会是 <code>root:root</code>，
+NAS 的文件管理器（通常是 UID 1000）可能改不动。需要时执行：</p>
+<pre>chown -R 1000:1000 /vol1/1000/docker/navi/data</pre>
+
+<!-- ==================== 9 ==================== -->
+<h2 id="s9">9. 首次访问与验证</h2>
+
+<table>
+  <tr><th style="width:30%">检查项</th><th>命令</th><th style="width:26%">预期</th></tr>
+  <tr><td>容器在跑</td><td><code>docker ps | grep navi</code></td><td>状态 Up</td></tr>
+  <tr><td>健康接口</td><td><code>curl -s http://127.0.0.1:8080/api/health</code></td><td><code>"ok":true</code></td></tr>
+  <tr><td>需要登录</td><td>浏览器打开 <code>http://宿主机IP:8080</code></td><td>跳转到登录页</td></tr>
+  <tr><td>数据落盘</td><td><code>ls -l data/</code></td><td>保存一次后 <code>config.json</code> 的修改时间更新</td></tr>
+  <tr><td>确认跑的是新代码</td><td><code>node scripts/check-deploy.cjs http://IP:8080 密码</code></td><td>退出码 0</td></tr>
+</table>
+
+<p>登录后进入编辑模式，任意改一处再保存，然后检查 <code>data/config.json</code> 是否有变化——
+这能一次性验证「挂载正确 + 权限可写」，比看日志更直接。</p>
+
+<!-- ==================== 10 ==================== -->
+<h2 id="s10">10. 升级、回滚与固定版本</h2>
+
+<h3>升级到新版</h3>
+<pre>cd /opt/navi
+docker compose -f docker-compose.image.yml pull
+docker compose -f docker-compose.image.yml up -d</pre>
+<p><code>data/</code> 是路径挂载，Docker 不管它的生命周期，
+<strong>重建容器不会动你的导航数据与图片</strong>。想更保险就先备份：</p>
+<pre>tar czf navi-data-$(date +%F).tar.gz -C ./data .</pre>
+
+<h3>固定版本（生产环境推荐）</h3>
+<p><code class="inline">latest</code> 会随每次发版移动，多台机器之间容易出现版本不一致。建议在
+<code>.env</code> 里钉住版本号：</p>
+<pre>NAVI_TAG=1.0.0</pre>
+
+<h3>回滚</h3>
+<pre><span class="c"># 把 NAVI_TAG 改回上一个版本号，然后</span>
+docker compose -f docker-compose.image.yml pull
+docker compose -f docker-compose.image.yml up -d</pre>
+<p>回滚只换程序，<strong>不会</strong>回滚数据。如果新版改过配置结构，回滚前请用
+页面里的「备份」功能导出一份旧数据。</p>
+
+<h3>彻底卸载</h3>
+<pre>docker compose -f docker-compose.image.yml down
+<span class="c"># 镜像可以删；data/ 目录请自行确认后再删（那是你唯一的真实数据）</span>
+docker rmi ghcr.io/mijunyi/navi-homepage:latest</pre>
+
+<!-- ==================== 11 ==================== -->
+<h2 id="s11">11. 常见问题与排查</h2>
+
+<table>
+  <tr><th style="width:26%">现象</th><th style="width:34%">原因</th><th>处理</th></tr>
+  <tr>
+    <td><code>manifest unknown</code> / <code>not found</code></td>
+    <td>镜像还没发布过（工作流一次都没跑成功）</td>
+    <td>去 Actions 手动触发一次，见第 3 节</td>
+  </tr>
+  <tr>
+    <td><code>unauthorized</code> / <code>denied</code></td>
+    <td>包是 private；或本机残留了过期的 ghcr 凭据</td>
+    <td>把包改成 public；或 <code>docker logout ghcr.io</code> 后重新登录</td>
+  </tr>
+  <tr>
+    <td><code>dial tcp ... i/o timeout</code></td>
+    <td>网络到不了 ghcr.io</td>
+    <td>第 5 节三种对策：镜像站 / 代理 / 跨机导入</td>
+  </tr>
+  <tr>
+    <td><code>no matching manifest for linux/arm64</code></td>
+    <td>镜像里没有该架构的清单</td>
+    <td>确认工作流 platforms 仍含 <code>linux/amd64,linux/arm64</code></td>
+  </tr>
+  <tr>
+    <td>容器日志 <code>exec format error</code></td>
+    <td>镜像架构与宿主机不符（多为跨机导入导致）</td>
+    <td>重新拉取对应架构，或改用同架构机器导出</td>
+  </tr>
+  <tr>
+    <td>compose 报 <code>NAVI_PASSWORD is required</code></td>
+    <td>没有提供密码变量</td>
+    <td>补 <code>.env</code> 或在编排文件里显式写 <code>NAVI_PASSWORD=</code></td>
+  </tr>
+  <tr>
+    <td>容器启动后立刻退出，日志有 <code>ENOENT</code></td>
+    <td>宿主机 <code>data/config.json</code> 不存在（挂载遮住了镜像内置示例）</td>
+    <td>执行第 7 节第 1 步导出配置</td>
+  </tr>
+  <tr>
+    <td>页面能打开，但点「保存」失败</td>
+    <td>挂载方式不是整目录（图形界面可能改写成单文件挂载）</td>
+    <td>改回 <code>./data:/app/data</code>，不要挂单个 config.json</td>
+  </tr>
+  <tr>
+    <td>改了代码/重建了容器，页面还是老样子</td>
+    <td>浏览器强缓存</td>
+    <td>先 <code>Ctrl+F5</code>；仍不对再跑 <code>node scripts/check-deploy.cjs</code> 定性</td>
+  </tr>
+  <tr>
+    <td><code>pull</code> 完还是旧版本</td>
+    <td>Docker 复用了本地镜像，或 compose 缓存了镜像 ID</td>
+    <td><code>docker compose -f docker-compose.image.yml down</code> 后再 <code>pull</code> + <code>up -d</code></td>
+  </tr>
+  <tr>
+    <td>工作流红了，提示 <code>invalid reference format</code></td>
+    <td>GHCR 镜像名必须全小写</td>
+    <td>工作流里有小写转换步骤，检查它是否被删掉</td>
+  </tr>
+  <tr>
+    <td>工作流里登录 ghcr.io 失败</td>
+    <td>缺少 <code>packages: write</code> 权限</td>
+    <td>确认工作流顶部的 <code>permissions</code> 仍是 <code>packages: write</code></td>
+  </tr>
+</table>
+
+<!-- ==================== 12 ==================== -->
+<h2 id="s12">12. 部署检查清单</h2>
+
+<ul class="check">
+  <li>目标机器能 <code>curl</code> 通 <code>https://ghcr.io/v2/</code>（返回 401 也算通）</li>
+  <li>确认过包可见性（public 无需登录，private 需 <code>docker login</code>）</li>
+  <li>确认过 CPU 架构：<code>uname -m</code> 与镜像提供的架构对得上</li>
+  <li><code>data/config.json</code> 已在宿主机就位</li>
+  <li><code>.env</code> 里有 <code>NAVI_PASSWORD</code>（或哈希），且文件权限为 600</li>
+  <li>用的是「整目录挂载」<code>./data:/app/data</code>，不是单个 config.json</li>
+  <li>执行过 <code>docker compose -f docker-compose.image.yml pull</code></li>
+  <li><code>docker compose -f docker-compose.image.yml up -d</code> 后 <code>/api/health</code> 返回 <code>"ok":true</code></li>
+  <li>浏览器能打开并跳转登录页，登录后保存一次确认数据真的落盘</li>
+  <li>（生产）已把 <code>NAVI_TAG</code> 固定到具体版本号</li>
+  <li>已做过一次数据备份：<code>tar czf navi-data-$(date +%F).tar.gz -C ./data .</code></li>
+</ul>
+
+<!-- ==================== 13 ==================== -->
+<h2 id="s13">13. 命令速查</h2>
+
+<pre><span class="c"># 查看目标机器架构</span>
+uname -m
+
+<span class="c"># 测试镜像仓库连通性（401 = 通）</span>
+curl -sS -o /dev/null -w <span class="s">"%{http_code}\n"</span> --max-time 20 https://ghcr.io/v2/
+
+<span class="c"># 首次：建目录 + 导出初始配置</span>
+mkdir -p /opt/navi/data &amp;&amp; cd /opt/navi
+docker run --rm ghcr.io/mijunyi/navi-homepage:latest cat /app/data/config.json &gt; data/config.json
+
+<span class="c"># 启动 / 升级</span>
+docker compose -f docker-compose.image.yml pull
+docker compose -f docker-compose.image.yml up -d
+
+<span class="c"># 看状态与日志</span>
+docker compose -f docker-compose.image.yml ps
+docker logs --tail 50 navi
+
+<span class="c"># 健康检查</span>
+curl -s http://127.0.0.1:8080/api/health
+
+<span class="c"># 换镜像站 / 固定版本（也可写进 .env）</span>
+NAVI_IMAGE=镜像站域名/mijunyi/navi-homepage NAVI_TAG=1.0.0 \
+  docker compose -f docker-compose.image.yml up -d
+
+<span class="c"># 备份数据</span>
+tar czf navi-data-$(date +%F).tar.gz -C ./data .
+
+<span class="c"># 回滚到指定版本</span>
+NAVI_TAG=1.0.0 docker compose -f docker-compose.image.yml pull
+NAVI_TAG=1.0.0 docker compose -f docker-compose.image.yml up -d
+
+<span class="c"># 不用 compose 的等价写法</span>
+docker run -d --name navi --restart unless-stopped \
+  -p 8080:80 \
+  -e NAVI_PASSWORD=你的密码 \
+  -e NAVI_CONFIG_PATH=/app/data/config.json \
+  -e NAVI_UPLOAD_DIR=/app/data/uploads \
+  -v /opt/navi/data:/app/data \
+  ghcr.io/mijunyi/navi-homepage:latest
+
+<span class="c"># 卸载（保留数据目录）</span>
+docker compose -f docker-compose.image.yml down
+
+<span class="c"># 收集排查信息</span>
+docker compose -f docker-compose.image.yml config</pre>
+
+<div class="tip"><strong>相关文档：</strong>
+源码构建与通用 Docker 说明见 <code class="inline">docs/docker-guide.html</code>；
+飞牛 fnOS 专有差异（存储路径、图形界面限制、文件属主、跨机导入）见
+<code class="inline">docs/fnos-deploy-guide.html</code>。</div>
+
+<div class="footer-note">
+  Navi 个人导航站 · 拉取镜像部署指南 · 2026-09-19<br>
+  镜像由 GitHub Actions 自动构建并发布至 GHCR，含 linux/amd64 与 linux/arm64
+</div>
+
+</body>
+</html>

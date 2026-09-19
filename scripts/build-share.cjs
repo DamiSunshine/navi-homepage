@@ -45,7 +45,7 @@ for (const s of shots) {
 }
 
 // 5. 部署指南 HTML
-for (const h of ['docker-guide.html', 'fnos-deploy-guide.html']) {
+for (const h of ['docker-guide.html', 'fnos-deploy-guide.html', 'image-deploy-guide.html']) {
   fs.copyFileSync(path.join(ROOT, 'docs', h), path.join(OUT, 'docs', h));
 }
 
@@ -55,6 +55,7 @@ for (const h of ['docker-guide.html', 'fnos-deploy-guide.html']) {
 const pdfs = [
   ['Navi-飞牛fnOS部署指南.pdf', 'Navi-fnOS-deploy-guide.pdf'],
   ['Navi-Docker部署指南.pdf', 'Navi-docker-deploy-guide.pdf'],
+  ['Navi-拉取镜像部署指南.pdf', 'Navi-image-deploy-guide.pdf'],
 ];
 function pickNewestPdf(zh) {
   const cands = [zh, zh.replace(/\.pdf$/i, '-new.pdf')]
