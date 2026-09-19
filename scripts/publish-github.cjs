@@ -289,6 +289,31 @@ console.log(USE_SSH
   ? "   （SSH 地址不含任何密钥，私钥只留在本机 ~/.ssh/ 下）"
   : "   （remote 里存的是不含令牌的干净地址，令牌不会被写进 .git/config）");
 
+// SSH 模式：把 git 要用的 ssh 可执行文件固定下来。
+// 便携版 git 不在 PATH 里，自己找不到 ssh，不写这一条会报 "cannot run ssh"。
+if (USE_SSH && !DRY_RUN) {
+  const hasSshCmd = gitOk(["config", "--local", "--get", "core.sshCommand"]).code === 0;
+  if (!hasSshCmd) {
+    const gitDir = path.dirname(GIT);                       // …/cmd
+    const cand = [
+      path.join(gitDir, "..", "usr", "bin", "ssh.exe"),     // 便携版自带
+      path.join(gitDir, "..", "usr", "bin", "ssh"),
+      "ssh",                                                // 退化到 PATH
+    ].map(function (p) { return p.replace(/\\/g, "/"); });
+    const found = cand.find(function (p) {
+      if (p === "ssh") return true;                          // 交给 PATH 解析
+      try { return fs.statSync(p).isFile(); } catch (e) { return false; }
+    });
+    if (found) {
+      git(["config", "--local", "core.sshCommand", found]);
+      console.log("   · 已固定 core.sshCommand → " + found);
+    }
+  } else {
+    console.log("   · core.sshCommand 已配置：" +
+      git(["config", "--local", "--get", "core.sshCommand"]).trim());
+  }
+}
+
 if (NO_PUSH) {
   console.log("");
   console.log("✅ 本地已完成。想推送时去掉 --no-push 重跑。");
