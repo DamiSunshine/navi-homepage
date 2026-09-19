@@ -346,6 +346,31 @@ git push origin v1.0.0</pre>
   <tr><td>常见 x86 PC / 服务器 / 群晖 x86 机型</td><td><code>linux/amd64</code></td><td>默认支持</td></tr>
   <tr><td>树莓派 4/5、ARM 开发板、Apple Silicon</td><td><code>linux/arm64</code></td><td>默认支持</td></tr>
 </table>
+
+<h3>x86_64 设备：额外确认两点</h3>
+<p>x86_64（<code class="inline">uname -m</code> 输出 <code class="inline">x86_64</code>）是<strong>原生支持</strong>的：
+拉取时 Docker 会自动选中镜像里的 <code class="inline">linux/amd64</code> 那一份，
+<strong>不需要加 <code class="inline">--platform</code></strong>，也不存在任何指令模拟开销。
+但下面两点要先确认，它们和镜像无关，属于宿主机/CPU 层面的硬约束：</p>
+<table>
+  <tr><th style="width:30%">检查项</th><th>要求与自检方式</th></tr>
+  <tr>
+    <td><strong>必须是 64 位</strong></td>
+    <td>本项目只提供 <code>amd64</code>，<strong>没有 32 位 i386 镜像</strong>（Node 22 也没有 32 位 Linux 官方构建）。
+      跑 <code>uname -m</code>：输出 <code>x86_64</code> 才是 64 位；
+      若输出 <code>i386</code> / <code>i686</code> 则<strong>无法部署</strong>，只能换 64 位设备。</td>
+  </tr>
+  <tr>
+    <td><strong>CPU 需支持 SSE4.2</strong></td>
+    <td>这是 Node 运行时（V8 引擎）自 Node 14 起的硬性要求，与镜像本身无关。
+      自检：<code>grep -o sse4_2 /proc/cpuinfo</code>，<strong>有输出</strong>即支持。
+      绝大多数 2008 年之后的机器都满足。</td>
+  </tr>
+</table>
+<div class="warn"><strong>老机器上容器「启动即退出」，日志里是 <code>Illegal instruction</code>（非法指令）</strong>：
+说明 CPU 缺少 SSE4.2。典型是 2008 年前的 Intel（Nehalem 之前）、2011 年前的 AMD（Bulldozer 之前），
+少数低配 VPS 或未开启 CPU 特性透传的虚拟机也会出现。
+这类机器跑不了 Node 22 运行时，<strong>只能更换设备</strong>，或自行用更旧版本的 Node 构建镜像。</div>
 <div class="danger"><strong>报 <code>no matching manifest for linux/arm64</code> 或容器日志里出现
 <code>exec format error</code></strong>：说明架构不匹配。前者是镜像里没有这个架构的清单
 （检查工作流的 platforms 是否被改过），后者是拉到/导入成了错误架构的镜像（常见于跨机导入）。</div>
@@ -522,6 +547,21 @@ docker rmi ghcr.io/mijunyi/navi-homepage:latest</pre>
     <td>重新拉取对应架构，或改用同架构机器导出</td>
   </tr>
   <tr>
+    <td><code>no matching manifest for linux/386</code></td>
+    <td>目标机是 32 位 x86（<code>uname -m</code> 为 <code>i386</code> / <code>i686</code>），项目没有对应镜像</td>
+    <td>无解：需更换 64 位设备（Node 22 亦无 32 位 Linux 构建）</td>
+  </tr>
+  <tr>
+    <td>容器启动即退出，日志 <code>Illegal instruction</code></td>
+    <td>CPU 缺少 SSE4.2 指令集（约 2008 年前的 Intel / 2011 年前的 AMD）</td>
+    <td>先跑 <code>grep -o sse4_2 /proc/cpuinfo</code> 确认；确为老 CPU 则换设备，或自行用旧版 Node 构建</td>
+  </tr>
+  <tr>
+    <td>容器能起来，但保存配置报权限错误 / 数据写不进去</td>
+    <td>RHEL / CentOS / Fedora 等发行版开启了 SELinux，挂载未授权容器写入</td>
+    <td>挂载末尾加 <code>:Z</code>，即 <code>./data:/app/data:Z</code></td>
+  </tr>
+  <tr>
     <td>compose 报 <code>NAVI_PASSWORD is required</code></td>
     <td>没有提供密码变量</td>
     <td>补 <code>.env</code> 或在编排文件里显式写 <code>NAVI_PASSWORD=</code></td>
@@ -564,7 +604,8 @@ docker rmi ghcr.io/mijunyi/navi-homepage:latest</pre>
 <ul class="check">
   <li>目标机器能 <code>curl</code> 通 <code>https://ghcr.io/v2/</code>（返回 401 也算通）</li>
   <li>确认过包可见性（public 无需登录，private 需 <code>docker login</code>）</li>
-  <li>确认过 CPU 架构：<code>uname -m</code> 与镜像提供的架构对得上</li>
+  <li>确认过 CPU 架构：<code>uname -m</code> 输出 <code>x86_64</code> 或 <code>aarch64</code>（<strong>不能是 32 位的 i386 / i686</strong>）</li>
+  <li>x86 机器额外确认 CPU 支持 SSE4.2：<code>grep -o sse4_2 /proc/cpuinfo</code> 有输出</li>
   <li><code>data/config.json</code> 已在宿主机就位</li>
   <li><code>.env</code> 里有 <code>NAVI_PASSWORD</code>（或哈希），且文件权限为 600</li>
   <li>用的是「整目录挂载」<code>./data:/app/data</code>，不是单个 config.json</li>
@@ -578,8 +619,11 @@ docker rmi ghcr.io/mijunyi/navi-homepage:latest</pre>
 <!-- ==================== 13 ==================== -->
 <h2 id="s13">13. 命令速查</h2>
 
-<pre><span class="c"># 查看目标机器架构</span>
+<pre><span class="c"># 查看目标机器架构（须为 x86_64 或 aarch64，不能是 32 位的 i386/i686）</span>
 uname -m
+
+<span class="c"># x86 机器：确认 CPU 支持 SSE4.2（无任何输出则跑不了 Node 22 运行时）</span>
+grep -o sse4_2 /proc/cpuinfo
 
 <span class="c"># 测试镜像仓库连通性（401 = 通）</span>
 curl -sS -o /dev/null -w <span class="s">"%{http_code}\n"</span> --max-time 20 https://ghcr.io/v2/

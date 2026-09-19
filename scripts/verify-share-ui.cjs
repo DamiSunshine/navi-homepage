@@ -67,11 +67,11 @@ const bad = (m) => { fails.push(m); console.log('  ✗ ' + m); };
   // 只看 HTTP 200 抓不到「发了旧内容」，这里校验本次改动的关键标记。
   console.log('[4] 内容新鲜度');
   const markers = [
-    ['/', ['<b>13</b> 套', '427'], ['355', '348', '333', '325', '317']],
-    ['/preview.html', ['427', '非安全上下文', 'checkdeploy.test.cjs', 'imagecompose.test.cjs'], ['355', '348', '333', '325', '317']],
+    ['/', ['<b>13</b> 套', '435'], ['427', '355', '348', '333', '325', '317']],
+    ['/preview.html', ['435', '非安全上下文', 'checkdeploy.test.cjs', 'imagecompose.test.cjs', 'SSE4.2'], ['427', '355', '348', '333', '325', '317']],
     ['/docs/fnos-deploy-guide.html', ['导入自己刚导出的备份', '重建容器时要不要清空这个目录', '确认新代码真的生效', 'ghcr.io'], []],
-    ['/docs/docker-guide.html', ['关于「完整性校验失败」', '427', 'check-deploy.cjs', 'docker-compose.image.yml'], ['355', '348', '333', '325']],
-    ['/docs/image-deploy-guide.html', ['docker-compose.image.yml', 'ghcr.io', 'linux/arm64', 'config.json', 'Change package visibility'], []],
+    ['/docs/docker-guide.html', ['关于「完整性校验失败」', '435', 'check-deploy.cjs', 'docker-compose.image.yml', 'SSE4.2'], ['427', '355', '348', '333', '325']],
+    ['/docs/image-deploy-guide.html', ['docker-compose.image.yml', 'ghcr.io', 'linux/arm64', 'config.json', 'Change package visibility', 'SSE4.2', 'SELinux'], []],
   ];
   for (const [url, musts, mustNots] of markers) {
     await page.goto(BASE + url, { waitUntil: 'domcontentloaded' });

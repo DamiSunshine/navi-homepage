@@ -47,6 +47,11 @@
 
 镜像由 GitHub Actions 在打 tag 时自动构建并推送到 GHCR，同时提供 `linux/amd64` 与 `linux/arm64`：
 
+> 🖥️ **x86_64 设备（常见 PC / 服务器 / 群晖 x86 机型）可直接使用**：拉取时 Docker 会自动选中
+> `linux/amd64`，无需 `--platform`，也没有任何指令模拟开销。只需先确认两点：
+> ① `uname -m` 输出 `x86_64`（**32 位 i386 / i686 没有镜像，不支持**）；
+> ② CPU 支持 SSE4.2（`grep -o sse4_2 /proc/cpuinfo` 有输出）—— 这是 Node 22 运行时的要求，与镜像无关。
+
 ```bash
 mkdir -p data
 
@@ -62,7 +67,8 @@ docker compose -f docker-compose.image.yml up -d
 ```
 
 > 完整说明见 **[`docs/image-deploy-guide.html`](docs/image-deploy-guide.html)**：包可见性与登录凭据、
-> 国内访问 ghcr.io 的三种对策、CPU 架构匹配、图形界面部署要点、升级回滚与 12 项排查表。
+> 国内访问 ghcr.io 的三种对策、CPU 架构匹配（含 x86 的 32 位与 SSE4.2 检查）、图形界面部署要点、
+> 升级回滚与 15 项排查表。
 >
 > ⚠️ **两个常见前提**：① 镜像首次发布前 `pull` 会报 `manifest unknown`，需先去 Actions 触发一次构建；
 > ② GHCR 的包默认可能是 private，需在包设置里改成 public（否则目标机要先 `docker login ghcr.io`）。
@@ -281,7 +287,7 @@ git push origin v1.0.0
 > `https://github.com/users/<用户名>/packages/container/navi-homepage/settings` →
 > Danger Zone → Change package visibility 改成 Public，否则目标机器要先 `docker login ghcr.io`。
 >
-> 这条链路的不变量由 `test/imagecompose.test.cjs`（72 项）固化：多架构构建、`packages: write` 权限、
+> 这条链路的不变量由 `test/imagecompose.test.cjs`（80 项）固化：多架构构建、`packages: write` 权限、
 > `latest` 只在打 tag 时更新、纯拉取编排不得含 `build:`、两条部署路径的环境变量/端口/挂载不得漂移，
 > 并**反向验证** `scripts/check-compose.cjs` 确实能抓到「护栏被拆掉」（4 类畸形夹具必须判失败）。
 
@@ -413,7 +419,7 @@ git push origin v1.0.0
 - **纯静态、零依赖**：不启动 Node、不联网也能打开；不读写任何配置文件，所有交互都在浏览器本地完成。
 - **含交互式界面复刻**：主题变量、卡片样式、图标解析与内网识别规则均取自项目源码，演示数据与 `config.json` 一致。可直接体验：搜索（`/` 聚焦）、日/夜切换、内外网切换、编辑模式、服务发现弹窗、图床库 / 在线图标库。
 - **含真实截图画廊**：8 张截图全部来自 `test/` 下由 Playwright 在真实浏览器中自动生成的运行截图，点击可放大。
-- **含功能、测试与部署说明**：427 项断言的分套件结果、接口清单、数据结构与三种部署方式。
+- **含功能、测试与部署说明**：435 项断言的分套件结果、接口清单、数据结构与三种部署方式。
 
 > 该页面用于**展示与验收**，不具备后端能力（不写盘、不扫端口、不真实上传）。要体验完整功能请按下文启动服务或使用 Docker。
 
@@ -505,7 +511,7 @@ node scripts/check-deploy.cjs http://NAS的IP:端口 你的密码
 
 ## 自动化测试
 
-**推荐：一条命令跑完全部 13 个套件（427 项断言）**
+**推荐：一条命令跑完全部 13 个套件（435 项断言）**
 
 ```bash
 NODE_PATH=<已装 playwright 的 node_modules> node test/run-all.cjs

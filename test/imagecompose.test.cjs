@@ -342,7 +342,18 @@ try {
     check(/arm64|架构/.test(g), "指南里讲了 CPU 架构");
     check(/可见性|public/.test(g), "指南里讲了镜像可见性");
     check(/config\.json/.test(g), "指南里讲了 data/config.json 的前置条件");
+
+    check(/uname -m/.test(g), "指南给出了确认 CPU 架构的命令");
+    check(/i386|i686|32 位/.test(g), "指南说明 32 位 x86 不受支持（只提供 amd64）");
+    check(/SSE4\.2/.test(g) && /sse4_2/.test(g), "指南说明 x86 需支持 SSE4.2 并给出自检命令");
+    check(/Illegal instruction/.test(g), "指南说明老 CPU 的「非法指令」现象与成因");
+    check(/SELinux/.test(g) && /:Z/.test(g), "指南说明 SELinux 环境挂载需加 :Z");
+    check(/--platform/.test(g), "指南提醒 x86 无需加 --platform");
   }
+
+  const readme = readText(path.join(ROOT, "README.md"));
+  check(/x86_64/.test(readme), "README 说明 x86_64 为原生支持");
+  check(/i386|32 位/.test(readme), "README 说明 32 位 x86 没有对应镜像");
 } catch (e) {
   bad("文档/镜像契约检查异常", e && e.message ? e.message : String(e));
 }
