@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navi 导航站 · 效果预览与功能测试页</title>
+<style>
+/* ============================================================
+   Navi 预览测试页 —— 自带主题变量（与 public/css/style.css 取值一致）
+   ============================================================ */
+:root {
+  --bg: #0a0e17;
+  --bg-panel: rgba(17, 24, 39, 0.72);
+  --bg-card: rgba(22, 30, 48, 0.62);
+  --bg-card-hover: rgba(34, 45, 70, 0.85);
+  --border: rgba(99, 140, 220, 0.14);
+  --border-hover: rgba(99, 160, 255, 0.45);
+  --text: #e6edf7;
+  --text-dim: #8b98b0;
+  --accent: #4f8cff;
+  --accent-2: #38e1c6;
+  --danger: #ff6b6b;
+  --ok: #38e1c6;
+  --warn: #f0b429;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --grid-line: 79, 140, 255;
+  --grid-oppacity: 0.05;
+  --savebar-bg: rgba(15, 22, 36, 0.92);
+  --modal-bg: #111827;
+  --input-bg: rgba(10, 14, 23, 0.8);
+  --mask-bg: rgba(5, 8, 14, 0.65);
+  --grad-title: 90deg, #7db1ff, #38e1c6;
+  --fallback-grad: 135deg, #2563eb, #7c3aed;
+  --icon-fallback: #fff;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --font: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --page-bg: #070a11;
+  --page-panel: rgba(19, 26, 42, 0.66);
+  --page-line: rgba(99, 140, 220, 0.16);
+}
+[data-theme="light"] {
+  --bg: #f4f7fb;
+  --bg-panel: rgba(255, 255, 255, 0.82);
+  --bg-card: rgba(255, 255, 255, 0.78);
+  --bg-card-hover: rgba(255, 255, 255, 0.95);
+  --border: rgba(20, 40, 90, 0.10);
+  --border-hover: rgba(37, 99, 235, 0.38);
+  --text: #17233d;
+  --text-dim: #5b6b85;
+  --accent: #2563eb;
+  --accent-2: #0d9488;
+  --danger: #dc2626;
+  --ok: #0d9488;
+  --warn: #b45309;
+  --shadow: 0 8px 32px rgba(30, 60, 120, 0.12);
+  --grid-line: 30, 80, 180;
+  --grid-oppacity: 0.06;
+  --savebar-bg: rgba(255, 255, 255, 0.92);
+  --modal-bg: #ffffff;
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --mask-bg: rgba(25, 40, 70, 0.28);
+  --grad-title: 90deg, #2563eb, #0d9488;
+  --fallback-grad: 135deg, #2563eb, #6d28d9;
+  --page-bg: #eaeff7;
+  --page-panel: rgba(255, 255, 255, 0.78);
+  --page-line: rgba(20, 40, 90, 0.12);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { color-scheme: dark; scroll-behavior: smooth; scroll-padding-top: 72px; }
+[data-theme="light"] { color-scheme: light; }
+body {
+  font-family: var(--font);
+  background: var(--page-bg);
+  color: var(--text);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code {
+  font-family: var(--mono); font-size: .86em;
+  background: rgba(127, 150, 200, .14); color: var(--accent-2);
+  padding: 1px 6px; border-radius: 5px; white-space: nowrap;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+/* ---------- 顶部导航 ---------- */
+.pnav {
+  position: sticky; top: 0; z-index: 60;
+  background: var(--page-bg);
+  border-bottom: 1px solid var(--page-line);
+  backdrop-filter: blur(12px);
+}
+.pnav .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
+.pnav-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .5px; }
+.pnav-brand svg { width: 22px; height: 22px; color: var(--accent); }
+.pnav-links { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.pnav-links a {
+  color: var(--text-dim); font-size: 14px; padding: 6px 11px; border-radius: 8px;
+  transition: background .18s, color .18s;
+}
+.pnav-links a:hover { color: var(--text); background: var(--bg-card); }
+.theme-btn {
+  display: grid; place-items: center; width: 38px; height: 38px; flex: none;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text-dim); cursor: pointer; transition: all .2s;
+}
+.theme-btn:hover { color: var(--accent); border-color: var(--border-hover); }
+.theme-btn svg { width: 18px; height: 18px; }
+.theme-btn .i-sun { display: none; }
+.theme-btn .i-moon { display: block; }
+[data-theme="light"] .theme-btn .i-sun { display: block; }
+[data-theme="light"] .theme-btn .i-moon { display: none; }
+
+/* ---------- 封面 ---------- */
+.hero { position: relative; overflow: hidden; padding: 62px 0 46px; }
+.hero::before {
+  content: ""; position: absolute; inset: -40% -10% auto -10%; height: 520px;
+  background: radial-gradient(closest-side, rgba(79, 140, 255, .22), transparent 70%);
+  pointer-events: none;
+}
+[data-theme="light"] .hero::before { background: radial-gradient(closest-side, rgba(37, 99, 235, .13), transparent 70%); }
+.hero .wrap { position: relative; }
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 14px; border: 1px solid var(--border-hover); border-radius: 999px;
+  color: var(--accent); font-size: 13px; letter-spacing: .5px; margin-bottom: 20px;
+}
+.hero-tag .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.hero h1 {
+  font-size: clamp(30px, 4.4vw, 50px); font-weight: 800; letter-spacing: -.5px; line-height: 1.2;
+  background: linear-gradient(var(--grad-title));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero p.lead { margin-top: 16px; max-width: 760px; color: var(--text-dim); font-size: 16px; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--bg-card); color: var(--text);
+  cursor: pointer; transition: all .2s; font-family: inherit;
+}
+.btn:hover { border-color: var(--border-hover); transform: translateY(-1px); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent; color: #fff;
+}
+.btn svg { width: 16px; height: 16px; }
+
+/* 统计条 */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 40px; }
+.stat {
+  background: var(--page-panel); border: 1px solid var(--page-line); border-radius: var(--radius);
+  padding: 16px 18px; backdrop-filter: blur(8px);
+}
+.stat b { display: block; font-size: 26px; font-weight: 800; color: var(--text); line-height: 1.2; }
+.stat b .u { font-size: 14px; font-weight: 600; color: var(--text-dim); margin-left: 3px; }
+.stat span { font-size: 13px; color: var(--text-dim); }
+
+/* ---------- 区块 ---------- */
+.sec { padding: 46px 0; border-top: 1px solid var(--page-line); }
+.sec-head { margin-bottom: 26px; }
+.sec-head h2 { font-size: 24px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.sec-head h2 .no {
+  display: grid; place-items: center; width: 28px; height: 28px; flex: none;
+  border-radius: 9px; font-size: 14px; color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.sec-head p { margin-top: 8px; color: var(--text-dim); font-size: 14.5px; max-width: 860px; }
+
+/* ---------- 浏览器外壳 ---------- */
+.browser {
+  border: 1px solid var(--page-line); border-radius: var(--radius);
+  overflow: hidden; background: var(--bg); box-shadow: var(--shadow);
+}
+.browser-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: var(--page-panel); border-bottom: 1px solid var(--page-line);
+}
+.browser-bar .dots { display: flex; gap: 6px; }
+.browser-bar .dots i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+.browser-bar .dots i:nth-child(1) { background: #ff5f57; }
+.browser-bar .dots i:nth-child(2) { background: #febc2e; }
+.browser-bar .dots i:nth-child(3) { background: #28c840; }
+.browser-bar .addr {
+  flex: 1; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--text-dim);
+  background: var(--input-bg); border: 1px solid var(--page-line);
+  border-radius: 7px; padding: 4px 12px;
+}
+.browser-bar .hint { font-size: 12px; color: var(--text-dim); }
+
+/* ---------- navi 界面复刻（.nv-*） ---------- */
+.nv-app {
+  position: relative; overflow: hidden;
+  background: var(--bg); color: var(--text);
+  padding: 0 20px 22px;
+}
+.nv-bggrid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(var(--grid-line), var(--grid-oppacity)) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--grid-line), var(--grid-oppacity)) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+.nv-glow { position: absolute; border-radius: 50%; filter: blur(70px); pointer-events: none; }
+.nv-glow-1 { width: 420px; height: 420px; top: -160px; left: -90px; background: rgba(79, 140, 255, .18); }
+.nv-glow-2 { width: 380px; height: 380px; bottom: -180px; right: -80px; background: rgba(56, 225, 198, .13); }
+.nv-inner { position: relative; }
+
+.nv-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 20px 0 6px; }
+.nv-brand { display: flex; align-items: center; gap: 12px; }
+.nv-brand-logo {
+  display: grid; place-items: center; width: 40px; height: 40px; flex: none;
+  border-radius: 12px; color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.nv-brand-logo svg { width: 21px; height: 21px; }
+.nv-brand h3 {
+  font-size: 20px; font-weight: 800; letter-spacing: .3px;
+  background: linear-gradient(var(--grad-title));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.nv-brand small { display: block; font-size: 12px; color: var(--text-dim); }
+.nv-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+.nv-search { position: relative; }
+.nv-search svg {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: var(--text-dim); pointer-events: none;
+}
+.nv-search input {
+  width: 268px; padding: 9px 14px 9px 34px; font-family: inherit; font-size: 13.5px;
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); outline: none; transition: all .2s;
+}
+.nv-search input:focus { border-color: var(--border-hover); box-shadow: 0 0 0 3px rgba(79, 140, 255, .14); }
+.nv-tool {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 13px; font-size: 13px; font-family: inherit; font-weight: 600;
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text-dim); cursor: pointer; transition: all .2s;
+}
+.nv-tool:hover { color: var(--text); border-color: var(--border-hover); }
+.nv-tool svg { width: 15px; height: 15px; }
+.nv-tool.on { color: var(--accent); border-color: var(--border-hover); background: rgba(79, 140, 255, .12); }
+.nv-nettoggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; font-size: 13px; font-family: inherit; font-weight: 600;
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: 999px;
+  color: var(--text-dim); cursor: pointer; transition: all .2s;
+}
+.nv-nettoggle .tdot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.nv-nettoggle.lan { color: var(--accent-2); border-color: rgba(56, 225, 198, .45); }
+.nv-nettoggle.lan .tdot { background: var(--accent-2); box-shadow: 0 0 8px var(--accent-2); }
+
+.nv-hero { text-align: center; padding: 24px 0 8px; }
+.nv-clock {
+  font-family: var(--mono); font-size: clamp(34px, 6vw, 56px); font-weight: 700; letter-spacing: 2px;
+  background: linear-gradient(var(--grad-title));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.nv-date { font-size: 13.5px; color: var(--text-dim); margin-top: 4px; }
+.nv-badge {
+  display: inline-flex; align-items: center; gap: 6px; margin-left: 10px;
+  padding: 3px 11px; border: 1px solid var(--border); border-radius: 999px;
+  font-size: 12px; color: var(--text-dim); vertical-align: middle;
+}
+.nv-badge svg { width: 13px; height: 13px; }
+.nv-badge.lan { color: var(--accent-2); border-color: rgba(56, 225, 198, .4); }
+
+.nv-group { margin-top: 26px; }
+.nv-group-title {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 15px; font-weight: 700; margin-bottom: 14px;
+}
+.nv-group-title::before {
+  content: ""; width: 4px; height: 17px; border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+.nv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; }
+.nv-card {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  padding: 14px; border-radius: var(--radius);
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text); cursor: pointer;
+  transition: transform .2s, border-color .2s, background .2s, box-shadow .2s;
+  backdrop-filter: blur(10px); text-align: left; font-family: inherit; text-decoration: none;
+}
+.nv-card:hover {
+  transform: translateY(-3px); background: var(--bg-card-hover);
+  border-color: var(--border-hover); box-shadow: 0 10px 26px rgba(0, 0, 0, .28);
+}
+.nv-icon {
+  position: relative; display: grid; place-items: center; width: 42px; height: 42px; flex: none;
+  border-radius: 11px; background: rgba(127, 150, 200, .1); overflow: hidden;
+}
+.nv-icon img { width: 26px; height: 26px; object-fit: contain; }
+.nv-icon .fb {
+  display: none; position: absolute; inset: 0; place-items: center;
+  font-size: 17px; font-weight: 800; color: var(--icon-fallback);
+  background: linear-gradient(var(--fallback-grad));
+}
+.nv-icon.failed img { display: none; }
+.nv-icon.failed .fb { display: grid; }
+.nv-meta { min-width: 0; }
+.nv-meta b { display: block; font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nv-meta span { display: block; font-size: 12px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nv-del {
+  position: absolute; top: 6px; right: 6px; width: 20px; height: 20px;
+  display: none; place-items: center; border-radius: 6px; font-size: 13px; line-height: 1;
+  background: rgba(220, 38, 38, .18); color: var(--danger); border: none; cursor: pointer;
+}
+.nv-add {
+  display: none; align-items: center; justify-content: center; gap: 7px;
+  margin-top: 16px; padding: 12px; width: 100%;
+  border: 1px dashed var(--border-hover); border-radius: var(--radius);
+  background: transparent; color: var(--accent); font-family: inherit; font-size: 13.5px;
+  font-weight: 600; cursor: pointer;
+}
+.nv-app.editing .nv-card { border-style: dashed; }
+.nv-app.editing .nv-del { display: grid; }
+.nv-app.editing .nv-add { display: flex; }
+.nv-empty { display: none; text-align: center; color: var(--text-dim); font-size: 14px; padding: 42px 0; }
+
+/* 保存栏 */
+.nv-savebar {
+  display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 22px; padding: 12px 14px;
+  background: var(--savebar-bg); border: 1px solid var(--border-hover);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.nv-app.editing .nv-savebar { display: flex; }
+.nv-savebar .lbl { font-size: 13px; color: var(--warn); font-weight: 600; margin-right: auto; }
+.nv-sbtn {
+  padding: 8px 14px; font-size: 13px; font-family: inherit; font-weight: 600;
+  border-radius: 9px; cursor: pointer; transition: all .2s;
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+}
+.nv-sbtn:hover { color: var(--text); border-color: var(--border-hover); }
+.nv-sbtn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; }
+
+/* 弹窗（复刻） */
+.nv-mask {
+  position: absolute; inset: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center; padding: 22px;
+  background: var(--mask-bg); backdrop-filter: blur(3px);
+}
+.nv-modal {
+  width: min(720px, 100%); max-height: 82%; display: flex; flex-direction: column;
+  background: var(--modal-bg); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.nv-modal-h {
+  display: flex; align-items: center; gap: 10px;
+  padding: 15px 18px; border-bottom: 1px solid var(--border);
+}
+.nv-modal-h b { font-size: 15.5px; }
+.nv-modal-h .sub { font-size: 12px; color: var(--text-dim); margin-left: auto; }
+.nv-modal-h .x {
+  width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px;
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer;
+}
+.nv-modal-b { padding: 16px 18px; overflow: auto; }
+.nv-modal-f { display: flex; gap: 10px; justify-content: flex-end; padding: 13px 18px; border-top: 1px solid var(--border); }
+.nv-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.nv-tab {
+  padding: 6px 13px; font-size: 13px; font-family: inherit; border-radius: 8px; cursor: pointer;
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+}
+.nv-tab.on { color: var(--accent); border-color: var(--border-hover); background: rgba(79, 140, 255, .12); }
+
+.nv-row {
+  display: flex; align-items: center; gap: 12px; padding: 11px 13px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 9px;
+  background: var(--bg-card);
+}
+.nv-row .ck {
+  width: 17px; height: 17px; flex: none; accent-color: var(--accent); cursor: pointer;
+}
+.nv-row .ic {
+  position: relative; display: grid; place-items: center; width: 34px; height: 34px; flex: none;
+  border-radius: 9px; background: rgba(127, 150, 200, .1); overflow: hidden;
+}
+.nv-row .ic img { width: 21px; height: 21px; object-fit: contain; }
+.nv-row .ic .fb {
+  display: none; position: absolute; inset: 0; place-items: center;
+  font-size: 14px; font-weight: 800; color: var(--icon-fallback);
+  background: linear-gradient(var(--fallback-grad));
+}
+.nv-row .ic.failed img { display: none; }
+.nv-row .ic.failed .fb { display: grid; }
+.nv-row .info { min-width: 0; flex: 1; }
+.nv-row .info b { display: block; font-size: 13.8px; font-weight: 700; }
+.nv-row .info span { font-size: 12px; color: var(--text-dim); }
+.nv-tag {
+  flex: none; font-size: 11.5px; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--text-dim); white-space: nowrap;
+}
+.nv-tag.new { color: var(--accent); border-color: var(--border-hover); background: rgba(79, 140, 255, .12); }
+.nv-tag.dep { color: var(--warn); border-color: rgba(240, 180, 41, .4); }
+.nv-tag.off { color: var(--text-dim); opacity: .7; }
+
+.nv-libgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 11px; }
+.nv-cell {
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card);
+  padding: 12px 8px; text-align: center; cursor: pointer; transition: all .2s;
+}
+.nv-cell:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+.nv-cell .img {
+  position: relative; display: grid; place-items: center; height: 42px; margin-bottom: 7px;
+}
+.nv-cell img { max-width: 38px; max-height: 38px; object-fit: contain; }
+.nv-cell .fb {
+  display: none; position: absolute; inset: 0; margin: auto; width: 34px; height: 34px;
+  place-items: center; border-radius: 9px; font-weight: 800; font-size: 15px;
+  color: var(--icon-fallback); background: linear-gradient(var(--fallback-grad));
+}
+.nv-cell.failed .fb { display: grid; }
+.nv-cell small { display: block; font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nv-note { font-size: 12.5px; color: var(--text-dim); margin-top: 12px; line-height: 1.65; }
+
+/* 轻提示 */
+.toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px);
+  z-index: 200; max-width: 90vw;
+  display: flex; align-items: center; gap: 9px;
+  padding: 11px 18px; border-radius: 11px; font-size: 13.5px;
+  background: var(--savebar-bg); border: 1px solid var(--border-hover);
+  color: var(--text); box-shadow: var(--shadow);
+  opacity: 0; pointer-events: none; transition: all .26s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+
+/* ---------- 功能卡 ---------- */
+.feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.feat {
+  background: var(--page-panel); border: 1px solid var(--page-line); border-radius: var(--radius);
+  padding: 20px; transition: all .2s;
+}
+.feat:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+.feat .em { font-size: 22px; }
+.feat h3 { font-size: 15.5px; font-weight: 700; margin: 9px 0 7px; }
+.feat p { font-size: 13.5px; color: var(--text-dim); }
+.feat ul { margin: 9px 0 0 18px; font-size: 13px; color: var(--text-dim); }
+.feat li { margin: 3px 0; }
+.feat code { font-size: 12px; }
+
+/* ---------- 截图 ---------- */
+.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 16px; }
+.shot {
+  border: 1px solid var(--page-line); border-radius: var(--radius); overflow: hidden;
+  background: var(--page-panel); cursor: zoom-in; transition: all .2s;
+}
+.shot:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow); }
+.shot .thumb { aspect-ratio: 16 / 10; overflow: hidden; background: #0a0e17; }
+.shot .thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.shot .cap { padding: 11px 14px; font-size: 13px; }
+.shot .cap b { display: block; font-size: 13.5px; }
+.shot .cap span { color: var(--text-dim); font-size: 12px; }
+
+.lightbox {
+  position: fixed; inset: 0; z-index: 300; display: none;
+  align-items: center; justify-content: center; padding: 30px;
+  background: rgba(4, 7, 12, .9);
+}
+.lightbox.show { display: flex; }
+.lightbox img { max-width: 96%; max-height: 88vh; border-radius: 10px; box-shadow: 0 20px 60px rgba(0, 0, 0, .6); }
+.lightbox .cap {
+  position: absolute; bottom: 22px; left: 0; right: 0; text-align: center;
+  color: #cdd8ea; font-size: 13.5px;
+}
+.lightbox .x {
+  position: absolute; top: 20px; right: 24px; width: 38px; height: 38px;
+  display: grid; place-items: center; border-radius: 10px; font-size: 20px;
+  background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .2);
+  color: #fff; cursor: pointer;
+}
+
+/* ---------- 表格 ---------- */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--page-line); border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+th { background: var(--page-panel); font-weight: 700; font-size: 13px; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(127, 150, 200, .06); }
+td.ok { color: var(--ok); font-weight: 600; }
+.pass { display: inline-flex; align-items: center; gap: 5px; }
+
+/* ---------- 部署卡 ---------- */
+.deploys { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 16px; }
+.deploy {
+  background: var(--page-panel); border: 1px solid var(--page-line); border-radius: var(--radius);
+  padding: 20px; display: flex; flex-direction: column;
+}
+.deploy h3 { font-size: 15.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.deploy .st { font-size: 12px; margin-top: 6px; }
+.deploy .st.live { color: var(--ok); }
+.deploy .st.idle { color: var(--text-dim); }
+.deploy pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.7;
+  background: var(--input-bg); border: 1px solid var(--page-line); border-radius: 9px;
+  padding: 11px 13px; margin-top: 12px; overflow-x: auto; color: var(--text);
+}
+.deploy p { font-size: 13px; color: var(--text-dim); margin-top: 10px; }
+
+.tip {
+  display: flex; gap: 11px; margin-top: 16px;
+  border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0;
+  background: rgba(79, 140, 255, .09); padding: 13px 16px; font-size: 13.5px; color: var(--text-dim);
+}
+.tip.warn { border-left-color: var(--warn); background: rgba(240, 180, 41, .1); }
+.tip b { color: var(--text); }
+.tip .em { flex: none; font-size: 16px; }
+
+footer.pfoot {
+  border-top: 1px solid var(--page-line); padding: 30px 0 40px;
+  color: var(--text-dim); font-size: 13px; text-align: center;
+}
+footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 860px) {
+  .pnav-links { display: none; }
+  .nv-search input { width: 180px; }
+  .nv-actions { width: 100%; }
+  .nv-grid { grid-template-columns: repeat(auto-fill, minmax(146px, 1fr)); }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 0 15px; }
+  .hero { padding: 40px 0 30px; }
+  .nv-app { padding: 0 13px 16px; }
+  .nv-search { flex: 1; }
+  .nv-search input { width: 100%; }
+  .nv-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .nv-meta span { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== 顶部导航 ==================== -->
+<nav class="pnav">
+  <div class="wrap">
+    <span class="pnav-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+      </svg>
+      Navi 效果预览
+    </span>
+    <div class="pnav-links">
+      <a href="#demo">交互演示</a>
+      <a href="#features">主要功能</a>
+      <a href="#shots">真实截图</a>
+      <a href="#tests">测试验证</a>
+      <a href="#api">接口结构</a>
+      <a href="#deploy">部署方式</a>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button" title="切换日间 / 夜间模式" aria-label="切换日间 / 夜间模式">
+      <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ==================== 封面 ==================== -->
+<header class="hero">
+  <div class="wrap">
+    <span class="hero-tag"><span class="dot"></span> 静态预览页 · 可直接在浏览器打开</span>
+    <h1>Navi · 个人导航站<br>效果预览与功能测试</h1>
+    <p class="lead">
+      本页是 Navi 项目的可视化预览入口：下方为<strong>可真实交互的界面复刻</strong>（沿用项目原生 CSS 变量与真实图标源），
+      其后依次是<strong>真实运行截图</strong>、主要功能说明、测试验证结果与部署方式。
+      原项目为零第三方依赖的 Node 单端口服务，无需 <code>npm install</code>。
+    </p>
+    <div class="hero-cta">
+      <button class="btn btn-primary" id="jumpDemo" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        直接体验界面
+      </button>
+      <a class="btn" href="#shots">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        查看真实截图
+      </a>
+      <a class="btn" href="#deploy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+        运行起来
+      </a>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b>11<span class="u">套</span></b><span>测试套件</span></div>
+      <div class="stat"><b>355<span class="u">项</span></b><span>断言全通过 · 0 失败</span></div>
+      <div class="stat"><b>0<span class="u">个</span></b><span>第三方运行时依赖</span></div>
+      <div class="stat"><b>15<span class="u">个</span></b><span>HTTP 接口</span></div>
+      <div class="stat"><b>IPv6<span class="u">双栈</span></b><span>默认监听</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ==================== 交互演示 ==================== -->
+<section class="sec" id="demo">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2><span class="no">1</span>交互演示 · 真实界面复刻</h2>
+      <p>
+        下面这块是 Navi 首页的高保真复刻：主题变量、卡片样式、图标解析规则均取自项目源码，
+        演示数据与 <code>public/config.json</code> 一致（3 个分组 / 14 张卡片）。
+        <strong>所有交互都可直接点</strong>：搜索、日/夜切换、内外网切换、编辑模式、服务发现、图床库。
+      </p>
+    </div>
+
+    <div class="browser">
+      <div class="browser-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="addr">http://localhost:8899/ &nbsp;·&nbsp; Navi 个人导航站</span>
+        <span class="hint">复刻演示</span>
+      </div>
+
+      <div class="nv-app" id="nvApp">
+        <div class="nv-bggrid" aria-hidden="true"></div>
+        <div class="nv-glow nv-glow-1" aria-hidden="true"></div>
+        <div class="nv-glow nv-glow-2" aria-hidden="true"></div>
+
+        <div class="nv-inner">
+          <!-- 顶栏 -->
+          <div class="nv-header">
+            <div class="nv-brand">
+              <span class="nv-brand-logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                </svg>
+              </span>
+              <div>
+                <h3>Navi</h3>
+                <small>个人导航站</small>
+              </div>
+            </div>
+            <div class="nv-actions">
+              <div class="nv-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input id="nvSearch" type="text" placeholder="搜索站点…（按 / 快速聚焦）" autocomplete="off">
+              </div>
+              <button class="nv-tool" id="nvEdit" type="button" aria-pressed="false" title="进入编辑模式（演示）">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                </svg>
+                <span id="nvEditLabel">编辑</span>
+              </button>
+              <button class="nv-nettoggle" id="nvNet" type="button" aria-pressed="false" title="切换内网 / 外网地址">
+                <span class="tdot" aria-hidden="true"></span>
+                <span id="nvNetLabel">外网</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 时钟 -->
+          <div class="nv-hero">
+            <div class="nv-clock" id="nvClock">--:--:--</div>
+            <div class="nv-date">
+              <span id="nvDate"></span>
+              <span class="nv-badge" id="nvBadge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+                <span id="nvBadgeText">外网模式</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- 分组与卡片（JS 渲染） -->
+          <div id="nvRoot"></div>
+          <div class="nv-empty" id="nvEmpty">没有匹配的站点</div>
+
+          <button class="nv-add" id="nvAddGroup" type="button">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            添加分组
+          </button>
+
+          <!-- 保存栏（编辑模式显示） -->
+          <div class="nv-savebar">
+            <span class="lbl">编辑模式 · 改动尚未保存（演示）</span>
+            <button class="nv-sbtn" type="button" data-demo="discover">服务发现</button>
+            <button class="nv-sbtn" type="button" data-demo="library">图床库</button>
+            <button class="nv-sbtn" type="button" data-demo="backup">备份</button>
+            <button class="nv-sbtn" type="button" data-demo="cancel">取消</button>
+            <button class="nv-sbtn primary" type="button" data-demo="save">保存</button>
+          </div>
+        </div>
+
+        <!-- 弹窗容器 -->
+        <div id="nvModal" hidden></div>
+      </div>
+    </div>
+
+    <div class="tip">
+      <span class="em">ℹ️</span>
+      <span>
+        <b>关于这块演示</b>：它是把首页的渲染结果与交互流程<strong>静态复刻</strong>到本页，因此这里不联网、不写盘。
+        真实运行时的行为（读写 <code>config.json</code>、调 Docker API 扫描端口、真实上传图片落盘）需要启动 Node 服务，
+        见第 5 节「部署方式」。卡片的图标走的是项目<strong>真实图标源</strong>（Dashboard Icons / selfh.st / Iconify），
+        离线时会自动回退为字母图标 —— 这正是原项目的容错逻辑。
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 主要功能 ==================== -->
+<section class="sec" id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2><span class="no">2</span>主要功能</h2>
+      <p>Navi 是一个零第三方运行时依赖的导航站：后端只用 Node 内置模块，前端只用原生 JS 与 CSS，整体可直接丢进任意 Docker 环境。</p>
+    </div>
+
+    <div class="feats">
+      <div class="feat">
+        <span class="em">🔌</span>
+        <h3>服务发现（端口 → 卡片全自动）</h3>
+        <p>自动识别正在运行的服务端口，按服务类型匹配图标，一键生成导航卡片。</p>
+        <ul>
+          <li>Docker：读 Engine API 的容器端口映射（Unix Socket 优先，失败回退 TCP）</li>
+          <li>本机：Linux 解析 <code>/proc/net/tcp*</code> 的 LISTEN 并反查进程名；Windows / macOS 降级 <code>netstat</code> / <code>lsof</code></li>
+          <li>内置 33 个服务指纹库，命中即自动配图标（未命中可在线探测）</li>
+          <li>依赖容器（Redis / MySQL）与已停止容器默认不勾选，噪声进程自动过滤</li>
+        </ul>
+      </div>
+
+      <div class="feat">
+        <span class="em">🗂️</span>
+        <h3>本地图床库（图标可复用）</h3>
+        <p>卡片 Logo 有两条来源：在线图标库，或本地上传并沉淀进图床库长期复用。</p>
+        <ul>
+          <li>批量上传：多选或<strong>拖拽</strong>多张，前端按体积自动分片、显示进度</li>
+          <li>逐张独立校验（文件头魔数），部分失败不影响其余图片</li>
+          <li>库内可检索、可批量删除；<strong>被卡片引用的图片默认拒绝删除</strong>并列出引用方</li>
+          <li>文件名按原始名 slug + 随机后缀命名，如 <code>jellyfin-3f9a2b11.png</code></li>
+        </ul>
+      </div>
+
+      <div class="feat">
+        <span class="em">✏️</span>
+        <h3>可视化编辑</h3>
+        <p>点右上角「编辑」即进入编辑模式，所有改动先落到本地草稿，统一保存。</p>
+        <ul>
+          <li>分组与卡片的增 / 删 / 改、卡片拖拽排序</li>
+          <li>保存时经服务端校验后写回 <code>config.json</code>，可随时取消</li>
+          <li>支持粘贴导入 / 导出 JSON 配置</li>
+        </ul>
+      </div>
+
+      <div class="feat">
+        <span class="em">🌗</span>
+        <h3>日 / 夜双主题</h3>
+        <p>夜间为默认的「简约科技感」暗色主题，日间主题为浅色，两套配色由同一组 CSS 变量驱动，切换即时生效并记忆到本地。</p>
+      </div>
+
+      <div class="feat">
+        <span class="em">🌐</span>
+        <h3>内外网自动切换</h3>
+        <p>每张卡片可同时配置外网地址与内网地址。访问时自动识别当前是否处于内网环境（<code>localhost</code> / 私有网段 / IPv6 本地地址），选中对应地址，也可手动一键切换。</p>
+      </div>
+
+      <div class="feat">
+        <span class="em">🔍</span>
+        <h3>搜索与快捷键</h3>
+        <p>顶栏搜索框实时过滤站点（匹配名称与描述），按 <code>/</code> 快速聚焦，无结果时给出明确空状态提示。</p>
+      </div>
+
+      <div class="feat">
+        <span class="em">🔐</span>
+        <h3>访问密码保护</h3>
+        <p>设置 <code>NAVI_PASSWORD</code> 即启用：登录页 + HMAC 会话 Cookie + 全站强制校验 + 登录限流 + 服务端登出吊销，未登录时所有接口返回 401。</p>
+      </div>
+
+      <div class="feat">
+        <span class="em">💾</span>
+        <h3>备份与恢复</h3>
+        <p>一键导出带校验和的完整配置备份，导入时校验完整性并支持异常回滚；上传的图片实体随 <code>data/uploads</code> 一并持久化。</p>
+      </div>
+
+      <div class="feat">
+        <span class="em">🐳</span>
+        <h3>Docker 就绪 · IPv4/IPv6 双栈</h3>
+        <p>默认监听 <code>::</code> 双栈，官方镜像基于 Alpine，支持整目录数据挂载，规避单文件挂载在部分 NAS 上的 <code>EBUSY / EXDEV</code> 保存失败问题。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 真实截图 ==================== -->
+<section class="sec" id="shots">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2><span class="no">3</span>真实运行截图</h2>
+      <p>以下截图全部来自项目测试套件在<strong>真实浏览器</strong>中运行时的自动截图（Playwright），点任意一张可放大查看。</p>
+    </div>
+    <div class="shots" id="shotGrid"></div>
+  </div>
+</section>
+
+<!-- ==================== 测试验证 ==================== -->
+<section class="sec" id="tests">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2><span class="no">4</span>测试验证结果</h2>
+      <p>所有测试均以「隔离实例 + 临时目录」方式运行，不触碰真实数据；其中 6 套为真实浏览器 UI 测试，1 套通过伪造 Docker API 端到端验证容器发现链路。</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>套件</th><th>类型</th><th>断言数</th><th>覆盖内容</th><th>结果</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>server.test.js</code></td><td>接口集成</td><td>24</td><td>配置读写、静态托管、错误处理、健康检查、<strong>前端资源版本号自动推导</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>auth.test.js</code></td><td>接口集成</td><td>27</td><td>登录 / 会话 / 限流 / 登出吊销 / 未授权拦截</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>backup.test.js</code></td><td>接口集成</td><td>20</td><td>备份导出、校验和、恢复异常、图片魔数、体积上限</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>discover.test.js</code></td><td>接口集成</td><td>80</td><td>纯函数 + <strong>伪造 Docker API 端到端</strong> + 降级 + 鉴权 + <strong>图标探测协议与并发</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>library.test.js</code></td><td>接口集成</td><td>40</td><td>图床列库 / 批量上传 / 魔数校验 / 超限 / 删除引用保护</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>ui.test.cjs</code></td><td>真实浏览器</td><td>27</td><td>渲染 / 主题切换 / 搜索 / 编辑增删改 / 保存写回</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>ui-theme.test.cjs</code></td><td>真实浏览器</td><td>8</td><td>日 / 夜模式切换与持久化</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>ui-auth.test.cjs</code></td><td>真实浏览器</td><td>8</td><td>登录页字段校验、错误提示、联合登录</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>ui-backup.test.cjs</code></td><td>真实浏览器</td><td>16</td><td>备份导出 / 导入往返 / Logo 上传 / <strong>非安全上下文（局域网 HTTP）导入</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>ui-discover.test.cjs</code></td><td>真实浏览器</td><td>36</td><td>发现弹窗勾选 / 忽略 / 加入 / 保存（自启伪造 Docker）</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>ui-library.test.cjs</code></td><td>真实浏览器</td><td>47</td><td>批量上传 / 选择回填 / 在线图标库 / 引用保护</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>checkdeploy.test.cjs</code></td><td>部署判定</td><td>22</td><td>「部署的是不是新代码」探针自检：<strong>正反双向</strong>（新代码判新 / 旧行为判旧）+ <strong>无密码时降级判定</strong> + 参数异常</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td colspan="2"><strong>合计 12 套</strong></td><td><strong>355</strong></td><td colspan="2" class="ok"><span class="pass">✅ 全部通过 · 0 失败</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tip">
+      <span class="em">🧪</span>
+      <span>
+        <b>如何复跑</b>：项目根目录执行 <code>node test/run-all.cjs</code> 可一次跑完全部 12 套
+        （它会自动用「临时 config + 临时 uploads」拉起隔离实例，端口 8633，不碰真实数据）；
+        也可只跑某几套，如 <code>node test/run-all.cjs ui-backup</code>（按文件名过滤），
+        或单独跑 <code>node test/discover.test.js</code>。
+        6 套浏览器 UI 测试是自包含的，内部自行启动隔离实例与伪造 Docker API。
+        完整命令清单见 <code>README.md</code>。
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 接口与数据结构 ==================== -->
+<section class="sec" id="api">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2><span class="no">5</span>接口与数据结构</h2>
+      <p>后端共 15 个 HTTP 接口，全部基于 Node 内置模块实现。除登录与健康检查外均需认证。</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>接口</th><th>方法</th><th>用途</th><th>是否写盘</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>/api/config</code></td><td>GET / PUT</td><td>读取与保存整站配置（分组、卡片）</td><td>PUT 写 <code>config.json</code></td></tr>
+          <tr><td><code>/api/discover</code></td><td>GET</td><td>服务发现：返回识别到的容器 / 本机监听端口</td><td class="ok">只读</td></tr>
+          <tr><td><code>/api/library</code></td><td>GET</td><td>列出本地图床库（含「被哪些卡片引用」）</td><td class="ok">只读</td></tr>
+          <tr><td><code>/api/library/upload</code></td><td>POST</td><td>批量上传图标入库（逐张魔数校验）</td><td>写上传目录</td></tr>
+          <tr><td><code>/api/library/delete</code></td><td>POST</td><td>删除图片，带引用保护（409 + 引用清单）</td><td>删文件</td></tr>
+          <tr><td><code>/api/upload</code></td><td>POST</td><td>单张 Logo 上传（同样入库，可复用）</td><td>写上传目录</td></tr>
+          <tr><td><code>/api/backup</code></td><td>GET</td><td>导出带校验和的完整备份</td><td class="ok">只读</td></tr>
+          <tr><td><code>/api/restore</code></td><td>POST</td><td>导入备份（校验后写入，异常回滚）</td><td>写 <code>config.json</code></td></tr>
+          <tr><td><code>/api/login</code> · <code>/api/logout</code></td><td>POST</td><td>密码登录（签发 HMAC 会话）/ 服务端吊销登出</td><td class="ok">无状态</td></tr>
+          <tr><td><code>/api/health</code></td><td>GET</td><td>健康检查（含是否启用鉴权、版本号）</td><td class="ok">只读</td></tr>
+          <tr><td><code>/uploads/&lt;文件&gt;</code></td><td>GET</td><td>图床图片访问（映射到上传目录，长效缓存）</td><td class="ok">只读</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="feats" style="margin-top:20px">
+      <div class="feat">
+        <span class="em">📄</span>
+        <h3>配置数据 <code>config.json</code></h3>
+        <pre style="font-family:var(--mono);font-size:12px;line-height:1.7;background:var(--input-bg);border:1px solid var(--page-line);border-radius:9px;padding:12px;overflow-x:auto;color:var(--text);margin-top:10px">{
+  "site": { "title": "Navi", "subtitle": "个人导航站" },
+  "groups": [{
+    "name": "常用服务",
+    "items": [{
+      "title": "Jellyfin",
+      "desc": "影音媒体库",
+      "icon": "jellyfin",        // 在线图标引用
+      "logo": "/uploads/xx.png", // 本地图床图片（优先）
+      "url": "https://…",        // 外网地址
+      "lanUrl": "http://192.168…" // 内网地址
+    }]
+  }],
+  "discovery": { "ignored": ["port-6379"] }
+}</pre>
+      </div>
+      <div class="feat">
+        <span class="em">🎨</span>
+        <h3>图标解析规则</h3>
+        <p>优先级：<strong>本地图床图片 → 在线图标 → 字母回退</strong>。<code>icon</code> 字段支持四种写法：</p>
+        <ul>
+          <li><code>https://…png</code> — 直接外链图片</li>
+          <li><code>jellyfin</code> — Dashboard Icons（jsDelivr）</li>
+          <li><code>selfhst:portainer</code> — selfh.st 图标库</li>
+          <li><code>iconify:simple-icons:github</code> — Iconify 图标库</li>
+        </ul>
+        <p style="margin-top:8px">全部加载失败时回退为带渐变底色的首字母图标，不留破图。</p>
+      </div>
+      <div class="feat">
+        <span class="em">🗃️</span>
+        <h3>图床存储逻辑</h3>
+        <p><strong>不建数据库、不写索引文件</strong>——图床库目录直接由上传目录的文件系统推导，接口现算现返回。</p>
+        <ul>
+          <li>存储位置：<code>NAVI_UPLOAD_DIR</code>（Docker 为 <code>/app/data/uploads</code>）</li>
+          <li>引用关系：<code>item.logo = "/uploads/文件名"</code></li>
+          <li>「使用中」与删除保护由服务端实时扫描配置计算，不额外持久化</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 部署方式 ==================== -->
+<section class="sec" id="deploy">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2><span class="no">6</span>部署与预览方式</h2>
+      <p>当前需求只需「能在浏览器打开预览」，因此本页是纯静态页；若要体验完整功能（含写盘、端口扫描、真实上传），按下面任一方式运行即可。</p>
+    </div>
+
+    <div class="deploys">
+      <div class="deploy">
+        <h3>🖥️ 本机直接运行</h3>
+        <span class="st live">● 推荐 · 功能最完整</span>
+        <pre>cd 项目目录
+set PORT=8899
+node server.js</pre>
+        <p>零依赖，无需 <code>npm install</code>。启动后访问 <code>http://localhost:8899</code>；默认端口为 80。</p>
+      </div>
+      <div class="deploy">
+        <h3>🐳 Docker Compose</h3>
+        <span class="st live">● 生产推荐</span>
+        <pre>docker compose up -d
+# 数据整目录挂载在 ./data</pre>
+        <p>想启用服务发现，需追加挂载 <code>/var/run/docker.sock:ro</code>（该 Socket 等同宿主机 root 权限，请仅在可信环境开启）。</p>
+      </div>
+      <div class="deploy">
+        <h3>📄 静态预览（本页）</h3>
+        <span class="st live">● 当前正在使用</span>
+        <pre>直接双击 preview.html
+或浏览器打开该文件</pre>
+        <p>不依赖 Node 与网络，可用于快速展示界面与交互。此模式下无后端能力（不写盘、不扫端口）。</p>
+      </div>
+    </div>
+
+    <div class="tip warn">
+      <span class="em">⚠️</span>
+      <span>
+        <b>预览环境的两个已知限制</b>：① 本机后台进程在会话结束后会被系统回收，因此 <code>localhost</code> 链接无法长期存活；
+        ② 平台托管的云端实例虽链接稳定，但沙箱内没有 Docker Socket，服务发现会走降级路径并显示明确原因（这是设计行为，不是故障）。
+        若需要真实的服务发现效果，请在 Linux 主机或挂载了 Socket 的 Docker 中运行。
+      </span>
+    </div>
+  </div>
+</section>
+
+<footer class="pfoot">
+  <div class="wrap">
+    <div><strong>Navi · 个人导航站</strong> — 效果预览与功能测试页</div>
+    <div class="row">
+      <span>零第三方运行时依赖</span><span>·</span>
+      <span>Node 内置模块实现</span><span>·</span>
+      <span>MIT License</span><span>·</span>
+      <span>IPv4 / IPv6 双栈</span>
+    </div>
+    <div class="row" style="opacity:.75">
+      <span>本页为静态演示，所有交互均在浏览器本地完成，不会修改任何配置文件。</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     0. 通用工具
+     ============================================================ */
+  var $ = function (sel, root) { return (root || document).querySelector(sel); };
+  var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+
+  var toastEl = document.createElement("div");
+  toastEl.className = "toast";
+  toastEl.innerHTML = '<span class="dot"></span><span id="toastMsg"></span>';
+  document.body.appendChild(toastEl);
+  var toastTimer = null;
+  function toast(msg) {
+    $("#toastMsg").textContent = msg;
+    toastEl.classList.add("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  /* ============================================================
+     1. 主题切换（日 / 夜）
+     ============================================================ */
+  var themeBtn = $("#themeBtn");
+  themeBtn.addEventListener("click", function () {
+    var cur = document.documentElement.getAttribute("data-theme");
+    var next = cur === "light" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", next);
+    toast(next === "light" ? "已切换到日间主题" : "已切换到夜间主题");
+  });
+
+  /* ============================================================
+     2. 真实截图画廊 + 灯箱
+     ============================================================ */
+  var SHOTS = [
+    { f: "test/ui-home.png", t: "首页总览（夜间主题）", d: "默认主题下的完整首页：时钟、分组、14 张卡片" },
+    { f: "test/theme-light.png", t: "日间主题", d: "同一页面切换 light 主题后的效果" },
+    { f: "test/theme-dark.png", t: "夜间主题", d: "默认的简约科技感暗色主题" },
+    { f: "test/ui-login.png", t: "密码登录页", d: "启用 NAVI_PASSWORD 后未登录访问的落地页" },
+    { f: "test/ui-library-manage.png", t: "本地图床库 · 管理", d: "批量上传、检索、批量删除、占用标记" },
+    { f: "test/ui-library-pick.png", t: "本地图床库 · 选择", d: "从已上传图片中点选，回填卡片 Logo" },
+    { f: "test/ui-library-online.png", t: "在线图标库", d: "内置推荐图标 + Iconify 关键词检索" },
+    { f: "test/ui-library-icon-rows.png", t: "卡片编辑 · 图标区", d: "Logo 与在线图标两行入口，预览与卡片一致" }
+  ];
+
+  var shotGrid = $("#shotGrid");
+  shotGrid.innerHTML = SHOTS.map(function (s, i) {
+    return '<figure class="shot" data-i="' + i + '">' +
+             '<div class="thumb"><img src="' + esc(s.f) + '" alt="' + esc(s.t) + '" loading="lazy"></div>' +
+             '<figcaption class="cap"><b>' + esc(s.t) + '</b><span>' + esc(s.d) + '</span></figcaption>' +
+           '</figure>';
+  }).join("");
+
+  // 图片缺失时给出可读占位，而不是破图
+  $$("#shotGrid .thumb img").forEach(function (img) {
+    img.addEventListener("error", function () {
+      img.parentNode.innerHTML = '<div style="height:100%;display:grid;place-items:center;text-align:center;' +
+        'color:#8b98b0;font-size:12.5px;padding:16px;line-height:1.7">' +
+        '截图文件未就位<br><code>' + esc(img.getAttribute("src")) + '</code></div>';
+    });
+  });
+
+  var lb = document.createElement("div");
+  lb.className = "lightbox";
+  lb.innerHTML = '<span class="x">✕</span><img alt=""><div class="cap"></div>';
+  document.body.appendChild(lb);
+
+  function openLb(i) {
+    var s = SHOTS[i];
+    $("img", lb).src = s.f;
+    $(".cap", lb).textContent = s.t + " — " + s.d;
+    lb.classList.add("show");
+  }
+  shotGrid.addEventListener("click", function (e) {
+    var fig = e.target.closest(".shot");
+    if (fig) openLb(Number(fig.getAttribute("data-i")));
+  });
+  lb.addEventListener("click", function (e) {
+    if (e.target === lb || e.target.classList.contains("x")) lb.classList.remove("show");
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") lb.classList.remove("show");
+  });
+
+  /* ============================================================
+     3. navi 界面复刻 · 数据（与 public/config.json 一致）
+     ============================================================ */
+  var GROUPS = [
+    {
+      name: "常用服务",
+      items: [
+        { title: "Jellyfin", desc: "影音媒体库", icon: "jellyfin", url: "https://media.example.com", lanUrl: "http://192.168.1.10:8096" },
+        { title: "Portainer", desc: "Docker 管理", icon: "selfhst:portainer", url: "https://docker.example.com", lanUrl: "http://192.168.1.10:9000" },
+        { title: "qBittorrent", desc: "下载工具", icon: "q-bittorrent", url: "https://bt.example.com", lanUrl: "http://192.168.1.10:8080" },
+        { title: "Alist", desc: "网盘聚合", icon: "iconify:simple-icons:alist", url: "https://pan.example.com", lanUrl: "http://192.168.1.10:5244" },
+        { title: "Home Assistant", desc: "智能家居", icon: "home-assistant", url: "https://ha.example.com", lanUrl: "http://192.168.1.10:8123" },
+        { title: "OpenWrt", desc: "路由器管理", icon: "openwrt", url: "https://router.example.com", lanUrl: "http://192.168.1.1" }
+      ]
+    },
+    {
+      name: "开发工具",
+      items: [
+        { title: "GitHub", desc: "代码托管", icon: "github-light", url: "https://github.com" },
+        { title: "Gitea", desc: "私有 Git 服务", icon: "gitea", url: "https://git.example.com", lanUrl: "http://192.168.1.10:3000" },
+        { title: "Grafana", desc: "监控面板", icon: "grafana", url: "https://grafana.example.com", lanUrl: "http://192.168.1.10:3001" },
+        { title: "Cloudflare", desc: "DNS 与 CDN", icon: "cloudflare", url: "https://dash.cloudflare.com" }
+      ]
+    },
+    {
+      name: "日常工具",
+      items: [
+        { title: "百度", desc: "搜索引擎", icon: "iconify:simple-icons:baidu", url: "https://www.baidu.com" },
+        { title: "Bilibili", desc: "视频网站", icon: "iconify:simple-icons:bilibili", url: "https://www.bilibili.com" },
+        { title: "V2EX", desc: "技术社区", icon: "selfhst:v2ex", url: "https://www.v2ex.com" },
+        { title: "网易云音乐", desc: "在线音乐", icon: "iconify:simple-icons:neteasecloudmusic", url: "https://music.163.com" }
+      ]
+    }
+  ];
+
+  // 与 public/js/app.js 完全一致的图标解析规则
+  function resolveIcon(icon, name) {
+    if (icon && /^https?:\/\//i.test(icon)) return icon;
+    if (icon && icon.indexOf("iconify:") === 0) {
+      var p = icon.slice(8).split(":");
+      if (p.length === 2) return "https://api.iconify.design/" + p[0] + "/" + p[1] + ".svg?color=%237db1ff";
+    }
+    if (icon && icon.indexOf("selfhst:") === 0) {
+      return "https://cdn.jsdelivr.net/gh/selfhst/icons/png/" + icon.slice(8) + ".png";
+    }
+    var slug = (icon || name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    if (!slug) return null;
+    return "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/" + slug + ".png";
+  }
+
+  // 与 public/js/app.js 一致的内网识别
+  function isLanHost(hostname) {
+    if (!hostname) return false;
+    var h = String(hostname).toLowerCase().replace(/^\[|\]$/g, "").split(":")[0];
+    if (h === "localhost" || h === "127.0.0.1" || h === "::1") return true;
+    if (/^10\./.test(h) || /^192\.168\./.test(h)) return true;
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+    if (/^fe80:/i.test(h) || /^f[cd][0-9a-f]{2}:/i.test(h)) return true;
+    if (/\.local$/i.test(h)) return true;
+    return false;
+  }
+
+  var nvApp = $("#nvApp");
+  var nvRoot = $("#nvRoot");
+  var nvEmpty = $("#nvEmpty");
+  var nvSearch = $("#nvSearch");
+  var state = { q: "", net: "wan", editing: false };
+
+  /* ---------- 渲染 ---------- */
+  function itemHtml(it) {
+    var url = state.net === "lan" && it.lanUrl ? it.lanUrl : it.url;
+    var ic = resolveIcon(it.icon, it.title);
+    var letter = (it.title || "?").trim().charAt(0).toUpperCase();
+    var iconBlock = ic
+      ? '<span class="nv-icon"><img src="' + esc(ic) + '" alt="" loading="lazy">' +
+        '<span class="fb">' + esc(letter) + '</span></span>'
+      : '<span class="nv-icon failed"><span class="fb">' + esc(letter) + '</span></span>';
+    return '<a class="nv-card" href="' + esc(url || "#") + '" data-url="' + esc(url || "") + '" data-title="' + esc(it.title) + '">' +
+             '<button class="nv-del" type="button" title="从草稿中移除（演示）">✕</button>' +
+             iconBlock +
+             '<span class="nv-meta"><b>' + esc(it.title) + '</b><span>' + esc(it.desc) + '</span></span>' +
+           '</a>';
+  }
+
+  function render() {
+    var q = state.q.trim().toLowerCase();
+    var html = "";
+    var total = 0;
+
+    GROUPS.forEach(function (g) {
+      var hit = g.items.filter(function (it) {
+        if (!q) return true;
+        return (it.title + " " + it.desc).toLowerCase().indexOf(q) !== -1;
+      });
+      if (!hit.length) return;
+      total += hit.length;
+      html += '<div class="nv-group">' +
+                '<div class="nv-group-title">' + esc(g.name) +
+                  '<span style="font-size:12px;font-weight:400;color:var(--text-dim)">' + hit.length + ' 项</span>' +
+                  (state.net === "lan" ? '<span style="font-size:12px;font-weight:400;color:var(--accent-2)">内网地址已生效</span>' : '') +
+                '</div>' +
+                '<div class="nv-grid">' + hit.map(itemHtml).join("") + '</div>' +
+              '</div>';
+    });
+
+    nvRoot.innerHTML = html;
+    nvEmpty.style.display = total ? "none" : "block";
+
+    // 图标加载失败 → 回退字母图标（原项目容错逻辑）
+    $$(".nv-icon img", nvRoot).forEach(function (img) {
+      img.addEventListener("error", function () {
+        img.parentNode.classList.add("failed");
+      });
+    });
+  }
+
+  /* ---------- 搜索 ---------- */
+  nvSearch.addEventListener("input", function () {
+    state.q = nvSearch.value;
+    render();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "/" && document.activeElement !== nvSearch && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) {
+      e.preventDefault();
+      nvSearch.focus();
+    }
+  });
+
+  /* ---------- 内外网切换 ---------- */
+  var nvNet = $("#nvNet");
+  function applyNet() {
+    var lan = state.net === "lan";
+    $("#nvNetLabel").textContent = lan ? "内网" : "外网";
+    $("#nvBadgeText").textContent = lan ? "内网模式" : "外网模式";
+    nvNet.classList.toggle("lan", lan);
+    nvNet.setAttribute("aria-pressed", lan ? "true" : "false");
+    $("#nvBadge").classList.toggle("lan", lan);
+    render();
+  }
+  nvNet.addEventListener("click", function () {
+    state.net = state.net === "lan" ? "wan" : "lan";
+    applyNet();
+    toast(state.net === "lan" ? "已切换到内网地址（仅显示配置了内网地址的卡片）" : "已切换到外网地址");
+  });
+
+  /* ---------- 卡片点击（演示：不真跳转） ---------- */
+  nvRoot.addEventListener("click", function (e) {
+    var del = e.target.closest(".nv-del");
+    var card = e.target.closest(".nv-card");
+    if (!card) return;
+    e.preventDefault();
+    if (del) {
+      var title = card.getAttribute("data-title");
+      GROUPS.forEach(function (g) {
+        g.items = g.items.filter(function (it) { return it.title !== title; });
+      });
+      render();
+      toast("已从草稿移除「" + title + "」（演示，未写盘）");
+      return;
+    }
+    var url = card.getAttribute("data-url");
+    if (url) toast("将打开 → " + url);
+  });
+
+  /* ---------- 编辑模式 ---------- */
+  var nvEdit = $("#nvEdit");
+  nvEdit.addEventListener("click", function () {
+    state.editing = !state.editing;
+    nvApp.classList.toggle("editing", state.editing);
+    nvEdit.classList.toggle("on", state.editing);
+    nvEdit.setAttribute("aria-pressed", state.editing ? "true" : "false");
+    $("#nvEditLabel").textContent = state.editing ? "完成" : "编辑";
+    toast(state.editing ? "已进入编辑模式：可增删改、拖动排序、服务发现、图床库" : "已退出编辑模式");
+  });
+
+  $("#nvAddGroup").addEventListener("click", function () {
+    GROUPS.push({ name: "新分组 " + (GROUPS.length + 1), items: [] });
+    render();
+    toast("已添加空分组（演示，未写盘）");
+  });
+
+  /* ---------- 保存栏 ---------- */
+  $$(".nv-savebar [data-demo]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var act = btn.getAttribute("data-demo");
+      if (act === "discover") return openDiscover();
+      if (act === "library") return openLibrary();
+      if (act === "backup") return toast("已生成带校验和的备份文件（演示：真实环境会下载 .json）");
+      if (act === "cancel") {
+        state.editing = false;
+        nvApp.classList.remove("editing");
+        nvEdit.classList.remove("on");
+        $("#nvEditLabel").textContent = "编辑";
+        return toast("已取消本次改动");
+      }
+      if (act === "save") {
+        state.editing = false;
+        nvApp.classList.remove("editing");
+        nvEdit.classList.remove("on");
+        $("#nvEditLabel").textContent = "编辑";
+        toast("已保存 " + GROUPS.length + " 个分组（演示：真实环境会写回 config.json）");
+      }
+    });
+  });
+
+  /* ============================================================
+     4. 弹窗：服务发现 / 图床库
+     ============================================================ */
+  var nvModal = $("#nvModal");
+
+  function closeModal() { nvModal.hidden = true; nvModal.innerHTML = ""; }
+
+  function modalShell(title, sub, bodyHtml, footHtml) {
+    return '<div class="nv-mask">' +
+      '<div class="nv-modal">' +
+        '<div class="nv-modal-h"><b>' + esc(title) + '</b><span class="sub">' + esc(sub) + '</span>' +
+          '<button class="x" type="button" data-x="1">✕</button></div>' +
+        '<div class="nv-modal-b">' + bodyHtml + '</div>' +
+        '<div class="nv-modal-f">' + footHtml + '</div>' +
+      '</div></div>';
+  }
+
+  /* ---------- 服务发现 ---------- */
+  function openDiscover() {
+    var found = [
+      { t: "Portainer", d: "docker/portainer:latest · 宿主机 9443 → 容器 9443", icon: "selfhst:portainer", tag: "新发现", cls: "new", on: true },
+      { t: "Grafana", d: "grafana/grafana:latest · 宿主机 3001 → 容器 3000", icon: "grafana", tag: "新发现", cls: "new", on: true },
+      { t: "qBittorrent", d: "linuxserver/qbittorrent · 宿主机 8080 → 容器 8080", icon: "q-bittorrent", tag: "新发现", cls: "new", on: true },
+      { t: "Jellyfin", d: "jellyfin/jellyfin · 宿主机 8096 → 容器 8096", icon: "jellyfin", tag: "已存在", cls: "", on: false },
+      { t: "Redis", d: "redis:7-alpine · 依赖容器，默认不加入", icon: "redis", tag: "依赖", cls: "dep", on: false },
+      { t: "MySQL", d: "mysql:8 · 依赖容器，默认不加入", icon: "mysql", tag: "依赖", cls: "dep", on: false },
+      { t: "watchtower", d: "containrrr/watchtower · 容器已停止", icon: "watchtower", tag: "未运行", cls: "off", on: false }
+    ];
+
+    var rows = found.map(function (f, i) {
+      var ic = resolveIcon(f.icon, f.t);
+      var letter = f.t.charAt(0).toUpperCase();
+      return '<label class="nv-row">' +
+        '<input class="ck" type="checkbox" data-i="' + i + '"' + (f.on ? " checked" : "") + '>' +
+        '<span class="ic"><img src="' + esc(ic) + '" alt=""><span class="fb">' + esc(letter) + '</span></span>' +
+        '<span class="info"><b>' + esc(f.t) + '</b><span>' + esc(f.d) + '</span></span>' +
+        '<span class="nv-tag ' + f.cls + '">' + esc(f.tag) + '</span>' +
+      '</label>';
+    }).join("");
+
+    var body =
+      '<div class="nv-note" style="margin:0 0 12px">' +
+        '<b>运行环境</b>：Docker <span style="color:var(--warn)">不可用</span>' +
+        '（connect ENOENT /var/run/docker.sock）· 本机扫描 <span style="color:var(--ok)">正常</span>（netstat，噪声已过滤）' +
+        '<br>下列条目为<strong>演示数据</strong>；真实结果取决于运行环境（需挂载 Docker Socket 或在 Linux 主机运行）。' +
+      '</div>' +
+      rows +
+      '<div class="nv-note">' +
+        '已识别 <b>7</b> 项 · 默认勾选 <b>3</b> 项推荐项（依赖容器与已停止容器默认不勾选）。' +
+        '图标由「镜像名 → 容器名 → 进程名 → 端口」匹配内置指纹库自动配置。' +
+      '</div>';
+
+    var foot =
+      '<span style="margin-right:auto;font-size:12.5px;color:var(--text-dim)">可加入 3 项 · 已选 3 项</span>' +
+      '<button class="nv-sbtn" type="button" data-x="1">取消</button>' +
+      '<button class="nv-sbtn primary" type="button" id="discAdd">加入选中项（演示）</button>';
+
+    nvModal.innerHTML = modalShell("服务发现", "自动识别端口 · 自动配图标 · 生成卡片", body, foot);
+    nvModal.hidden = false;
+
+    $$(".nv-row .ic img", nvModal).forEach(function (img) {
+      img.addEventListener("error", function () { img.parentNode.classList.add("failed"); });
+    });
+
+    $("#discAdd", nvModal).addEventListener("click", function () {
+      closeModal();
+      toast("已加入 3 张卡片到编辑草稿（演示：真实环境会进入保存流程）");
+    });
+  }
+
+  /* ---------- 图床库 / 在线图标库 ---------- */
+  function tileDataUrl(label, c1, c2) {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="' + c1 + '"/><stop offset="1" stop-color="' + c2 + '"/>' +
+      '</linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#g)"/>' +
+      '<text x="32" y="43" font-size="30" font-weight="700" fill="#fff" text-anchor="middle" ' +
+      'font-family="Segoe UI,sans-serif">' + label + '</text></svg>';
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+
+  var LIB = [
+    { n: "jellyfin-3f9a2b11.png", i: tileDataUrl("J", "#7c3aed", "#2563eb"), used: "Jellyfin" },
+    { n: "portainer-a1b2c3d4.png", i: tileDataUrl("P", "#0ea5e9", "#0d9488"), used: "Portainer" },
+    { n: "grafana-9e7c11aa.png", i: tileDataUrl("G", "#f59e0b", "#dc2626"), used: "" },
+    { n: "qbittorrent-5c2f77ee.png", i: tileDataUrl("Q", "#2563eb", "#0ea5e9"), used: "" },
+    { n: "alist-bb41d0c9.png", i: tileDataUrl("A", "#0d9488", "#38e1c6"), used: "" },
+    { n: "homeassistant-77aa31bc.png", i: tileDataUrl("H", "#38bdf8", "#4f46e5"), used: "" },
+    { n: "openwrt-2d8f4e10.png", i: tileDataUrl("O", "#22c55e", "#0d9488"), used: "" },
+    { n: "logo-88cd21ff.png", i: tileDataUrl("★", "#f43f5e", "#f59e0b"), used: "网易云音乐" }
+  ].map(function (x) { return { name: x.n, img: x.i, used: x.used }; });
+
+  var PRESETS = ["jellyfin", "portainer", "qbittorrent", "alist", "home-assistant", "openwrt",
+    "github", "gitea", "grafana", "cloudflare", "nextcloud", "immich", "plex", "sonarr", "radarr",
+    "prometheus", "vaultwarden", "synology", "truenas", "pihole", "nginx", "postgresql", "redis",
+    "mysql", "mongodb", "adguard-home", "uptime-kuma", "code-server", "n8n", "actual-budget"];
+
+  var libTab = "local";
+
+  function openLibrary() {
+    var tabs = '<div class="nv-tabs">' +
+      '<button class="nv-tab" type="button" data-tab="local">本地图床库（' + LIB.length + '）</button>' +
+      '<button class="nv-tab" type="button" data-tab="online">在线图标库</button>' +
+    '</div>';
+
+    var body = tabs + '<div id="libBody"></div>' +
+      '<div class="nv-note" id="libNote"></div>';
+
+    var foot =
+      '<span style="margin-right:auto;font-size:12.5px;color:var(--text-dim)">点击任一图标即回填到卡片的 Logo（演示）</span>' +
+      '<button class="nv-sbtn" type="button" data-x="1">关闭</button>';
+
+    nvModal.innerHTML = modalShell("图标选择 · 本地图床库 / 在线图标库", "Logo 两种来源", body, foot);
+    nvModal.hidden = false;
+
+    function paint() {
+      $$(".nv-tab", nvModal).forEach(function (b) {
+        b.classList.toggle("on", b.getAttribute("data-tab") === libTab);
+      });
+
+      if (libTab === "local") {
+        var cells = LIB.map(function (x, i) {
+          return '<div class="nv-cell" data-lib="' + i + '" title="' + esc(x.name) +
+              (x.used ? " · 正被「" + esc(x.used) + "」使用" : "") + '">' +
+            '<div class="img"><img src="' + esc(x.img) + '" alt=""></div>' +
+            '<small>' + esc(x.name) + '</small>' +
+            (x.used ? '<small style="color:var(--accent);margin-top:3px">使用中 · ' + esc(x.used) + '</small>' : '') +
+          '</div>';
+        }).join("");
+        $("#libBody", nvModal).innerHTML = '<div class="nv-libgrid">' + cells + '</div>';
+        $("#libNote", nvModal).innerHTML =
+          '图床库直接由上传目录的文件系统推导（不建索引文件）：文件名、体积、修改时间与「被哪些卡片引用」都是实时计算的。' +
+          '被引用的图片删除时会被服务端拒绝并返回引用清单，二次确认后才允许强制删除。' +
+          '<br><strong>演示说明</strong>：这里的缩略图为占位图形，真实环境显示你实际上传的图片。';
+      } else {
+        var cells2 = PRESETS.map(function (name, i) {
+          var ic = resolveIcon(name, name);
+          var letter = name.charAt(0).toUpperCase();
+          return '<div class="nv-cell" data-on="' + i + '" title="' + esc(name) + '">' +
+            '<div class="img"><img src="' + esc(ic) + '" alt=""><span class="fb">' + esc(letter) + '</span></div>' +
+            '<small>' + esc(name) + '</small>' +
+          '</div>';
+        }).join("");
+        $("#libBody", nvModal).innerHTML = '<div class="nv-libgrid">' + cells2 + '</div>';
+        $("#libNote", nvModal).innerHTML =
+          '默认展示项目内置的服务指纹推荐（离线可用）。输入关键词回车可检索 Iconify 公开图标库（需联网），' +
+          '选中的图标以 <code>iconify:集:名称</code> 形式写入卡片的 <code>icon</code> 字段。' +
+          '<br><strong>演示说明</strong>：图标走项目真实的在线图标源，离线时会回退为字母图标。';
+
+        $$(".nv-cell .img img", nvModal).forEach(function (img) {
+          img.addEventListener("error", function () { img.parentNode.classList.add("failed"); });
+        });
+      }
+    }
+
+    nvModal.addEventListener("click", function (e) {
+      var tab = e.target.closest(".nv-tab");
+      if (tab) { libTab = tab.getAttribute("data-tab"); paint(); return; }
+      var cell = e.target.closest(".nv-cell");
+      if (!cell) return;
+      if (cell.hasAttribute("data-lib")) {
+        var x = LIB[Number(cell.getAttribute("data-lib"))];
+        closeModal();
+        toast("已选用图床图片「" + x.name + "」（演示：真实环境会写入卡片的 logo 字段）");
+      } else if (cell.hasAttribute("data-on")) {
+        var n = PRESETS[Number(cell.getAttribute("data-on"))];
+        closeModal();
+        toast("已选用在线图标 " + n + "（演示：写入 icon 字段）");
+      }
+    });
+
+    paint();
+  }
+
+  /* 弹窗关闭 */
+  nvModal.addEventListener("click", function (e) {
+    if (e.target.classList.contains("nv-mask") || e.target.hasAttribute("data-x")) closeModal();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeModal();
+  });
+
+  /* ============================================================
+     5. 时钟 & 初始化
+     ============================================================ */
+  var WEEK = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+  function tick() {
+    var d = new Date();
+    var p = function (n) { return (n < 10 ? "0" : "") + n; };
+    $("#nvClock").textContent = p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+    $("#nvDate").textContent = d.getFullYear() + " 年 " + (d.getMonth() + 1) + " 月 " + d.getDate() + " 日 · " + WEEK[d.getDay()];
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // 按访问环境的实际主机名自动判定内外网（与真实项目一致的行为）
+  state.net = isLanHost(location.hostname) ? "lan" : "wan";
+  applyNet();
+
+  $("#jumpDemo").addEventListener("click", function () {
+    document.getElementById("demo").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+})();
+</script>
+
+</body>
+</html>

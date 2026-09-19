@@ -1,0 +1,25 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+README.md
+.workbuddy
+.wbapp_*.genie
+*.md
+test/
+docs/
+scripts/
+share/
+
+# 私有 / 运行时数据：不要把真实配置或上传图片打进镜像/仓库
+data/
+backups/
+public/config.json
+public/uploads/
+# 环境变量文件（含真实密码），不进构建上下文
+.env
+.env.*
+!.env.example
+*.tmp
+node_modules/

@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Navi 导航站 · 飞牛 fnOS 部署指南</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    color: #1f2937; font-size: 10.5pt; line-height: 1.75;
+    background: #fff;
+  }
+
+  /* ---------- 封面 ---------- */
+  .cover {
+    min-height: 235mm;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center;
+  }
+  .cover .logo {
+    width: 84px; height: 84px; margin-bottom: 26px;
+    display: grid; place-items: center;
+    color: #2563eb;
+    background: linear-gradient(135deg, #dbeafe, #ccfbf1);
+    border-radius: 22px;
+  }
+  .cover .logo svg { width: 44px; height: 44px; }
+  .cover h1 {
+    font-size: 30pt; font-weight: 800; letter-spacing: 1px;
+    background: linear-gradient(90deg, #2563eb, #0d9488);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .cover .sub { margin-top: 12px; font-size: 13pt; color: #6b7280; letter-spacing: 3px; }
+  .cover .meta {
+    margin-top: 54px; font-size: 9.5pt; color: #9ca3af; line-height: 2;
+  }
+  .cover .badge {
+    display: inline-block; margin-top: 18px; padding: 5px 16px;
+    border: 1px solid #bfdbfe; border-radius: 999px;
+    color: #2563eb; font-size: 9pt; letter-spacing: 1px;
+  }
+
+  /* ---------- 正文 ---------- */
+  h2 {
+    font-size: 15pt; font-weight: 700; color: #111827;
+    margin: 24px 0 10px; padding-left: 12px;
+    border-left: 4px solid #2563eb;
+  }
+  h3 {
+    font-size: 11.5pt; font-weight: 700; color: #1f2937;
+    margin: 16px 0 6px;
+  }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0 6px 22px; }
+  li { margin: 3px 0; }
+  strong { color: #111827; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code.inline {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9pt;
+    background: #f1f5f9; color: #be123c;
+    padding: 1px 6px; border-radius: 4px;
+  }
+  pre {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 8.8pt; line-height: 1.6;
+    background: #0f172a; color: #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  pre .c { color: #64748b; }
+  pre .k { color: #7dd3fc; }
+  pre .s { color: #86efac; }
+
+  .tip, .warn, .danger {
+    border-radius: 8px; padding: 10px 14px; margin: 10px 0;
+    font-size: 9.5pt;
+  }
+  .tip { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e40af; }
+  .warn { background: #fff7ed; border-left: 4px solid #f97316; color: #9a3412; }
+  .danger { background: #fef2f2; border-left: 4px solid #dc2626; color: #991b1b; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9.5pt;
+  }
+  th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; font-weight: 700; }
+  td code { font-family: Consolas, monospace; font-size: 8.8pt; color: #be123c; }
+
+  .step {
+    display: flex; gap: 10px; margin: 14px 0 4px; align-items: baseline;
+  }
+  .step .no {
+    flex: none; width: 24px; height: 24px;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, #2563eb, #0d9488);
+    color: #fff; font-weight: 700; font-size: 10pt;
+    border-radius: 50%;
+  }
+  .step .t { font-weight: 700; font-size: 11.5pt; color: #111827; }
+
+  .toc {
+    background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px;
+    padding: 14px 20px; margin: 18px 0;
+  }
+  .toc h3 { margin: 0 0 8px; font-size: 11pt; }
+  .toc ol { margin-left: 20px; font-size: 9.8pt; }
+  .toc li { margin: 2px 0; }
+
+  .check li { list-style: none; margin-left: -18px; }
+  .check li::before { content: "☐ "; color: #9ca3af; }
+
+  .folder {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9pt; line-height: 1.8;
+    background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 12px 16px; margin: 8px 0;
+    white-space: pre;
+  }
+  .folder .hl { color: #be123c; font-weight: 700; }
+  .folder .dim { color: #94a3b8; }
+
+  .footer-note {
+    margin-top: 30px; padding-top: 10px; border-top: 1px solid #e5e7eb;
+    font-size: 9pt; color: #9ca3af; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== 封面 ==================== -->
+<div class="cover">
+  <span class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+    </svg>
+  </span>
+  <h1>Navi 个人导航站</h1>
+  <p class="sub">飞牛 fnOS 部署指南</p>
+  <p><span class="badge">单容器 · 零依赖 · 双栈 · 服务发现 · 图床库 · 密码保护</span></p>
+  <div class="meta">
+    适用环境：飞牛 fnOS（Debian 内核）+ Docker / Docker Compose<br>
+    适用版本：Navi 1.x（node:22-alpine 镜像，零 npm 依赖）<br>
+    文档日期：2026 年 9 月 19 日
+  </div>
+</div>
+
+<!-- ==================== 目录 ==================== -->
+<div class="toc">
+  <h3>目录</h3>
+  <ol>
+    <li><a href="#s1">部署前必读：三条会踩坑的硬规则</a></li>
+    <li><a href="#s2">环境准备（Docker / SSH / 存储空间）</a></li>
+    <li><a href="#s3">目录规划</a></li>
+    <li><a href="#s4">把源码放到 NAS 上</a></li>
+    <li><a href="#s5">方式一：SSH 命令行部署（推荐）</a></li>
+    <li><a href="#s6">方式二：飞牛 Docker 图形界面部署</a></li>
+    <li><a href="#s7">端口与存储映射说明</a></li>
+    <li><a href="#s8">网络配置（双栈 / 反代 / 安全）</a></li>
+    <li><a href="#s9">环境变量配置</a></li>
+    <li><a href="#s10">可选：开启服务发现</a></li>
+    <li><a href="#s11">启动与验证</a></li>
+    <li><a href="#s12">常见问题与排查（14 项）</a></li>
+    <li><a href="#s13">日常运维与升级回滚</a></li>
+    <li><a href="#s14">部署检查清单</a></li>
+    <li><a href="#s15">命令速查</a></li>
+  </ol>
+</div>
+
+<!-- ==================== 1 部署前必读 ==================== -->
+<h2 id="s1">1. 部署前必读：三条会踩坑的硬规则</h2>
+
+<p>飞牛 fnOS 的 Docker 与通用 Linux 无本质区别，但下面三点如果忽略，会分别导致「构建不出来」「保存报错」「站点裸奔」。建议先读完这一节再动手。</p>
+
+<table>
+  <tr>
+    <th style="width:26%">硬规则</th>
+    <th>原因与做法</th>
+  </tr>
+  <tr>
+    <td><strong>① 必须按「整目录」挂载数据</strong></td>
+    <td>写配置采用<strong>原子写</strong>（先写 <code>.tmp</code> 再 <code>rename</code> 覆盖）。若只挂载单个 <code>config.json</code>，<code>rename</code> 会跨越两个挂载点，在飞牛的存储卷上会稳定触发
+      <code>EBUSY: resource busy or locked</code>，表现为<strong>网页上点「保存」永远失败</strong>。<br>
+      ✅ 正确写法：<code class="inline">- /vol1/1000/docker/navi/data:/app/data</code>（挂目录，不挂文件）</td>
+  </tr>
+  <tr>
+    <td><strong>② 必须提供访问密码</strong></td>
+    <td>仓库的 <code>docker-compose.yml</code> 用的是 <code class="inline">${NAVI_PASSWORD:?...}</code> 强制校验：<strong>缺少该变量时 compose 会直接报错退出</strong>。这是刻意设计——避免静默退化成「无密码开放访问」（任何拿到地址的人都能进编辑模式改你的配置）。<br>
+      做法：在 compose 同目录放一份 <code>.env</code>（见第 6 节）。</td>
+  </tr>
+  <tr>
+    <td><strong>③ 没有预构建镜像，需要自己 build</strong></td>
+    <td>本项目<strong>没有发布到任何镜像仓库</strong>，<code>image: navi:latest</code> 指的是「本机构建出来的镜像」。所以要么在 NAS 上 <code>docker build</code>（需联网拉取 <code>node:22-alpine</code>），要么在别的电脑构建后导出再导入（见第 5 节方式 B）。</td>
+  </tr>
+</table>
+
+<div class="tip"><strong>好消息：</strong>容器内已内置示例配置，<strong>不挂载也能跑起来</strong>。你可以先用最简命令验证镜像没问题，再补挂载做正式部署。</div>
+
+<!-- ==================== 2 环境准备 ==================== -->
+<h2 id="s2">2. 环境准备</h2>
+
+<div class="step"><span class="no">1</span><span class="t">确认 Docker 已安装并已选定存储空间</span></div>
+<p>首次打开飞牛的「Docker」应用时，系统会提示选择 Docker 的存储位置（建议选 <strong>SSD 所在存储空间</strong>，机械盘上构建镜像会明显更慢）。选定后会在该存储空间根目录生成一个 <code class="inline">docker</code> 文件夹，用于存放镜像与运行环境。</p>
+
+<table>
+  <tr><th style="width:30%">路径</th><th>用途</th></tr>
+  <tr><td><code>/vol1/docker</code></td><td>Docker 自身的镜像 / 运行环境 / 网络 / 插件（由飞牛自动管理）</td></tr>
+  <tr><td><code>/vol1/1000</code></td><td>你的用户目录（<code>1000</code> 是飞牛默认用户 ID），<strong>我们放 compose 与数据的位置</strong></td></tr>
+  <tr><td><code>/vol2</code>、<code>/vol3</code>…</td><td>其它存储空间，可按需替换下面的 <code>/vol1</code></td></tr>
+</table>
+
+<div class="step"><span class="no">2</span><span class="t">开启 SSH（命令行部署方式需要）</span></div>
+<p>飞牛默认关闭 SSH。进入 <strong>设置 → 远程访问 → SSH</strong>，勾选启用（建议同时改掉默认 22 端口）。之后用任意终端登录：</p>
+<pre>ssh 你的用户名@飞牛NAS的IP
+<span class="c"># 登录后切换到 root（飞牛的 docker 命令需要 root 权限）</span>
+sudo -i</pre>
+
+<div class="step"><span class="no">3</span><span class="t">验证 Docker 可用</span></div>
+<pre>docker --version          <span class="c"># 例：Docker version 27.x.x</span>
+docker compose version    <span class="c"># 例：Docker Compose version v2.x.x</span></pre>
+<div class="tip">如果 <code class="inline">docker compose</code> 提示不认识该子命令，说明只有旧版 <code>docker-compose</code>（带横线）。把本文所有 <code class="inline">docker compose</code> 替换为 <code class="inline">docker-compose</code> 即可。</div>
+
+<!-- ==================== 3 目录规划 ==================== -->
+<h2 id="s3">3. 目录规划</h2>
+
+<p>约定一个固定目录，后面所有命令都以它为例（请按自己的存储空间替换 <code class="inline">/vol1</code>）：</p>
+
+<div class="folder"><span class="hl">/vol1/1000/docker/navi/</span>          <span class="dim">← 项目目录（compose、.env、源码）</span>
+├── docker-compose.yml         <span class="dim">仓库自带，直接沿用</span>
+├── .env                       <span class="dim">★ 放真实密码，需自己创建</span>
+├── Dockerfile                 <span class="dim">仓库自带</span>
+├── server.js                  <span class="dim">后端（零依赖）</span>
+├── discovery.js               <span class="dim">服务发现模块（容易漏！见下方提醒）</span>
+├── public/                    <span class="dim">前端资源</span>
+└── <span class="hl">data/</span>                        <span class="dim">← 持久化数据（挂载到容器 /app/data）</span>
+    ├── config.json            <span class="dim">你的导航链接配置</span>
+    └── uploads/               <span class="dim">图床库 / 卡片 Logo 图片</span></div>
+
+<div class="warn"><strong>容易漏的一个文件：</strong><code class="inline">discovery.js</code>。它不在 <code>public/</code> 里，复制源码时很容易只拷 <code>server.js</code> + <code>public/</code> 而把它落下——结果就是容器启动直接报
+<code>Cannot find module './discovery'</code>。<strong>上传源码后务必确认它存在。</strong></div>
+
+<div class="tip"><strong>哪些文件不必上传：</strong><code>.git/</code>、<code>test/</code>、<code>docs/</code>、<code>scripts/</code>、<code>node_modules/</code>、<code>public/config.json</code>（你的真实配置，会被 <code>.dockerignore</code> 排除）、<code>public/uploads/</code>。仓库自带的 <code>.dockerignore</code> 已经帮你在构建时排除了这些，所以<strong>构建上下文很小，构建速度不受影响</strong>。</div>
+
+<!-- ==================== 4 获取源码 ==================== -->
+<h2 id="s4">4. 把源码放到 NAS 上</h2>
+
+<p>三种方式，任选一种。核心要求只有一条：<strong>第 3 节列出的文件都要在 <code class="inline">/vol1/1000/docker/navi/</code> 下</strong>。</p>
+
+<table>
+  <tr><th style="width:20%">方式</th><th>操作</th><th style="width:22%">适用场景</th></tr>
+  <tr>
+    <td><strong>A. Git 克隆</strong><br>（最省事）</td>
+    <td><pre>cd /vol1/1000/docker
+git clone 你的仓库地址 navi</pre>
+      仓库地址若为私有，需要先在飞牛上配好凭据（SSH Key 或 PAT）。若还没推到 GitHub，参考 README 的「开源发布到 GitHub」章节。</td>
+    <td>源码已推到 Git 仓库；后续升级只要 <code>git pull</code></td>
+  </tr>
+  <tr>
+    <td><strong>B. 文件管理上传</strong></td>
+    <td>在飞牛「文件管理」中切到 <strong>管理员视角</strong> → 进入 <code>/vol1/1000/docker/</code> → 新建文件夹 <code>navi</code> → 把本地项目打包成 zip 上传 → 右键<strong>解压到当前目录</strong>（注意别解压出多层目录）。</td>
+    <td>不想在 NAS 上折腾 Git，或 NAS 访问 GitHub 慢</td>
+  </tr>
+  <tr>
+    <td><strong>C. SMB 共享拷贝</strong></td>
+    <td>把 <code>/vol1/1000/docker/navi</code> 设为共享文件夹，在电脑上通过「映射网络驱动器」直接把整个项目目录拷进去。</td>
+    <td>局域网环境，且要经常改文件</td>
+  </tr>
+</table>
+
+<div class="warn"><strong>不要用「单文件逐个上传」代替整目录拷贝</strong>——尤其是 <code class="inline">public/</code> 目录里的 <code>js/app.js</code>、<code>css/style.css</code> 等，漏一个就会导致页面样式或交互异常。</div>
+
+<!-- ==================== 5 方式A：SSH ==================== -->
+<h2 id="s5">5. 方式一：SSH 命令行部署（推荐）</h2>
+
+<p>这是最可控的方式：日志实时可见，出错时能立刻定位。全程约 3～5 分钟（取决于网络拉取基础镜像的速度）。</p>
+
+<div class="step"><span class="no">1</span><span class="t">建立目录</span></div>
+<pre>sudo mkdir -p /vol1/1000/docker/navi/data/uploads
+sudo chown -R 1000:1000 /vol1/1000/docker/navi    <span class="c"># 属主交给你的用户，方便文件管理里操作</span>
+cd /vol1/1000/docker/navi</pre>
+
+<div class="step"><span class="no">2</span><span class="t">放入源码</span></div>
+<p>按第 4 节任选一种方式把项目文件放进来，然后确认关键文件齐全：</p>
+<pre>ls -l server.js discovery.js Dockerfile docker-compose.yml public/index.html
+<span class="c"># 五项全部列出即可；缺 discovery.js 会在启动时报 Cannot find module</span></pre>
+
+<div class="step"><span class="no">3</span><span class="t">初始化导航配置</span></div>
+<pre>cp public/config.example.json data/config.json
+<span class="c"># 校验一下是合法 JSON（飞牛自带 node 的可能性低，用 python3 兜底）</span>
+python3 -c "import json;json.load(open('data/config.json'));print('config.json OK')"</pre>
+
+<div class="step"><span class="no">4</span><span class="t">创建 <code class="inline">.env</code> 写入访问密码</span></div>
+<p>这是<strong>唯一必填</strong>的配置。仓库已提供 <code class="inline">.env.example</code> 模板：</p>
+<pre>cp .env.example .env
+<span class="c"># 编辑 .env，把 CHANGE_ME 换成你的强密码</span>
+vi .env        <span class="c"># 或用 nano .env</span>
+
+<span class="c"># 确认写入成功（只显示变量名，不显示值）</span>
+grep -q '^NAVI_PASSWORD=..*' .env &amp;&amp; echo ".env 已设置密码"</pre>
+<div class="tip"><strong>不想留明文？</strong>用哈希替代。注意比对的是 <code class="inline">sha256("navi-site:" + 密码)</code>，<strong>必须带 <code>navi-site:</code> 前缀</strong>，直接用裸 sha256 会永远登录失败（返回 401 且不报错，极易误判成密码写错）：</div>
+<pre><span class="c"># 用任意装了 Node 的电脑执行（飞牛上通常没装 node）</span>
+node -e "console.log(require('crypto').createHash('sha256').update('navi-site:'+process.argv[1]).digest('hex'))" '你的强密码'
+<span class="c"># 把输出的 64 位哈希填进 .env 的 NAVI_PASSWORD_HASH=，并删掉或注释掉 NAVI_PASSWORD= 那一行</span></pre>
+
+<div class="step"><span class="no">5</span><span class="t">构建镜像</span></div>
+<pre>sudo docker build -t navi:latest .
+<span class="c"># 看到 Successfully tagged navi:latest 即成功（首次需联网拉取 node:22-alpine，约 50MB）</span></pre>
+<div class="warn"><strong>构建卡在拉取阶段？</strong>说明 NAS 到 Docker Hub 的网络不通。在飞牛 <strong>Docker 应用 → 设置 → 镜像加速</strong>里配置一个国内加速地址后重试；或改用下面的「方式 B：跨机导入镜像」，完全不需要在 NAS 上联网构建。</div>
+
+<h3>方式 B：在别的电脑构建后导入（NAS 无法联网时）</h3>
+<p>在你的电脑（已装 Docker Desktop / Docker）上，进入项目目录执行：</p>
+<pre><span class="c"># 电脑上：构建并导出为 tar（Windows PowerShell 用双引号包路径）</span>
+docker build -t navi:latest .
+docker save navi:latest -o navi-image.tar
+
+<span class="c"># 把 navi-image.tar 上传到 NAS 的 /vol1/1000/docker/navi/ 后：</span>
+sudo docker load -i /vol1/1000/docker/navi/navi-image.tar
+sudo docker images | grep navi     <span class="c"># 确认 navi:latest 已在列表中</span></pre>
+<div class="tip">导入镜像后，记得把 <code class="inline">docker-compose.yml</code> 里的 <code class="inline">build: .</code> 那一行<strong>删掉或注释掉</strong>，只保留 <code class="inline">image: navi:latest</code>，否则 compose 仍会尝试重新构建。</div>
+
+<div class="step"><span class="no">6</span><span class="t">启动容器</span></div>
+<pre>sudo docker compose up -d
+
+<span class="c"># 查看状态与日志</span>
+sudo docker compose ps
+sudo docker logs --tail 30 navi</pre>
+<p>日志应出现类似输出（端口、配置路径、鉴权状态）：</p>
+<pre>[navi] listening on [::]:80
+[navi] config file: /app/data/config.json
+[navi] auth: ENABLED (ttl 72h)</pre>
+
+<div class="step"><span class="no">7</span><span class="t">验证</span></div>
+<p>见第 9 节的完整验证清单。</p>
+
+<!-- ==================== 6 方式二：GUI ==================== -->
+<h2 id="s6">6. 方式二：飞牛 Docker 图形界面部署</h2>
+
+<p>不想碰 SSH 的话，飞牛自带的 Docker 应用支持 Compose 项目，全程鼠标操作。<strong>但有一个关键限制必须先处理。</strong></p>
+
+<div class="danger"><strong>GUI 的 Compose 项目通常不支持 <code class="inline">build:</code>（构建）</strong>——它只会去拉取现成镜像。而本项目的镜像是本地构建出来的，不在任何仓库里。因此 GUI 方式的正确姿势是：<strong>先构建镜像，再用 GUI 启动</strong>：
+<pre style="margin-top:8px">sudo docker build -t navi:latest /vol1/1000/docker/navi</pre>
+（这一条命令仍需 SSH 执行一次；或者用第 5 节的「跨机导入镜像」把 tar 传进来 <code>docker load</code>。）</div>
+
+<div class="step"><span class="no">1</span><span class="t">准备目录与文件</span></div>
+<p>在「文件管理（管理员视角）」中建好 <code class="inline">/vol1/1000/docker/navi/</code>，放入源码，并<strong>手动创建</strong> <code class="inline">data/</code> 目录与其中的 <code class="inline">config.json</code>（把 <code>public/config.example.json</code> 复制过去并改名为 <code>config.json</code>）。</p>
+
+<div class="step"><span class="no">2</span><span class="t">新建 Compose 项目</span></div>
+<p>打开「Docker」应用 → 左侧 <strong>Compose</strong> → <strong>新增项目</strong>：</p>
+<table>
+  <tr><th style="width:26%">字段</th><th>填写内容</th></tr>
+  <tr><td>项目名称</td><td><code>navi</code></td></tr>
+  <tr><td>路径</td><td><code>/vol1/1000/docker/navi</code>（选择该目录后，界面一般会提示「使用现有的 docker-compose 配置来创建项目」）</td></tr>
+  <tr><td>创建后立即启动</td><td>✅ 勾选</td></tr>
+</table>
+
+<div class="step"><span class="no">3</span><span class="t">粘贴 GUI 版 compose 配置</span></div>
+<p>仓库自带的 <code class="inline">docker-compose.yml</code> 依赖 <code class="inline">.env</code> 提供密码。GUI 下更简单的做法是<strong>把密码直接写进环境变量</strong>，并把 <code class="inline">build: .</code> 换成已有的本地镜像。可直接粘贴下面这份（只有 4 处需要按你的情况改）：</p>
+<pre>services:
+  navi:
+    image: navi:latest            <span class="c"># 用第 5 节构建/导入好的本地镜像</span>
+    container_name: navi
+    restart: unless-stopped
+    environment:
+      - SITE_TITLE=Navi
+      - SITE_SUBTITLE=个人导航站
+      - NAVI_PASSWORD=<span class="k">改成你的强密码</span>
+      - SESSION_TTL_HOURS=72
+      - NAVI_CONFIG_PATH=/app/data/config.json
+      - NAVI_UPLOAD_DIR=/app/data/uploads
+    ports:
+      - "8080:80"                 <span class="c"># 左侧 8080 若被占用，换成其它空闲端口</span>
+    volumes:
+      - /vol1/1000/docker/navi/data:/app/data    <span class="c"># 整目录挂载，勿改成单文件</span></pre>
+
+<div class="warn"><strong>后续要改这份配置（换端口 / 改密码）时</strong>，飞牛 GUI 的生效流程是三步：<strong>停止项目 → 修改 yml → 清除项目 → 再启动</strong>。只改 yml 不重新创建，配置不会生效。</div>
+
+<div class="tip">若你更愿意用仓库原版 <code class="inline">docker-compose.yml</code>：在 GUI 里把 <code class="inline">build: .</code> 注释掉，并在该目录下用文件管理新建一个 <code class="inline">.env</code>（内容一行 <code class="inline">NAVI_PASSWORD=你的密码</code>）。Docker Compose 会自动读取同目录的 <code class="inline">.env</code>。</div>
+
+<div class="warn"><strong>在 GUI 里编辑 yml 最容易踩的坑：YAML 缩进</strong>
+<p style="margin:10px 0 0">飞牛的 Compose 编辑器会实时校验语法，缩进一旦不齐，就会在出问题的那几行画红线。三条铁律：</p>
+<ol style="margin:8px 0 0 20px;padding:0">
+  <li style="margin:6px 0">同一个 <code class="inline">environment:</code> 下，所有 <code class="inline">-</code> <strong>必须严格对齐在同一列</strong>。本项目原版是 <code class="inline">6 个空格 + "-" + 1 个空格 + 键=值</code>，取消注释时不要连带空格一起删错——多一格、少一格都会报错。</li>
+  <li style="margin:6px 0">同一个 <code class="inline">environment:</code> 里<strong>不能混用</strong>「列表式」<code class="inline">- 键=值</code> 与「映射式」<code class="inline">键: 值</code>，两种写法必须整段统一，混用必然报 <code class="inline">bad indentation of a mapping entry</code>。</li>
+  <li style="margin:6px 0">值里带冒号（如 <code class="inline">http://10.10.10.18</code>）时建议<strong>整体加引号</strong>，可以规避各种解析器的歧义判断。</li>
+</ol>
+<p style="margin:10px 0 0">以「内网 / 外网地址基址」这两行为例，要启用就写成下面这样（重点是 <code class="inline">-</code> 与上面的同级项严格同列）：</p>
+<pre style="margin-top:8px">      - "NAVI_LAN_HOST=http://10.10.10.18"
+      - "NAVI_WAN_HOST=https://dami123.top"</pre>
+<p style="margin:8px 0 0"><strong>更省事的做法是这两行干脆不启用。</strong>不设置时服务发现会<strong>自动探测</strong> NAS 的本机 IP；只有探测不准（NAS 有多网口 / 虚拟网卡）时才需要手动指定。</p>
+<p style="margin:8px 0 0">拿不准有没有写歪，可以在<strong>电脑上</strong>（不用在 NAS 上）跑一次自检，它会把最终解析出的环境变量原样打印出来：<br>
+<code class="inline">NODE_PATH=&lt;含 js-yaml 的 node_modules&gt; node scripts/check-compose.cjs</code>；它会明确指出哪一行被「静默折叠」了。</p>
+</div>
+
+<!-- ==================== 7 端口与映射 ==================== -->
+<h2 id="s7">7. 端口与存储映射说明</h2>
+
+<h3>端口</h3>
+<table>
+  <tr><th style="width:24%">项</th><th>值</th><th>说明</th></tr>
+  <tr><td>容器内监听端口</td><td><code>80</code></td><td>镜像通过 <code>PORT=80</code> 固定，无需修改</td></tr>
+  <tr><td>宿主映射端口</td><td><code>8080</code></td><td>宿主机访问端口，<strong>可自由修改</strong>，如 <code>"18080:80"</code></td></tr>
+  <tr><td>访问地址</td><td><code>http://飞牛NAS的IP:8080</code></td><td>局域网内直接用飞牛 IP</td></tr>
+</table>
+<p>部署前先确认 8080 没被占用（飞牛自身服务、其它容器都可能占用）：</p>
+<pre>sudo ss -tlnp | grep -E ':8080\b'    <span class="c"># 无输出即端口空闲</span></pre>
+
+<h3>存储映射</h3>
+<table>
+  <tr><th style="width:38%">宿主机路径</th><th style="width:22%">容器内路径</th><th>存放内容</th></tr>
+  <tr><td><code>/vol1/1000/docker/navi/data</code></td><td><code>/app/data</code></td><td>导航配置 <code>config.json</code> + 图床库 / Logo 图片 <code>uploads/</code>。<strong>整个目录一起挂载</strong>，不要拆成单文件</td></tr>
+</table>
+<div class="warn"><strong>这个目录丢了 = 数据全丢。</strong>网页上的「备份」按钮只导出 <code>config.json</code>，<strong>不打包图片实体</strong>。迁移或重装前，请一并复制 <code>data/uploads/</code>。图片缺失时卡片会自动回退为字母图标，不会报错，所以容易察觉不到。</div>
+
+<h3>重建容器时要不要清空这个目录？——<span class="hl">不要</span></h3>
+<p>先分清两样东西，它们不是一个概念：</p>
+<table>
+  <tr><th style="width:30%">对象</th><th style="width:34%">是什么</th><th>重建 / 清除时</th></tr>
+  <tr><td>镜像 <code>navi:latest</code></td><td>程序代码本身</td><td>随便删、随便重建，<strong>删掉不心疼</strong>（随时能从源码重新 <code>build</code>）</td></tr>
+  <tr><td>数据目录 <code>data/</code></td><td><code>config.json</code> + <code>uploads/</code>，你全部导航卡片与图片</td><td><strong>不可再生，只此一份</strong>——重建镜像与容器都不会动它</td></tr>
+</table>
+<p>原因是这一行是 <strong>目录挂载（bind mount）</strong>：<code class="inline">- /vol1/1000/docker/navi/data:/app/data</code>。Docker 只负责把宿主机目录「接」进容器，<strong>不管理它的生命周期</strong>。所以下面这些操作都<strong>不会</strong>影响数据：</p>
+<pre><span class="c"># 以下操作都对 data/ 无影响，放心执行</span>
+sudo docker build -t navi:latest /vol1/1000/docker/navi   <span class="c"># 重建镜像</span>
+sudo docker rm -f navi                                    <span class="c"># 删除容器</span>
+sudo docker compose up -d --force-recreate                <span class="c"># 重建容器</span>
+飞牛 GUI：停止项目 → 清除项目 → 再启动                      <span class="c"># 清掉的是容器与项目定义</span></pre>
+<div class="danger"><strong>唯一会丢数据的三种情况（务必避开）：</strong>
+<ol style="margin:6px 0 0">
+  <li>在「文件管理」里<strong>手动删除</strong> <code>data/</code> 目录（或改名后忘记改回）；</li>
+  <li><code>docker compose down -v</code> 或 <code>docker volume rm</code>——加了 <code>-v</code> 会连卷一起删。
+      <strong>本项目用的是路径挂载，<code>down -v</code> 并不会删它</strong>；但如果你当初把它写成了具名卷（<code>- navi-data:/app/data</code>），就会连数据一起删掉。检查 yml 里写的是 <code>/vol1/...</code> 这种路径就没问题；</li>
+  <li>重装系统 / 换盘时没有把 <code>data/</code> 一起迁移走。</li>
+</ol></div>
+<div class="tip"><strong>每次升级前的标准动作</strong>（一条命令，比网页导出更全，含图片）：
+<pre style="margin-top:8px">sudo tar czf /vol1/1000/navi-backup-$(date +%F).tar.gz -C /vol1/1000/docker/navi data
+<span class="c"># 动手前先确认目录里有东西</span>
+ls -l /vol1/1000/docker/navi/data/    <span class="c"># 应看到 config.json 与 uploads/</span></pre></div>
+
+<h3>权限</h3>
+<p>镜像未设置 <code class="inline">USER</code>，容器内默认以 <strong>root</strong> 运行，因此对挂载目录一定有写权限——这是它能开箱即用的原因。副作用是：<strong>容器写入的文件在宿主机上属主为 <code>root:root</code></strong>，飞牛「文件管理」（以 1000 用户身份）可能无法直接编辑或删除这些文件，提示权限不足。</p>
+<p>如果需要让文件管理也能操作，有两种办法：</p>
+<pre><span class="c"># 办法一（推荐）：直接在 SSH 里改属主</span>
+sudo chown -R 1000:1000 /vol1/1000/docker/navi/data
+
+<span class="c"># 办法二：让容器以你的用户身份运行 —— 在 compose 的 navi 服务下增加一行</span>
+    user: "1000:1000"
+<span class="c"># 前提：data 目录属主必须是 1000:1000，否则容器内会写不进去（保存失败）</span></pre>
+
+<!-- ==================== 8 网络 ==================== -->
+<h2 id="s8">8. 网络配置</h2>
+
+<table>
+  <tr><th style="width:22%">项</th><th>说明</th></tr>
+  <tr><td><strong>网络模式</strong></td><td>保持默认的 <strong>bridge</strong> 即可，通过 <code>-p 8080:80</code> 对外暴露。本项目是单端口纯 HTTP 服务，<strong>不需要 host 模式</strong>，也不需要 macvlan</td></tr>
+  <tr><td><strong>IPv4 / IPv6 双栈</strong></td><td>服务端默认监听 <code>::</code>（同时接受 IPv4 与 IPv6）。宿主机开启 IPv6 时，Docker 的端口映射会同时绑定两种协议栈，<strong>无需额外配置</strong>。验证：<code>curl -g "http://[你的IPv6地址]:8080/api/health"</code></td></tr>
+  <tr><td><strong>局域网访问</strong></td><td>同网段设备直接访问 <code>http://NAS的IP:8080</code>。建议在飞牛确认防火墙未拦截该端口</td></tr>
+  <tr><td><strong>外网访问</strong></td><td>请<strong>不要</strong>直接把 8080 端口映射到公网。正确做法是使用反向代理（飞牛可装的 Lucky / Nginx Proxy Manager / Caddy）并配置 HTTPS 证书；服务在 HTTPS 下会自动为会话 Cookie 加 <code>Secure</code> 标记</td></tr>
+  <tr><td><strong>容器互访</strong></td><td>服务发现要列出其它容器时，需接入 Docker Socket 或远程 API —— 见第 10 节</td></tr>
+</table>
+
+<div class="tip">反代时的注意点：把 <code class="inline">/</code> 整个路径转发到 <code>http://NAS的IP:8080</code>，并<strong>保留 Host 头</strong>。服务会用请求的 Host 推断内网地址基址，Host 被改写可能导致服务发现生成的地址不对；这种情况可以显式设置 <code class="inline">NAVI_LAN_HOST=<span class="k">NAS的IP</span></code>。</div>
+
+<!-- ==================== 9 环境变量 ==================== -->
+<h2 id="s9">9. 环境变量配置</h2>
+
+<p>上面「GUI 版 compose」里已经给了最小可用组合。下表是飞牛部署时<strong>真正会用到的</strong>变量（完整列表见 README）：</p>
+
+<table>
+  <tr><th style="width:24%">变量</th><th>作用</th><th style="width:22%">建议值</th></tr>
+  <tr><td><code>NAVI_PASSWORD</code></td><td>访问密码。<strong>必填</strong>（compose 会强校验）</td><td>强密码</td></tr>
+  <tr><td><code>NAVI_PASSWORD_HASH</code></td><td>密码的加盐哈希，替代明文（更推荐）</td><td>64 位哈希</td></tr>
+  <tr><td><code>NAVI_USERNAME</code></td><td>设置后启用「用户名 + 密码」联合登录</td><td><code>admin</code>（可选）</td></tr>
+  <tr><td><code>SESSION_TTL_HOURS</code></td><td>登录会话有效期（小时）</td><td><code>72</code></td></tr>
+  <tr><td><code>SITE_TITLE</code> / <code>SITE_SUBTITLE</code></td><td>覆盖站点标题 / 副标题（仅展示层，不写回配置）</td><td>按喜好</td></tr>
+  <tr><td><code>NAVI_CONFIG_PATH</code></td><td>配置文件路径</td><td><code>/app/data/config.json</code></td></tr>
+  <tr><td><code>NAVI_UPLOAD_DIR</code></td><td>Logo / 图床库目录</td><td><code>/app/data/uploads</code></td></tr>
+  <tr><td><code>NAVI_LAN_HOST</code></td><td>服务发现生成的内网地址基址</td><td><code>NAS的局域网IP</code></td></tr>
+  <tr><td><code>NAVI_WAN_HOST</code></td><td>服务发现生成的外网地址基址</td><td>你的域名（可选）</td></tr>
+  <tr><td><code>NAVI_ICON_PROBE</code></td><td>设为 <code>0</code> 关闭图标在线探测，服务发现更快</td><td>离线环境设 <code>0</code></td></tr>
+  <tr><td><code>NAVI_ICON_PROBE_BASE</code></td><td>图标探测的 CDN 基址，可指向自建镜像（须保持上游目录结构）</td><td>用默认值即可</td></tr>
+  <tr><td><code>DOCKER_SOCKET</code></td><td>启用容器发现（见第 10 节）</td><td><code>/var/run/docker.sock</code></td></tr>
+</table>
+
+<div class="danger"><strong>不要把端口映射与服务监听的端口搞混。</strong>改「访问端口」只改 compose 里 <code class="inline">ports</code> 左侧的数字（如 <code>8080</code> → <code>18080</code>）；容器内始终是 80，<strong>不要</strong>去改 <code>PORT</code> 环境变量，否则端口映射会对不上，页面打不开。</div>
+
+<!-- 密码配置的三种组合 -->
+<h3>密码的三种写法（择一）</h3>
+<table>
+  <tr><th style="width:24%">方式</th><th>compose 环境变量</th><th>适用</th></tr>
+  <tr><td>明文密码</td><td><code>- NAVI_PASSWORD=强密码</code></td><td>最简单，仅本机可见</td></tr>
+  <tr><td>哈希密码<br>（推荐）</td><td><code>- NAVI_PASSWORD_HASH=64位哈希</code></td><td>环境变量里也不留明文</td></tr>
+  <tr><td>用户名 + 密码<br>（更安全）</td><td><code>- NAVI_USERNAME=admin</code><br><code>- NAVI_PASSWORD_HASH=64位哈希</code></td><td>暴露到公网时推荐</td></tr>
+</table>
+<p>启用后的行为：未登录访问任何页面 / 静态资源 / API 一律跳登录页（API 返回 401）；同一 IP 连续登录失败 5 次锁定 1 分钟；会话令牌为 HMAC 签名的 HttpOnly Cookie；页头提供「退出」按钮，登出会<strong>服务端吊销</strong>该令牌。</p>
+<div class="warn">「用户名 + 密码」联合登录时，用户名或密码任一错误都只提示「用户名或密码错误」，不区分是哪一项——这是为了防止用户名被逐个试出来。</div>
+
+<!-- ==================== 10 服务发现 ==================== -->
+<h2 id="s10">10. 可选：开启服务发现（自动识别容器）</h2>
+
+<p>本项目支持扫描 NAS 上正在运行的容器，自动识别端口、匹配图标并生成导航卡片。<strong>不开启也完全不影响其它功能</strong>——只影响编辑模式里「服务发现」按钮能否列出容器。</p>
+
+<div class="step"><span class="no">1</span><span class="t">挂载 Docker Socket</span></div>
+<p>在 <code class="inline">docker-compose.yml</code> 的 <code class="inline">volumes</code> 下取消注释这一行：</p>
+<pre>- /var/run/docker.sock:/var/run/docker.sock:ro</pre>
+<p>然后重建容器：</p>
+<pre>sudo docker compose up -d --force-recreate</pre>
+
+<div class="danger"><strong>安全提示（务必理解再开）：</strong>挂载 Docker Socket 后，容器内进程即拥有<strong>等价于宿主机 root 的 Docker 控制权</strong>——可以读取所有容器环境变量（其中常含数据库密码、API Key），甚至可以起一个特权容器来读写宿主机任意文件。<br>
+另外要注意：<code class="inline">:ro</code> 只是把 socket 文件标记为只读，<strong>并不能限制通过该 socket 发起的 Docker API 调用</strong>。它更多是语义标记，不要误以为加了 <code>:ro</code> 就安全了。<br>
+因此：<strong>仅在你信任镜像来源、且该端口只在内网可访问时开启</strong>；若要暴露公网，建议不挂 socket（或改用下面的远程 API 方式并只读开放）。</div>
+
+<h3>替代方案：连远程 Docker API（不挂 socket）</h3>
+<p>如果 NAS 上另有 Docker 主机，或你不想把 socket 交给容器，可改用 TCP 方式，仅需环境变量：</p>
+<pre>- DOCKER_HOST_NAME=192.168.1.20
+- DOCKER_HOST_PORT=2375</pre>
+<div class="warn">开放 Docker TCP API（2375）本身是<strong>未加密且无认证</strong>的，同样等于交出 root。若必须使用，请只在隔离内网开放，并考虑用 <code>2376</code> + TLS。相比之下，本机挂 socket <code>:ro</code> 反而更收敛一些。</div>
+
+<div class="tip"><strong>只想看容器、不想看 NAS 本机端口？</strong>设置 <code class="inline">NAVI_SCAN_LOCAL=0</code>。容器内没有 <code>/proc/net/tcp</code>，本机扫描会走 <code>netstat</code> 兜底，结果通常为空——关掉可以少一点噪声。<br>
+<strong>离线环境建议</strong>同时设置 <code class="inline">NAVI_ICON_PROBE=0</code>，避免扫描时联网探测图标拖慢速度（未命中的图标会自动回退为字母图标，不影响使用）。</div>
+
+<!-- ==================== 11 验证 ==================== -->
+<h2 id="s11">11. 启动与验证</h2>
+
+<div class="step"><span class="no">1</span><span class="t">容器在运行且未反复重启</span></div>
+<pre>sudo docker compose ps
+<span class="c"># 期望：STATUS 显示 Up X seconds/minutes（而不是 Restarting）</span>
+sudo docker logs --tail 30 navi
+<span class="c"># 期望：listening on [::]:80 / auth: ENABLED (ttl 72h)</span>
+<span class="c"># 若是 Restarting：看日志中的报错（最常见是 Cannot find module './discovery'）</span></pre>
+
+<div class="step"><span class="no">2</span><span class="t">健康检查接口</span></div>
+<pre>curl -s http://127.0.0.1:8080/api/health
+<span class="c"># 期望输出：{"ok":true,"ipv6":true,"authEnabled":true}</span></pre>
+<p><code class="inline">authEnabled:true</code> 说明密码保护已生效。<strong>若为 <code class="inline">false</code></strong>，说明 <code class="inline">NAVI_PASSWORD</code> 没被读到——按顺序用 <code class="inline">docker compose config</code> 检查变量是否解析、<code class="inline">docker inspect navi</code> 确认环境变量已注入。</p>
+
+<div class="step"><span class="no">3</span><span class="t">从另一台设备访问</span></div>
+<pre>curl -s -o /dev/null -w "%{http_code}\n" http://NAS的IP:8080/
+<span class="c"># 期望：302（未登录跳转登录页）</span>
+curl -s -o /dev/null -w "%{http_code}\n" http://NAS的IP:8080/api/config
+<span class="c"># 期望：401 —— 这是正确行为，不是故障！</span></pre>
+<div class="warn"><strong>别把 401 当成部署失败。</strong>启用密码保护后，<strong>所有 API 与页面在未登录时都会拒绝访问</strong>（页面 302 跳登录页、API 返回 401）。这正是安全设计生效的表现。要判断是否正常，只看上面那条 <code class="inline">/api/health</code>。</div>
+
+<div class="step"><span class="no">4</span><span class="t">浏览器完整验证</span></div>
+<ol>
+  <li>打开 <code class="inline">http://NAS的IP:8080</code> → 应自动跳到登录页</li>
+  <li>输入密码（若设了 <code class="inline">NAVI_USERNAME</code> 则还需输入用户名）→ 进入导航首页</li>
+  <li>点右上角「编辑」→ 底部出现保存栏 → 随意拖动一张卡片或改个名称 → 点「保存」</li>
+  <li><strong>重点验证「保存」是否真的成功</strong>（这是整目录挂载是否配对的判定点）。保存成功后刷新页面，改动仍在，说明 <code class="inline">data/config.json</code> 已正确写入宿主机</li>
+  <li>进编辑模式 → 试一次「上传」Logo 或「图床库」批量上传 → 刷新后图片仍能显示，说明 <code class="inline">data/uploads/</code> 持久化正常</li>
+</ol>
+
+<div class="step"><span class="no">5</span><span class="t">宿主机侧确认数据落盘</span></div>
+<pre>ls -l /vol1/1000/docker/navi/data/
+<span class="c"># 应看到 config.json 与 uploads/ 目录；刚保存过的话 config.json 的修改时间是刚刚</span></pre>
+
+<!-- ==================== 12 常见问题 ==================== -->
+<h2 id="s12">12. 常见问题与排查</h2>
+
+<table>
+  <tr><th style="width:30%">现象</th><th>原因</th><th style="width:34%">处理</th></tr>
+  <tr>
+    <td>容器 <code>Restarting</code>，日志报 <code>Cannot find module './discovery'</code></td>
+    <td>源码漏传 <code>discovery.js</code>（它在项目根目录，不在 <code>public/</code> 里）</td>
+    <td>补传该文件后 <code>docker compose up -d --build</code> 重建</td>
+  </tr>
+  <tr>
+    <td><code>compose up</code> 直接报 <code>NAVI_PASSWORD is required</code></td>
+    <td>缺少 <code>.env</code> 或其中没写该变量（这是刻意设计的强校验）</td>
+    <td>创建 <code>.env</code> 并写入 <code>NAVI_PASSWORD=...</code>；或在 GUI 里把密码直接写进环境变量</td>
+  </tr>
+  <tr>
+    <td><strong>网页点「保存」永远失败 / 报错</strong></td>
+    <td>用了<strong>单文件挂载</strong> <code>config.json</code>，跨挂载点 <code>rename</code> 在飞牛卷上触发 <code>EBUSY</code></td>
+    <td>改为<strong>整目录挂载</strong> <code>/vol1/1000/docker/navi/data:/app/data</code>。已有旧数据可用仓库脚本一键迁移：<code>sudo bash scripts/migrate-to-dir-mount.sh</code></td>
+  </tr>
+  <tr>
+    <td>日志有 <code>EBUSY</code> / <code>EXDEV</code> 但仍提示保存成功</td>
+    <td>服务内置了写入降级兜底：原子写失败时自动改为直接覆盖写入</td>
+    <td>属正常降级（牺牲一点原子性保可用）。仍建议改整目录挂载以恢复原子性</td>
+  </tr>
+  <tr>
+    <td>构建卡在 <code>Pulling node:22-alpine</code></td>
+    <td>NAS 访问 Docker Hub 网络不通</td>
+    <td>飞牛 Docker 设置里配镜像加速；或改用「跨机构建 + <code>docker save/load</code>」</td>
+  </tr>
+  <tr>
+    <td>页面打不开，但容器是 Up</td>
+    <td>端口映射对不上，或宿主端口被占用</td>
+    <td><code>sudo ss -tlnp | grep 8080</code> 查占用；确认 compose 里 <code>ports</code> 左侧数字与访问端口一致；<strong>不要改容器内 <code>PORT</code></strong></td>
+  </tr>
+  <tr>
+    <td>能打开登录页，但密码正确也进不去</td>
+    <td>用了 <code>NAVI_PASSWORD_HASH</code> 但哈希算错（漏了 <code>navi-site:</code> 前缀）</td>
+    <td>按第 5 节第 4 步的带前缀命令重新生成。裸 sha256 会稳定 401 且无任何报错</td>
+  </tr>
+  <tr>
+    <td>浏览器点登录没反应 / 登录后立刻跳回登录页</td>
+    <td>Cookie 被拒（HTTP/HTTPS 混用、跨域反代丢 Host）</td>
+    <td>统一用同一协议访问；反代时保留 Host 头并回传 <code>Set-Cookie</code></td>
+  </tr>
+  <tr>
+    <td>重启容器后需要重新登录</td>
+    <td><strong>正常行为</strong>：会话签名密钥每次启动随机生成，旧会话全部失效</td>
+    <td>无需处理。这是安全设计，重新登录即可</td>
+  </tr>
+  <tr>
+    <td>飞牛「文件管理」无法编辑 <code>data/</code> 里的文件</td>
+    <td>容器以 root 运行，写入的文件属主为 <code>root:root</code></td>
+    <td><code>sudo chown -R 1000:1000 /vol1/1000/docker/navi/data</code>；或给 compose 加 <code>user: "1000:1000"</code>（见第 7 节）</td>
+  </tr>
+  <tr>
+    <td>上传的 Logo 刷新后 404 / 图片丢失</td>
+    <td><code>NAVI_UPLOAD_DIR</code> 指到了未挂载的容器内路径</td>
+    <td>确认它是 <code>/app/data/uploads</code>，且 <code>/app/data</code> 已挂载到宿主机目录</td>
+  </tr>
+  <tr>
+    <td>「服务发现」弹窗提示无法访问 Docker</td>
+    <td>未挂载 socket，属预期降级</td>
+    <td>按第 10 节挂载 socket 并重建容器；或在无 Docker 环境下接受此降级（其余功能不受影响）</td>
+  </tr>
+  <tr>
+    <td>弹窗报 <code>扫描失败：服务发现失败：Protocol "https:" not supported. Expected "http:"</code></td>
+    <td>旧版 <code>discovery.js</code> 用 <code>http.request</code> 去请求 <strong>https</strong> 的图标 CDN，Node 会<strong>同步抛错</strong>（错误回调接不住），把整次服务发现打挂</td>
+    <td>更新到已修复版本（现按协议自动选 <code>http</code>/<code>https</code>，且单点失败只降级不中断）；临时规避可设 <code>NAVI_ICON_PROBE=0</code></td>
+  </tr>
+  <tr>
+    <td>服务发现弹窗转圈很久才出结果</td>
+    <td>NAS 访问不了图标 CDN（jsDelivr）时，每个服务都要等满探测超时</td>
+    <td>设 <code>NAVI_ICON_PROBE=0</code> 直接关闭在线探测（卡片回退字母图标，功能不受影响）；或把 <code>NAVI_ICON_PROBE_BASE</code> 指向自建镜像</td>
+  </tr>
+  <tr>
+    <td>服务发现列出的地址 IP 不对</td>
+    <td>自动探测到的网卡不是你想用的那块（NAS 常有多网口 / 虚拟网卡）</td>
+    <td>显式设置 <code>NAVI_LAN_HOST=NAS的局域网IP</code></td>
+  </tr>
+  <tr>
+    <td><strong>导入自己刚导出的备份</strong>，弹窗提示「文件完整性校验失败（数据可能被篡改或损坏）」</td>
+    <td>旧版前端把「本地算不出哈希」误判成「校验不通过」。浏览器只在<strong>安全上下文</strong>（HTTPS 或 <code>localhost</code>）才提供 <code>crypto.subtle</code>，而经 <code>http://局域网IP:18880</code> 访问时它不存在 → 文件明明没坏却导不回来。后端校验一直是正常的</td>
+    <td>更新到已修复版本并<strong>重建镜像</strong>（修复后本地算不出哈希会跳过预检，直接交由后端权威校验，篡改文件仍会被拦下）</td>
+  </tr>
+  <tr>
+    <td><strong>代码明明改了、镜像也重建了，页面还是老样子</strong></td>
+    <td>浏览器对 <code>js</code>/<code>css</code> 有<strong>强缓存</strong>，缓存键是 URL（含 <code>?v=</code>）。旧版靠手工改 <code>index.html</code> 里的 <code>?v=</code>，一旦漏改，浏览器就继续用旧文件，与服务器无关</td>
+    <td>先跑 <code>node scripts/check-deploy.cjs http://NAS的IP:端口 你的密码</code> 判定容器里到底是不是新代码（退出码 <code>0</code>=新 / <code>1</code>=旧）。若第 3 列判定为新：强制刷新（<code>Ctrl+F5</code>）即可。若判定为旧：多半是<strong>只替换了部分文件</strong>（<code>server.js</code>、<code>discovery.js</code>、<code>public/</code> 必须一起覆盖）或没重建镜像/容器</td>
+  </tr>
+  <tr>
+    <td><strong>GUI 编辑器给某几行画红线</strong>，确认时提示 <code>bad indentation of a mapping entry</code> / <code>did not find expected key</code></td>
+    <td>YAML 缩进不齐：取消注释时多删或少删了空格，或这一行比同级的其它行缩进更深/更浅</td>
+    <td>同级 <code>-</code> 必须严格对齐同一列（本项目原版是 6 空格 + <code>-</code> + 空格）。按第 6 节「YAML 缩进铁律」逐行核对，最稳的做法是<strong>直接把那两行重新注释掉</strong>（LAN 地址会自动探测）</td>
+  </tr>
+  <tr>
+    <td>容器内变量值变成了「好几行拼在一起」的怪字符串（如 <code>NAVI_UPLOAD_DIR=/app/data/uploads - NAVI_LAN_HOST=...</code>）</td>
+    <td>缩进比同级更深时，YAML 会把它当成<strong>上一条的多行纯量折进去</strong>——<strong>这种写法不报错但变量静默失效</strong>，比语法报错更危险</td>
+    <td>把该行缩进改回与同级一致。改完可在 SSH 里用 <code>docker compose config</code> 先本地校验一眼环境变量展开结果</td>
+  </tr>
+  <tr>
+    <td>图标显示为字母方块</td>
+    <td>图标来自在线 CDN，NAS 或客户端无法访问外网时加载失败，自动回退</td>
+    <td>属正常回退。可改从本地图床库选用图标，完全离线可用</td>
+  </tr>
+</table>
+
+<!-- ==================== 13 运维 ==================== -->
+<h2 id="s13">13. 日常运维</h2>
+
+<table>
+  <tr><th style="width:32%">操作</th><th>命令 / 做法</th></tr>
+  <tr><td>查看实时日志</td><td><code>sudo docker logs -f navi</code></td></tr>
+  <tr><td>停止 / 启动 / 重启</td><td><code>sudo docker compose stop</code> · <code>start</code> · <code>restart</code></td></tr>
+  <tr><td>备份数据（推荐）</td><td><code>sudo tar czf /vol1/1000/navi-backup-$(date +%F).tar.gz -C /vol1/1000/docker/navi data</code><br>网页上的「备份」按钮只导出 <code>config.json</code>，<strong>不含图片</strong>，所以这里用整目录打包</td></tr>
+  <tr><td>恢复数据</td><td>停容器 → 用备份覆盖 <code>data/</code> → 起容器</td></tr>
+  <tr><td>改密码 / 改端口</td><td>改 <code>.env</code> 或 compose 后：<code>sudo docker compose up -d --force-recreate</code><br>飞牛 GUI 则按「停止 → 改 yml → 清除项目 → 再启动」</td></tr>
+  <tr><td>升级到新版源码</td><td><code>git pull</code>（或覆盖新源码）→ <code>sudo docker build -t navi:latest .</code> → <code>sudo docker compose up -d --force-recreate</code>。配置在宿主机挂载，重建不丢数据<br><strong>务必把 <code>server.js</code>、<code>discovery.js</code>、<code>public/</code> 一起覆盖</strong>——漏传任何一个都会表现为「改了没效果」</td></tr>
+  <tr><td>确认新代码真的生效</td><td>在电脑上跑部署判定探针：<code>node scripts/check-deploy.cjs http://NAS的IP:端口 你的密码</code><br>退出码 <code>0</code>=已是新代码，<code>1</code>=容器里还是旧代码（会打印该改什么），<code>2</code>=检查没跑完（端口不通／密码不对）<br><strong>密码不对也能用</strong>：探针会退化为「免登录判定」，凭公开的 <code>/login.html</code> 响应头先给 <code>server.js</code> 定性，并明确标注 <code>app.js</code> 那项未验证——不会假装通过<br>也可直接查容器内文件，用 <code>wc -c</code> 而不是 <code>ls -l</code>：<code>sudo docker exec navi wc -c /app/server.js /app/discovery.js /app/public/js/app.js</code><br>输出三行短数字（<code>ls -l</code> 在窄终端里会被折行搞乱，看不出哪个对哪个），与本地源码字节数逐一比对即可</td></tr>
+  <tr><td>彻底卸载</td><td><code>sudo docker compose down</code> → <code>sudo docker rmi navi:latest</code>。数据目录 <code>data/</code> 会保留，确认无用后再手动删除</td></tr>
+</table>
+
+<div class="tip"><strong>回滚思路：</strong>升级前先执行上面的 <code class="inline">tar</code> 备份，并把旧的 <code class="inline">navi:latest</code> 打个标记（<code class="inline">docker tag navi:latest navi:backup</code>）。出问题时 <code class="inline">docker tag navi:backup navi:latest</code> 再重建容器即可回到旧版本——因为数据在宿主机挂载里，镜像回滚不影响数据。</div>
+
+<!-- ==================== 14 检查清单 ==================== -->
+<h2 id="s14">14. 部署检查清单</h2>
+
+<ul class="check">
+  <li>Docker 应用已安装，并已选定 SSD 存储空间</li>
+  <li>目录 <code class="inline">/vol1/1000/docker/navi/</code> 已建，源码五项齐全（含 <code class="inline">discovery.js</code>）</li>
+  <li><code class="inline">data/config.json</code> 已初始化，且是合法 JSON</li>
+  <li><code class="inline">.env</code> 已写入强密码（或已填 <code class="inline">NAVI_PASSWORD_HASH</code>）</li>
+  <li>挂载是<strong>整目录</strong> <code class="inline">data:/app/data</code>，<strong>不是</strong>单文件挂载</li>
+  <li>宿主机 8080 端口未被占用（或已改用其它端口）</li>
+  <li>镜像已构建/导入，<code class="inline">docker images</code> 能看到 <code class="inline">navi:latest</code></li>
+  <li><code class="inline">docker compose ps</code> 显示 Up 且未重启</li>
+  <li><code class="inline">/api/health</code> 返回 <code class="inline">authEnabled:true</code></li>
+  <li>浏览器能登录，且<strong>「保存」成功</strong>、刷新后改动仍在</li>
+  <li>已做一次整目录 <code class="inline">tar</code> 备份</li>
+  <li>（可选）已挂 Docker Socket 并确认接受其安全影响</li>
+  <li>（可选）已配反向代理 + HTTPS，未把 8080 直接暴露公网</li>
+</ul>
+
+<!-- ==================== 15 命令速查 ==================== -->
+<h2 id="s15">15. 命令速查（可直接整段粘贴）</h2>
+
+<p>假设源码已放到 <code class="inline">/vol1/1000/docker/navi/</code>，以下是完整的一次性部署命令：</p>
+
+<pre><span class="c"># ---- 1. 建目录 ----</span>
+sudo mkdir -p /vol1/1000/docker/navi/data/uploads
+cd /vol1/1000/docker/navi
+
+<span class="c"># ---- 2. 初始化配置 ----</span>
+cp public/config.example.json data/config.json
+
+<span class="c"># ---- 3. 写密码（把 CHANGE_ME 换成你的强密码）----</span>
+cp .env.example .env
+sed -i 's/^NAVI_PASSWORD=.*/NAVI_PASSWORD=<span class="k">CHANGE_ME</span>/' .env
+
+<span class="c"># ---- 4. 构建镜像 ----</span>
+sudo docker build -t navi:latest .
+
+<span class="c"># ---- 5. 启动 ----</span>
+sudo docker compose up -d
+
+<span class="c"># ---- 6. 验证 ----</span>
+sudo docker compose ps
+curl -s http://127.0.0.1:8080/api/health
+sudo docker logs --tail 20 navi
+
+<span class="c"># ---- 7. 权限（让文件管理也能操作数据目录）----</span>
+sudo chown -R 1000:1000 /vol1/1000/docker/navi/data</pre>
+
+<div class="warn">第 3 步的 <code class="inline">sed</code> 会把密码<strong>明文写进 shell 历史</strong>。介意的话改用 <code class="inline">vi .env</code> 手动编辑，或在命令前加一个空格（若 shell 配了 <code class="inline">HISTCONTROL=ignorespace</code>）。</div>
+
+<div class="footer-note">
+  Navi 个人导航站 · 飞牛 fnOS 部署指南 — 完 —<br>
+  配套文档：README.md（完整说明） · docs/docker-guide.html（通用 Docker 指南）
+</div>
+
+</body>
+</html>

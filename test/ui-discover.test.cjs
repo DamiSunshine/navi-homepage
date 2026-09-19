@@ -1,0 +1,257 @@
+/* Navi 导航站 · 服务发现 UI 测试（Playwright + 本机 Edge/Chrome 内核）
+   自包含：测试内自行启动「伪造 Docker API」与隔离的 navi 实例，
+   不依赖外部已运行的服务，也不触碰真实 public/config.json。
+   覆盖：入口可见性 / 弹窗渲染 / 图标解析 / 默认勾选 / 全选 / 加入草稿 /
+        忽略与取消忽略 / 保存落盘 / 无 JS 错误。
+   用法：NODE_PATH=<managed_workspace>/node_modules node test/ui-discover.test.cjs */
+"use strict";
+
+const http = require("http");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const { spawn } = require("child_process");
+const { chromium } = require("playwright");
+
+const PORT = 8661;
+const DOCKER_PORT = 8662;
+
+let passed = 0, failed = 0;
+function check(name, cond, extra) {
+  if (cond) { passed++; console.log("  PASS  " + name); }
+  else { failed++; console.log("  FAIL  " + name + (extra !== undefined ? "  -> " + extra : "")); }
+}
+
+const FAKE_CONTAINERS = [
+  { Id: "aaaa1111", Names: ["/jellyfin"], Image: "linuxserver/jellyfin:latest", State: "running",
+    Status: "Up 2 hours", Ports: [{ PrivatePort: 8096, PublicPort: 8096, Type: "tcp" }] },
+  { Id: "bbbb2222", Names: ["/portainer"], Image: "portainer/portainer-ce", State: "running",
+    Status: "Up 3 hours", Ports: [{ PrivatePort: 9443, PublicPort: 9443, Type: "tcp" }] },
+  { Id: "cccc3333", Names: ["/qbittorrent"], Image: "linuxserver/qbittorrent", State: "running",
+    Status: "Up 4 hours", Ports: [{ PrivatePort: 8081, PublicPort: 8081, Type: "tcp" }] },
+  { Id: "dddd4444", Names: ["/redis"], Image: "redis:7", State: "running",
+    Status: "Up 4 hours", Ports: [{ PrivatePort: 6379, PublicPort: 16379, Type: "tcp" }] },
+  { Id: "eeee5555", Names: ["/legacy"], Image: "foo/legacy", State: "exited",
+    Status: "Exited (0)", Ports: [{ PrivatePort: 8080, PublicPort: 18080, Type: "tcp" }] }
+];
+
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "navi-ui-discover-"));
+const cfgPath = path.join(tmp, "config.json");
+const upDir = path.join(tmp, "uploads");
+fs.mkdirSync(upDir, { recursive: true });
+fs.writeFileSync(cfgPath, JSON.stringify({
+  site: { title: "DiscoverUI", subtitle: "服务发现 UI 测试" },
+  groups: [{ name: "常用服务", items: [
+    { title: "Jellyfin", desc: "影音媒体库", icon: "jellyfin",
+      url: "http://192.168.1.10:8096", lanUrl: "http://192.168.1.10:8096" }
+  ] }]
+}, null, 2), "utf-8");
+
+function startFakeDocker() {
+  return new Promise((resolve) => {
+    const srv = http.createServer((req, res) => {
+      if (req.url.indexOf("/containers/json") === 0) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(FAKE_CONTAINERS));
+        return;
+      }
+      res.writeHead(404); res.end("{}");
+    });
+    srv.listen(DOCKER_PORT, "127.0.0.1", () => resolve(srv));
+  });
+}
+
+function startNavi() {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [path.join(__dirname, "..", "server.js")], {
+      env: Object.assign({}, process.env, {
+        PORT: String(PORT),
+        NAVI_CONFIG_PATH: cfgPath,
+        NAVI_UPLOAD_DIR: upDir,
+        NAVI_PASSWORD: "",
+        NAVI_PASSWORD_HASH: "",
+        NAVI_ICON_PROBE: "0",
+        NAVI_SCAN_LOCAL: "0",
+        NAVI_LAN_HOST: "192.168.1.10",
+        NAVI_WAN_HOST: "nav.example.com",
+        DOCKER_SOCKET: path.join(tmp, "missing.sock"),
+        DOCKER_HOST_NAME: "127.0.0.1",
+        DOCKER_HOST_PORT: String(DOCKER_PORT)
+      }),
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    const timer = setTimeout(() => reject(new Error("服务启动超时")), 15000);
+    child.stdout.on("data", (d) => {
+      if (String(d).includes("listening on")) { clearTimeout(timer); resolve(child); }
+    });
+    child.on("exit", (c) => { clearTimeout(timer); reject(new Error("服务提前退出 " + c)); });
+  });
+}
+
+const BASE = "http://127.0.0.1:" + PORT;
+let fake = null, navi = null, browser = null;
+
+function cleanup() {
+  try { if (browser) browser.close(); } catch (e) {}
+  try { if (navi) navi.kill(); } catch (e) {}
+  try { if (fake) fake.close(); } catch (e) {}
+  try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {}
+}
+
+(async () => {
+  fake = await startFakeDocker();
+  navi = await startNavi();
+
+  try { browser = await chromium.launch({ channel: "msedge" }); }
+  catch (e) { browser = await chromium.launch({ channel: "chrome" }); }
+
+  const page = await browser.newPage();
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  page.on("console", (m) => { if (m.type() === "error") pageErrors.push(m.text()); });
+
+  console.log("== 入口可见性 ==");
+  await page.goto(BASE + "/", { waitUntil: "domcontentloaded" });
+  await page.waitForSelector(".card", { timeout: 10000 });
+  check("非编辑模式下不显示「服务发现」入口",
+    await page.locator("#saveBar[hidden]").count() === 1);
+  check("编辑模式外弹窗保持隐藏", await page.locator("#discoverModal[hidden]").count() === 1);
+
+  console.log("== 编辑模式与弹窗 ==");
+  await page.click("#editToggle");
+  await page.waitForSelector("#saveBar:not([hidden])");
+  check("编辑模式出现「服务发现」按钮",
+    await page.locator("#discoverBtn:visible").count() === 1);
+
+  await page.click("#discoverBtn");
+  await page.waitForSelector("#discoverModal:not([hidden])");
+  await page.waitForSelector(".discover-row", { timeout: 15000 });
+  check("弹窗打开并渲染候选行", await page.locator(".discover-row").count() > 0);
+
+  const rowCount = await page.locator(".discover-row").count();
+  check("候选数 = 5（容器全部列出）", rowCount === 5, String(rowCount));
+
+  const srcText = (await page.locator("#discoverSrc").textContent()).trim();
+  check("来源摘要显示 Docker", srcText.indexOf("Docker") !== -1, srcText);
+
+  console.log("== 图标自动匹配 ==");
+  const iconImgs = await page.locator(".discover-row .discover-icon img").count();
+  const iconFb = await page.locator(".discover-row .discover-icon .icon-fallback").count();
+  check("每行图标都已解析（图片或字母回退）", iconImgs + iconFb === rowCount, `${iconImgs}+${iconFb}`);
+
+  const jfRow = page.locator('.discover-row[data-id="aaaa1111"]');
+  const jfSrc = await jfRow.locator(".discover-icon img").getAttribute("src");
+  check("Jellyfin 命中 Dashboard Icons", /dashboard-icons\/png\/jellyfin\.png/.test(jfSrc), jfSrc);
+
+  const ptRow = page.locator('.discover-row[data-id="bbbb2222"]');
+  const ptSrc = await ptRow.locator(".discover-icon img").getAttribute("src");
+  check("Portainer 命中 selfh.st 图标源", /selfhst\/icons\/png\/portainer\.png/.test(ptSrc), ptSrc);
+
+  console.log("== 地址自动生成 ==");
+  check("Jellyfin 内网地址自动拼接",
+    (await jfRow.locator('input[data-k="lanUrl"]').inputValue()) === "http://192.168.1.10:8096",
+    await jfRow.locator('input[data-k="lanUrl"]').inputValue());
+  check("Jellyfin 外网地址走 https 无端口",
+    (await jfRow.locator('input[data-k="url"]').inputValue()) === "https://nav.example.com",
+    await jfRow.locator('input[data-k="url"]').inputValue());
+  check("Portainer 内网地址带映射端口",
+    (await ptRow.locator('input[data-k="lanUrl"]').inputValue()) === "http://192.168.1.10:9443");
+
+  console.log("== 默认勾选与状态标注 ==");
+  check("已存在的 Jellyfin 勾选框禁用",
+    await jfRow.locator('input[data-k="sel"]').isDisabled());
+  check("已在导航中显示对应标签",
+    (await jfRow.locator(".discover-tag").textContent()).indexOf("已在导航中") !== -1,
+    await jfRow.locator(".discover-tag").textContent());
+
+  const redisRow = page.locator('.discover-row[data-id="dddd4444"]');
+  check("依赖容器 Redis 默认不勾选",
+    !(await redisRow.locator('input[data-k="sel"]').isChecked()));
+  check("依赖容器标注「依赖容器」",
+    (await redisRow.locator(".discover-tag").textContent()).indexOf("依赖容器") !== -1);
+
+  const legacyRow = page.locator('.discover-row[data-id="eeee5555"]');
+  check("已停止容器默认不勾选", !(await legacyRow.locator('input[data-k="sel"]').isChecked()));
+
+  const qbRow = page.locator('.discover-row[data-id="cccc3333"]');
+  check("运行中且可用的 qBittorrent 默认勾选",
+    await qbRow.locator('input[data-k="sel"]').isChecked());
+
+  const cntText = await page.locator("#discoverCount").textContent();
+  check("统计文案正确（可加入 4 项 · 已选 2 项）",
+    cntText.indexOf("可加入 4 项") !== -1 && cntText.indexOf("已选 2 项") !== -1, cntText);
+
+  console.log("== 全选 / 忽略交互 ==");
+  await page.uncheck("#discoverAll");
+  check("取消全选后按钮禁用", await page.locator("#discoverAddBtn").isDisabled());
+  check("取消全选不会勾选依赖 / 已停止容器",
+    !(await redisRow.locator('input[data-k="sel"]').isChecked()) &&
+    !(await legacyRow.locator('input[data-k="sel"]').isChecked()));
+  await page.check("#discoverAll");
+  check("全选后推荐项全部勾选",
+    (await qbRow.locator('input[data-k="sel"]').isChecked()) &&
+    (await ptRow.locator('input[data-k="sel"]').isChecked()));
+  check("全选不改变依赖 / 已停止容器的勾选态",
+    !(await redisRow.locator('input[data-k="sel"]').isChecked()) &&
+    !(await legacyRow.locator('input[data-k="sel"]').isChecked()));
+
+  await legacyRow.locator('[data-act="ignore"]').click();
+  check("忽略后标签变为「已忽略」",
+    (await legacyRow.locator(".discover-tag").textContent()).indexOf("已忽略") !== -1,
+    await legacyRow.locator(".discover-tag").textContent());
+  check("忽略后该项不参与加入（可加入降为 3 项 · 已选仍 2 项）",
+    (await page.locator("#discoverCount").textContent()).indexOf("可加入 3 项") !== -1 &&
+    (await page.locator("#discoverCount").textContent()).indexOf("已选 2 项") !== -1,
+    await page.locator("#discoverCount").textContent());
+  await legacyRow.locator('[data-act="unignore"]').click();
+  check("取消忽略后恢复原状态",
+    (await legacyRow.locator(".discover-tag").textContent()).indexOf("已忽略") === -1);
+
+  console.log("== 加入选中项 ==");
+  const beforeCards = await page.locator(".card").count();
+  await page.locator("#discoverAddBtn").click();
+  await page.waitForFunction(
+    (n) => document.querySelectorAll(".card").length > n, beforeCards, { timeout: 5000 }
+  );
+  const afterCards = await page.locator(".card").count();
+  check("卡片数增加 2 张（Portainer + qBittorrent）", afterCards === beforeCards + 2,
+    `${beforeCards} -> ${afterCards}`);
+  check("新增分组「Docker 服务」已创建",
+    await page.locator('.group[data-name="Docker 服务"]').count() === 1);
+  check("已加入项在弹窗中标记为「已在导航中」",
+    (await ptRow.locator(".discover-tag").textContent()).indexOf("已在导航中") !== -1);
+  check("加入后按钮回到禁用（无可加入项）",
+    await page.locator("#discoverAddBtn").isDisabled());
+
+  console.log("== 保存落盘 ==");
+  await page.locator('#discoverModal [data-close="discoverModal"]').click();
+  await page.locator("#saveBtn").click();
+  await page.waitForSelector("#saveBar", { state: "hidden", timeout: 10000 });
+
+  const saved = JSON.parse(fs.readFileSync(cfgPath, "utf-8"));
+  const grp = (saved.groups || []).filter((g) => g.name === "Docker 服务")[0];
+  check("配置已写入服务器（新增分组存在）", !!grp);
+  check("新增分组含 2 个导航项", grp && grp.items.length === 2,
+    grp && String(grp.items.length));
+  const savedPt = grp && grp.items.filter((i) => i.title === "Portainer")[0];
+  check("Portainer 图标与内网地址已落盘",
+    !!savedPt && savedPt.icon === "selfhst:portainer" &&
+    savedPt.lanUrl === "http://192.168.1.10:9443",
+    JSON.stringify(savedPt));
+  check("忽略记录随草稿持久化（discovery.ignored 存在）",
+    saved.discovery && Array.isArray(saved.discovery.ignored));
+  check("原有导航项未被破坏",
+    saved.groups.some((g) => g.items.some((i) => i.title === "Jellyfin")));
+
+  console.log("== 稳定性 ==");
+  check("全程无 JS 错误", pageErrors.length === 0, pageErrors.slice(0, 3).join(" | "));
+
+  console.log("");
+  console.log("结果：" + passed + " 通过, " + failed + " 失败");
+  cleanup();
+  process.exit(failed ? 1 : 0);
+})().catch((e) => {
+  console.error("测试执行异常:", e);
+  cleanup();
+  process.exit(1);
+});

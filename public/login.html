@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 · Navi</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    /* 日 / 夜主题变量（默认夜间，data-theme="light" 时为日间） */
+    :root {
+      --bg: #0a0e17;
+      --card-bg: rgba(17, 24, 39, 0.75);
+      --card-border: rgba(99, 140, 220, 0.18);
+      --text: #e6edf7;
+      --text-dim: #8b98b0;
+      --text-faint: #5c6a84;
+      --input-bg: rgba(10, 14, 23, 0.8);
+      --accent: #4f8cff;
+      --accent-2: #38e1c6;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      --brand-grad: linear-gradient(90deg, #7db1ff, #38e1c6);
+      --glow-opacity: 0.28;
+      background: var(--bg);
+    }
+    [data-theme="light"] {
+      --bg: #f4f7fb;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --card-border: rgba(20, 40, 90, 0.12);
+      --text: #17233d;
+      --text-dim: #5b6b85;
+      --text-faint: #8a97ad;
+      --input-bg: rgba(255, 255, 255, 0.9);
+      --accent: #2563eb;
+      --accent-2: #0d9488;
+      --shadow: 0 8px 32px rgba(30, 60, 120, 0.12);
+      --brand-grad: linear-gradient(90deg, #2563eb, #0d9488);
+      --glow-opacity: 0.16;
+    }
+    /* 内联样式：登录页在未认证状态下即可访问，不依赖受保护的静态资源 */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    .bg-grid {
+      position: fixed; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(79, 140, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79, 140, 255, 0.05) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 40%, transparent 100%);
+    }
+    .bg-glow {
+      position: fixed; border-radius: 50%; filter: blur(120px); opacity: var(--glow-opacity); pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .bg-glow-1 { width: 480px; height: 480px; background: #1d4ed8; top: -160px; left: -120px; }
+    .bg-glow-2 { width: 420px; height: 420px; background: #0d9488; bottom: -180px; right: -100px; }
+
+    .login-card {
+      position: relative;
+      width: min(380px, calc(100vw - 40px));
+      padding: 36px 32px 28px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      animation: cardIn 0.35s ease both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .brand { text-align: center; margin-bottom: 26px; }
+    .brand-logo {
+      width: 52px; height: 52px; margin: 0 auto 14px;
+      display: grid; place-items: center;
+      color: var(--accent);
+      background: linear-gradient(135deg, rgba(79, 140, 255, 0.16), rgba(56, 225, 198, 0.10));
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+    }
+    .brand-logo svg { width: 26px; height: 26px; }
+    .brand h1 {
+      font-size: 22px; font-weight: 700; letter-spacing: 0.5px;
+      background: var(--brand-grad);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .brand p { margin-top: 5px; font-size: 12px; color: var(--text-dim); letter-spacing: 2px; }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; margin-bottom: 6px; font-size: 12.5px; color: var(--text-dim); }
+    .pw-wrap { position: relative; }
+    .pw-wrap svg {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      width: 15px; height: 15px; color: var(--text-dim); pointer-events: none;
+    }
+    #username, #password {
+      width: 100%; height: 44px;
+      padding: 0 14px 0 36px;
+      background: var(--input-bg);
+      border: 1px solid rgba(99, 140, 220, 0.18);
+      border-radius: 11px;
+      color: var(--text); font-size: 14.5px; font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #username:focus, #password:focus {
+      border-color: rgba(99, 160, 255, 0.45);
+      box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.15);
+    }
+
+    .error-tip {
+      display: none;
+      margin: -4px 0 12px;
+      font-size: 12.5px; color: #ff6b6b;
+    }
+    .error-tip.show { display: block; animation: shake 0.3s ease; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    #loginBtn {
+      width: 100%; height: 44px;
+      border: none; border-radius: 11px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      color: #fff; font-size: 15px; font-weight: 600; font-family: inherit;
+      letter-spacing: 4px;
+      cursor: pointer;
+      transition: filter 0.15s, transform 0.1s;
+    }
+    #loginBtn:hover:not(:disabled) { filter: brightness(1.15); }
+    #loginBtn:active:not(:disabled) { transform: scale(0.985); }
+    #loginBtn:disabled { opacity: 0.6; cursor: not-allowed; letter-spacing: 1px; }
+
+    .foot { margin-top: 20px; text-align: center; font-size: 11.5px; color: var(--text-faint); }
+
+    /* 日 / 夜切换按钮（右上角固定） */
+    .theme-toggle {
+      position: fixed; top: 18px; right: 18px; z-index: 10;
+      width: 40px; height: 40px;
+      display: grid; place-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      color: var(--text);
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s, color 0.2s, background 0.3s;
+    }
+    .theme-toggle:hover { border-color: rgba(99, 160, 255, 0.45); }
+    .theme-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .theme-toggle .theme-icon-sun { display: block; }
+    .theme-toggle .theme-icon-moon { display: none; }
+    [data-theme="light"] .theme-toggle .theme-icon-sun { display: none; }
+    [data-theme="light"] .theme-toggle .theme-icon-moon { display: block; }
+  </style>
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-1" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-2" aria-hidden="true"></div>
+
+  <button id="themeToggle" class="theme-toggle" type="button" title="切换日间 / 夜间模式" aria-pressed="false">
+    <svg class="theme-icon-sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+    <svg class="theme-icon-moon" viewBox="0 0 24 24">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
+
+  <main class="login-card">
+    <div class="brand">
+      <span class="brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+        </svg>
+      </span>
+      <h1>Navi</h1>
+      <p>个人导航站</p>
+    </div>
+
+    <form id="loginForm" autocomplete="off">
+      <div class="field" id="usernameField" hidden>
+        <label for="username">用户名</label>
+        <div class="pw-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <input id="username" name="username" type="text" placeholder="请输入用户名" autocomplete="username">
+        </div>
+      </div>
+      <div class="field">
+        <label for="password">访问密码</label>
+        <div class="pw-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <input id="password" name="password" type="password" placeholder="请输入访问密码" required>
+        </div>
+      </div>
+      <p class="error-tip" id="errorTip" role="alert"></p>
+      <button id="loginBtn" type="submit">登 录</button>
+    </form>
+
+    <p class="foot">受密码保护 · 会话有效期内免重复登录</p>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+      var form = document.getElementById("loginForm");
+      var usernameInput = document.getElementById("username");
+      var usernameField = document.getElementById("usernameField");
+      var input = document.getElementById("password");
+      var btn = document.getElementById("loginBtn");
+      var tip = document.getElementById("errorTip");
+      var requireUsername = false;
+      var themeToggle = document.getElementById("themeToggle");
+
+      /* ---- 日 / 夜主题 ---- */
+      function applyTheme(theme) {
+        if (theme === "light") {
+          document.documentElement.setAttribute("data-theme", "light");
+          themeToggle.setAttribute("aria-pressed", "true");
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+          themeToggle.setAttribute("aria-pressed", "false");
+        }
+      }
+      (function initTheme() {
+        var saved = null;
+        try { saved = localStorage.getItem("navi-theme"); } catch (e) {}
+        var theme = saved || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        applyTheme(theme);
+      })();
+      themeToggle.addEventListener("click", function () {
+        var next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+        applyTheme(next);
+        try { localStorage.setItem("navi-theme", next); } catch (e) {}
+      });
+
+      function showError(msg) {
+        tip.textContent = msg;
+        tip.classList.remove("show");
+        void tip.offsetWidth; // 重启动画
+        tip.classList.add("show");
+      }
+
+      // 若站点未启用密码保护，直接进入首页
+      fetch("/api/auth/status", { cache: "no-cache" })
+        .then(function (r) { return r.json(); })
+        .then(function (s) {
+          if (s && s.authenticated) { location.replace("/"); return; }
+          if (s && s.requireUsername) {
+            requireUsername = true;
+            usernameField.hidden = false;
+            usernameInput.required = true;
+            usernameInput.focus();
+          } else {
+            input.focus();
+          }
+        })
+        .catch(function () { input.focus(); });
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var uname = usernameInput.value.trim();
+        var pw = input.value;
+        if (requireUsername && !uname) { showError("请输入用户名"); usernameInput.focus(); return; }
+        if (!pw) { showError("请输入密码"); input.focus(); return; }
+        btn.disabled = true;
+        btn.textContent = "验证中…";
+
+        fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: uname, password: pw })
+        })
+          .then(function (r) {
+            return r.json().then(function (data) {
+              if (r.ok && data.ok) {
+                location.replace("/");
+              } else {
+                showError(data.error || "登录失败，请重试");
+                input.select();
+              }
+            });
+          })
+          .catch(function () { showError("网络异常，请稍后重试"); })
+          .finally(function () {
+            btn.disabled = false;
+            btn.textContent = "登 录";
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

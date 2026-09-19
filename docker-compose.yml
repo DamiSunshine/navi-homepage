@@ -1,0 +1,52 @@
+services:
+  navi:
+    build: .
+    image: navi:latest
+    container_name: navi
+    restart: unless-stopped
+    environment:
+      # 可选：覆盖站点标题 / 副标题（仅展示层生效，不写回配置）
+      - SITE_TITLE=dami
+      - SITE_SUBTITLE=个人导航站
+      # 访问密码保护（暴露公网务必设置！为空会导致认证被关闭）
+      # 真实密码写在项目根目录的 .env（已被 .gitignore / .dockerignore 排除），
+      # 此处用 :? 语法强制校验：缺少该变量时 compose 直接报错退出，
+      # 不会静默变成「无密码开放访问」。
+      - NAVI_PASSWORD=${NAVI_PASSWORD:?NAVI_PASSWORD is required, please set it in .env}
+      # 登录用户名（取消注释并设置后，登录必须同时输入正确的用户名 + 密码；不设则仅用密码）
+      # - NAVI_USERNAME=admin
+      # 更推荐改用哈希（生成方式见 README），并删除明文密码那一行：
+      # - NAVI_PASSWORD_HASH=你的sha256哈希
+      # 会话有效期（小时），默认 72
+      - SESSION_TTL_HOURS=72
+      # 数据目录：把“写文件”从镜像内置目录迁移到挂载的 /app/data（可写、可持久化）
+      # 配置从这里读写，避免直接污染镜像内的 public/config.json
+      - NAVI_CONFIG_PATH=/app/data/config.json
+      - NAVI_UPLOAD_DIR=/app/data/uploads
+      # ---- 服务发现（可选）----
+      # 挂载 /var/run/docker.sock 后启用「自动识别容器 + 匹配图标 + 生成卡片」
+      # 注意：socket 会让容器拥有等价于宿主机 root 的 Docker 控制权，
+      #      仅在可信环境开启；不挂载则自动退化为扫描本机监听端口。
+      # - DOCKER_SOCKET=/var/run/docker.sock
+      # 也可改用远程 Docker API（TCP）而不用挂 socket：
+      # - DOCKER_HOST_NAME=192.168.1.10
+      # - DOCKER_HOST_PORT=2375
+      # 内网 / 外网地址基址（不设则自动探测；外网不设时用内网地址兜底）
+      # - NAVI_LAN_HOST=192.168.1.10
+      # - NAVI_WAN_HOST=nav.example.com
+      # 离线环境建议关闭图标在线探测，加快扫描速度
+      # - NAVI_ICON_PROBE=0
+    ports:
+      # IPv4 + IPv6 双栈发布（Docker 默认即绑定双栈，若宿主机启用了 IPv6 会同时监听 :::8080）
+      - "8080:80"
+      # 如需强制显式 IPv6 映射，可改为：
+      # - "0.0.0.0:8080:80"
+      # - "[::]:8080:80"
+    volumes:
+      # 整目录挂载（关键！）：改为挂载整个数据目录而非单个 config.json。
+      # 单文件挂载下写配置会走“跨挂载点 rename”，在部分平台（如飞牛 NAS）触发
+      # EBUSY/EXDEV 保存失败；整目录挂载 rename 发生在同一挂载点内，天然规避此问题。
+      # 首次启动请先在宿主机放一份 config.json（可拷贝 public/config.example.json）。
+      - ./data:/app/data
+      # 服务发现所需的 Docker Socket（可选，按需取消注释；见上方安全提示）
+      # - /var/run/docker.sock:/var/run/docker.sock:ro

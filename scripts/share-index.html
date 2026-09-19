@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Navi 导航站 · 预览与部署文档</title>
+<meta name="description" content="Navi 导航站的在线预览入口：页面效果预览、飞牛 fnOS 部署指南、Docker 部署指南与 PDF 下载。">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%230f172a' font-family='system-ui' font-weight='700'%3EN%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0b1220; --bg-2:#0f1a2e; --panel:#111d33; --panel-2:#16243d;
+    --line:rgba(148,163,184,.18); --fg:#e8eefc; --fg-2:#9fb0cc; --fg-3:#6b7d99;
+    --accent:#38bdf8; --accent-2:#22d3ee; --ok:#22c55e; --warn:#f59e0b;
+    --radius:16px; --shadow:0 18px 40px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f5f7fb; --bg-2:#eef2f9; --panel:#ffffff; --panel-2:#f7f9fd;
+      --line:rgba(15,23,42,.10); --fg:#0f172a; --fg-2:#4b5b73; --fg-3:#7b8aa1;
+      --accent:#0284c7; --accent-2:#0891b2; --shadow:0 14px 32px rgba(15,23,42,.10);
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:
+      radial-gradient(1100px 520px at 12% -8%, rgba(56,189,248,.16), transparent 60%),
+      radial-gradient(900px 460px at 92% 0%, rgba(34,211,238,.12), transparent 60%),
+      var(--bg);
+    color:var(--fg);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    min-height:100dvh;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:56px 22px 72px}
+
+  header .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);
+    border:1px solid var(--line);border-radius:999px;padding:6px 14px;background:var(--panel);
+  }
+  header h1{
+    margin:20px 0 12px;font-size:clamp(28px,4.4vw,42px);line-height:1.22;letter-spacing:-.01em;
+  }
+  header p.lead{margin:0;max-width:62ch;color:var(--fg-2);font-size:17px}
+
+  .stats{display:flex;flex-wrap:wrap;gap:10px;margin:26px 0 0;padding:0;list-style:none}
+  .stats li{
+    font-size:13px;color:var(--fg-2);background:var(--panel);border:1px solid var(--line);
+    border-radius:999px;padding:7px 14px;
+  }
+  .stats b{color:var(--fg)}
+
+  h2.sect{margin:52px 0 18px;font-size:19px;letter-spacing:.01em;display:flex;align-items:center;gap:10px}
+  h2.sect::before{content:"";width:4px;height:18px;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--accent-2))}
+
+  .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(288px,1fr))}
+
+  .card{
+    position:relative;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 22px 20px;box-shadow:var(--shadow);
+    text-decoration:none;color:inherit;
+    transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+  }
+  a.card:hover,a.card:focus-visible{transform:translateY(-3px);border-color:rgba(56,189,248,.55);outline:none}
+  a.card:focus-visible{box-shadow:0 0 0 3px rgba(56,189,248,.35),var(--shadow)}
+  .card .ico{
+    width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:21px;
+    background:rgba(56,189,248,.14);border:1px solid var(--line);margin-bottom:14px;
+  }
+  .card h3{margin:0 0 8px;font-size:17.5px;letter-spacing:-.005em}
+  .card p{margin:0 0 16px;color:var(--fg-2);font-size:14.5px}
+  .card .meta{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .tag{font-size:12px;color:var(--fg-3);border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--panel-2)}
+  .go{margin-left:auto;font-size:13.5px;font-weight:600;color:var(--accent);white-space:nowrap}
+  .go::after{content:" →"}
+
+  .dl{display:flex;flex-wrap:wrap;gap:10px;margin-top:2px}
+  .dl a{
+    flex:1 1 auto;min-width:170px;text-align:center;text-decoration:none;
+    font-size:13.5px;font-weight:600;color:var(--fg);
+    border:1px solid var(--line);border-radius:11px;padding:11px 14px;background:var(--panel-2);
+    transition:border-color .18s ease,background .18s ease;
+  }
+  .dl a:hover,.dl a:focus-visible{border-color:rgba(56,189,248,.55);background:rgba(56,189,248,.10);outline:none}
+  .dl a small{display:block;font-weight:400;color:var(--fg-3);margin-top:2px;font-size:12px}
+
+  .note{
+    margin-top:52px;padding:20px 22px;border-radius:var(--radius);
+    border:1px dashed var(--line);background:var(--panel);color:var(--fg-2);font-size:14.5px;
+  }
+  .note b{color:var(--fg)}
+  footer{margin-top:44px;padding-top:22px;border-top:1px solid var(--line);color:var(--fg-3);font-size:13px;display:flex;flex-wrap:wrap;gap:10px 18px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="eyebrow">Navi 导航站 · 在线交付物</span>
+    <h1>页面预览与部署文档</h1>
+    <p class="lead">
+      这是 Navi 导航站项目的线上查看入口：一个零依赖的 Node 自托管导航页，支持服务自动发现、
+      本地图床库与在线图标库。下面可以查看真实页面效果，或直接阅读飞牛 fnOS / Docker 的完整部署指南。
+    </p>
+    <ul class="stats">
+      <li><b>0</b> 运行时依赖</li>
+      <li>自动发现 <b>33</b> 类服务指纹</li>
+      <li>测试 <b>11</b> 套 / <b>355</b> 项断言</li>
+      <li>支持 <b>fnOS · Docker · 裸机</b></li>
+    </ul>
+  </header>
+
+  <h2 class="sect">页面效果预览</h2>
+  <div class="grid">
+    <a class="card" href="preview.html">
+      <div class="ico">🖥️</div>
+      <h3>预览测试页</h3>
+      <p>完整还原首页布局、三大功能模块（服务发现 / 图床库 / 在线图标）、主题切换、卡片编辑与 8 张真实运行截图。</p>
+      <div class="meta">
+        <span class="tag">布局</span><span class="tag">交互</span><span class="tag">真实截图</span>
+        <span class="go">打开预览</span>
+      </div>
+    </a>
+    <a class="card" href="docs/fnos-deploy-guide.html">
+      <div class="ico">🧭</div>
+      <h3>飞牛 fnOS 部署指南</h3>
+      <p>从构建镜像、Compose 配置、端口与存储映射、环境变量，到启动验证与常见问题排查，共 15 个章节。</p>
+      <div class="meta">
+        <span class="tag">fnOS</span><span class="tag">Compose</span><span class="tag">排错</span>
+        <span class="go">阅读指南</span>
+      </div>
+    </a>
+  </div>
+
+  <h2 class="sect">部署文档与 PDF</h2>
+  <div class="grid">
+    <a class="card" href="docs/docker-guide.html">
+      <div class="ico">🐳</div>
+      <h3>Docker 通用部署指南</h3>
+      <p>镜像构建、目录挂载、密码与环境变量、健康检查、升级与备份还原，适用于群晖 / 威联通 / 通用 Linux。</p>
+      <div class="meta">
+        <span class="tag">Dockerfile</span><span class="tag">compose</span><span class="tag">备份</span>
+        <span class="go">阅读指南</span>
+      </div>
+    </a>
+    <div class="card">
+      <div class="ico">📄</div>
+      <h3>PDF 离线版下载</h3>
+      <p>两份指南的 PDF 版本，方便打印或在没有网络的环境下逐条对照执行。</p>
+      <div class="dl">
+        <a href="docs/Navi-fnOS-deploy-guide.pdf">飞牛 fnOS 部署指南<small>PDF · 约 620 KB</small></a>
+        <a href="docs/Navi-docker-deploy-guide.pdf">Docker 部署指南<small>PDF · 约 486 KB</small></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>说明：</b>本页是纯静态的展示与文档入口，不包含真实的后台服务。
+    导航站本体需要运行 Node 服务（<code>node server.js</code>），并且 <b>必须设置环境变量</b>
+    <code>NAVI_PASSWORD</code> 才会启动 —— 未设置时服务会主动退出，以避免无密码暴露在公网。
+    具体步骤请以对应平台的部署指南为准。
+  </div>
+
+  <footer>
+    <span>Navi 导航站 · 自托管导航页</span>
+    <span>零依赖 Node HTTP 服务</span>
+    <span>MIT License</span>
+  </footer>
+
+</div>
+</body>
+</html>

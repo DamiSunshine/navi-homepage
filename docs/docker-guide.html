@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Navi 导航站 · Docker 部署指南</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    color: #1f2937; font-size: 10.5pt; line-height: 1.75;
+  }
+
+  /* ---------- 封面 ---------- */
+  .cover {
+    height: 245mm;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center;
+    page-break-after: always;
+  }
+  .cover .logo {
+    width: 84px; height: 84px; margin-bottom: 26px;
+    display: grid; place-items: center;
+    color: #2563eb;
+    background: linear-gradient(135deg, #dbeafe, #ccfbf1);
+    border-radius: 22px;
+  }
+  .cover .logo svg { width: 44px; height: 44px; }
+  .cover h1 {
+    font-size: 30pt; font-weight: 800; letter-spacing: 1px;
+    background: linear-gradient(90deg, #2563eb, #0d9488);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .cover .sub { margin-top: 12px; font-size: 13pt; color: #6b7280; letter-spacing: 3px; }
+  .cover .meta {
+    margin-top: 60px; font-size: 9.5pt; color: #9ca3af; line-height: 2;
+  }
+  .cover .badge {
+    display: inline-block; margin-top: 18px; padding: 5px 16px;
+    border: 1px solid #bfdbfe; border-radius: 999px;
+    color: #2563eb; font-size: 9pt; letter-spacing: 1px;
+  }
+
+  /* ---------- 正文 ---------- */
+  h2 {
+    font-size: 15pt; font-weight: 700; color: #111827;
+    margin: 22px 0 10px; padding-left: 12px;
+    border-left: 4px solid #2563eb;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11.5pt; font-weight: 700; color: #1f2937;
+    margin: 16px 0 6px;
+    page-break-after: avoid;
+  }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0 6px 22px; }
+  li { margin: 3px 0; }
+  strong { color: #111827; }
+
+  code.inline {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9pt;
+    background: #f1f5f9; color: #be123c;
+    padding: 1px 6px; border-radius: 4px;
+  }
+  pre {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 8.8pt; line-height: 1.6;
+    background: #0f172a; color: #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    white-space: pre-wrap; word-break: break-all;
+    page-break-inside: avoid;
+  }
+  pre .c { color: #64748b; }   /* 注释 */
+  pre .k { color: #7dd3fc; }   /* 关键字 */
+
+  .tip, .warn, .danger {
+    border-radius: 8px; padding: 10px 14px; margin: 10px 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  .tip { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e40af; }
+  .warn { background: #fff7ed; border-left: 4px solid #f97316; color: #9a3412; }
+  .danger { background: #fef2f2; border-left: 4px solid #dc2626; color: #991b1b; }
+  .tip pre, .warn pre, .danger pre { margin-top: 8px; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; }
+  th { background: #f8fafc; font-weight: 700; }
+  td code { font-family: Consolas, monospace; font-size: 8.8pt; color: #be123c; }
+
+  .step {
+    display: flex; gap: 10px; margin: 12px 0 4px;
+    page-break-after: avoid;
+  }
+  .step .no {
+    flex: none; width: 24px; height: 24px;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, #2563eb, #0d9488);
+    color: #fff; font-weight: 700; font-size: 10pt;
+    border-radius: 50%;
+  }
+  .step .t { font-weight: 700; font-size: 11.5pt; color: #111827; padding-top: 1px; }
+
+  .footer-note { margin-top: 28px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 9pt; color: #9ca3af; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- ==================== 封面 ==================== -->
+<div class="cover">
+  <span class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+    </svg>
+  </span>
+  <h1>Navi 个人导航站</h1>
+  <p class="sub">Docker 部署指南</p>
+  <p><span class="badge">单容器 · 零依赖 · 双栈 · 服务发现 · 图床库 · 可视化编辑 · 密码保护 · 备份恢复</span></p>
+  <div class="meta">
+    适用版本：Navi 1.x（node:22-alpine 镜像）<br>
+    文档日期：2026 年 9 月 19 日<br>
+    飞牛 fnOS 用户请另见 <strong>docs/fnos-deploy-guide.html</strong>（含 fnOS 专有路径与权限处理）
+  </div>
+</div>
+
+<!-- ==================== 1 概述 ==================== -->
+<h2>1. 项目简介</h2>
+<p>Navi 是一个参考 sun-panel 实现的轻量级个人导航面板，打包为 <strong>All-in-One 单容器镜像</strong>（基于 node:22-alpine，后端零 npm 依赖），一条命令即可完成部署。</p>
+<ul>
+  <li><strong>可视化编辑</strong>：网页上直接增 / 删 / 改 / 拖拽排序导航项，保存即写回服务器</li>
+  <li><strong>内外网切换</strong>：每个站点可分别配置外网、内网地址，一键切换，内网环境自动识别</li>
+  <li><strong>IPv4 / IPv6 双栈</strong>：默认同时监听两种协议栈</li>
+  <li><strong>访问密码保护</strong>：环境变量一键启用，支持「仅密码」或「用户名 + 密码」联合登录，含登录页、会话管理、登录限流</li>
+  <li><strong>数据备份与恢复</strong>：一键导出含校验和的结构化备份文件，导入时校验完整性并二次确认，异常安全拦截</li>
+  <li><strong>卡片图标双来源</strong>：既可从在线图标库（Dashboard Icons / selfh.st / Iconify）选用，也可从<strong>本地图床库</strong>挑选已上传的图片</li>
+  <li><strong>本地图床库</strong>：支持一次性批量上传大量图标（可拖拽），库内可搜索、查看「使用中」引用、批量清理（默认拒绝删除仍被卡片引用的图片）</li>
+  <li><strong>服务发现</strong>：自动识别 Docker 容器 / 本机监听端口，按服务类型匹配图标并生成导航卡片候选（需挂载 Docker Socket）</li>
+</ul>
+
+<!-- ==================== 2 环境准备 ==================== -->
+<h2>2. 环境准备</h2>
+<p>部署前请确保目标机器已安装 Docker（任意主流 Linux 发行版 / Windows / NAS 均可）：</p>
+<table>
+  <tr><th>平台</th><th>安装方式</th></tr>
+  <tr><td>Ubuntu / Debian</td><td><code>curl -fsSL https://get.docker.com | bash</code></td></tr>
+  <tr><td>CentOS / 其他 Linux</td><td>参考 Docker 官方文档安装 Docker Engine</td></tr>
+  <tr><td>Windows / macOS</td><td>安装 Docker Desktop 并启动</td></tr>
+  <tr><td>群晖 / 威联通 NAS</td><td>使用 Container Manager / Container Station</td></tr>
+  <tr><td><strong>飞牛 fnOS</strong></td><td>应用中心安装「Docker」应用，首次打开时选定存储空间；命令行操作需在「设置 → 远程访问」中开启 SSH 并 <code>sudo -i</code>。专有路径与权限处理见 <strong>docs/fnos-deploy-guide.html</strong></td></tr>
+</table>
+<p>验证安装：</p>
+<pre>docker --version        <span class="c"># 显示版本号即正常，如 Docker version 27.x</span></pre>
+<div class="tip">本文所有命令在 Linux 终端 / Windows PowerShell 中通用；Windows 用户请把卷挂载路径 <code class="inline">$(pwd)</code> 替换为绝对路径，例如 <code class="inline">C:\navi\config.json</code>。</div>
+
+<!-- ==================== 3 快速部署 ==================== -->
+<h2>3. 快速部署（三步完成）</h2>
+
+<div class="step"><span class="no">1</span><span class="t">获取项目文件</span></div>
+<p>将项目文件夹复制到服务器任意目录，并进入该目录：</p>
+<pre><span class="k">cd</span> /opt/navi        <span class="c"># 项目目录，内含 Dockerfile、server.js、public/ 等</span></pre>
+
+<div class="step"><span class="no">2</span><span class="t">构建镜像</span></div>
+<pre>docker build -t navi:latest .</pre>
+<p>看到 <code class="inline">Successfully tagged navi:latest</code> 即构建成功（镜像约 130MB，含完整运行时）。<strong>本项目未发布到任何镜像仓库</strong>，必须自行构建，或从其它机器 <code class="inline">docker save</code> / <code class="inline">docker load</code> 导入。</p>
+
+<div class="step"><span class="no">3</span><span class="t">初始化数据目录</span></div>
+<pre>mkdir -p data/uploads
+cp public/config.example.json data/config.json   <span class="c"># 容器内已内置示例，挂载后以此为准</span></pre>
+
+<div class="step"><span class="no">4</span><span class="t">启动容器（整目录挂载）</span></div>
+<pre>docker run -d --name navi \
+  -p 8080:80 \
+  -e NAVI_PASSWORD=<span class="k">"改成你的强密码"</span> \
+  -e NAVI_CONFIG_PATH=/app/data/config.json \
+  -e NAVI_UPLOAD_DIR=/app/data/uploads \
+  -v $(pwd)/data:/app/data \
+  --restart unless-stopped \
+  navi:latest</pre>
+<p>浏览器访问 <code class="inline">http://服务器IP:8080</code>，输入密码即可进入导航站。</p>
+
+<div class="warn"><strong>请勿改回单文件挂载</strong>（<code class="inline">-v .../config.json:/app/public/config.json</code>）。写配置采用原子写（先写 <code>.tmp</code> 再 <code>rename</code> 覆盖），单文件挂载下 <code>rename</code> 会跨越两个挂载点，在飞牛 NAS 等平台上会稳定触发 <code>EBUSY: resource busy or locked</code>，表现为<strong>网页上点「保存」永远失败</strong>。整目录挂载后 <code>rename</code> 落在同一挂载点内，天然规避该问题。若你此前已用单文件挂载部署，仓库提供一键迁移脚本（见 README「从旧版平滑升级」）。</div>
+
+<div class="warn"><strong>安全提醒：</strong>站点暴露公网前务必设置 <code class="inline">NAVI_PASSWORD</code> 或 <code class="inline">NAVI_PASSWORD_HASH</code>，不设密码则任何人均可访问和编辑。推荐同时设置 <code class="inline">NAVI_USERNAME</code> 启用「用户名 + 密码」联合登录（见第 5 节）。</div>
+
+<!-- ==================== 4 compose ==================== -->
+<h2>4. 方式二：docker compose（推荐）</h2>
+<p>项目自带 <code class="inline">docker-compose.yml</code>，已预置端口映射、环境变量与<strong>整目录数据挂载</strong>。它通过 <code class="inline">${NAVI_PASSWORD:?...}</code> 强制校验密码，因此<strong>必须先在项目根目录创建 <code class="inline">.env</code></strong>：</p>
+<pre><span class="c"># 1. 创建密码文件（仓库已提供模板，.env 不会被提交到 Git）</span>
+cp .env.example .env
+nano .env                       <span class="c"># 把 NAVI_PASSWORD=CHANGE_ME 改成你的强密码</span>
+
+<span class="c"># 2. 初始化数据目录</span>
+mkdir -p data/uploads
+cp public/config.example.json data/config.json
+
+<span class="c"># 3. 构建并后台启动</span>
+docker compose up -d --build
+
+<span class="c"># 4. 查看运行状态</span>
+docker compose ps</pre>
+<div class="warn"><strong>缺少 <code class="inline">.env</code> 时 compose 会直接报错退出</strong>（提示 <code class="inline">NAVI_PASSWORD is required</code>）。这是刻意设计：若改用 <code class="inline">:-</code> 给默认值，缺变量时会静默传入空密码，导致<strong>认证被关闭、站点变成任何人可访问且可编辑</strong>。</div>
+<p>compose 文件关键配置说明：</p>
+<table>
+  <tr><th>配置项</th><th>说明</th></tr>
+  <tr><td><code>ports: "8080:80"</code></td><td>宿主机 8080 → 容器 80，IPv4/IPv6 双栈；可改为其他端口（只改左侧数字）</td></tr>
+  <tr><td><code>NAVI_PASSWORD</code></td><td>访问密码，来自 <code>.env</code>（详见第 5 节）</td></tr>
+  <tr><td><code>NAVI_USERNAME</code></td><td>登录用户名（可选，设置后启用「用户名 + 密码」联合登录）</td></tr>
+  <tr><td><code>SESSION_TTL_HOURS</code></td><td>登录会话有效期（小时），默认 72</td></tr>
+  <tr><td><code>SITE_TITLE / SITE_SUBTITLE</code></td><td>覆盖站点标题 / 副标题</td></tr>
+  <tr><td><code>volumes: ./data:/app/data</code></td><td><strong>整目录挂载</strong>：<code>config.json</code>（编辑持久化）与 <code>uploads/</code>（图床库 / Logo 图片）都在其中，切勿拆成单文件挂载</td></tr>
+  <tr><td><code>DOCKER_SOCKET</code><br>+ socket 挂载</td><td>可选，用于<strong>服务发现</strong>（自动识别容器端口、匹配图标、生成卡片）。需取消注释 <code>- /var/run/docker.sock:/var/run/docker.sock:ro</code>。见下方安全提示</td></tr>
+</table>
+<div class="danger"><strong>挂载 Docker Socket 的安全提示：</strong>容器内进程将获得<strong>等价于宿主机 root 的 Docker 控制权</strong>——可读取所有容器的环境变量（常含数据库密码、API Key），也能启动特权容器读写宿主机任意文件。另需注意 <code class="inline">:ro</code> 只是把 socket 文件标记为只读，<strong>并不能限制通过该 socket 发起的 Docker API 调用</strong>，不要误以为加了它就安全了。<br>
+因此：仅在你信任镜像来源、且该端口只在内网可访问时开启。不想挂 socket 的话，可改用 <code class="inline">DOCKER_HOST_NAME</code> + <code class="inline">DOCKER_HOST_PORT</code> 连接远程 Docker API，但裸开 2375 端口同样是未加密无认证的；<strong>不开启服务发现也不影响其它任何功能</strong>。</div>
+
+<!-- ==================== 5 密码 ==================== -->
+<h2>5. 配置访问密码</h2>
+<h3>方式一：明文密码（简单）</h3>
+<pre>-e NAVI_PASSWORD=<span class="k">"你的强密码"</span></pre>
+<h3>方式二：哈希密码（推荐，环境变量不留明文）</h3>
+<div class="step"><span class="no">1</span><span class="t">在任意装了 Node.js 的机器上生成哈希</span></div>
+<pre>node -e "console.log(require('crypto').createHash('sha256').update('navi-site:你的强密码').digest('hex'))"</pre>
+<div class="step"><span class="no">2</span><span class="t">用哈希启动容器</span></div>
+<pre>docker run -d --name navi -p 8080:80 \
+  -e NAVI_PASSWORD_HASH=<span class="k">"上一步输出的64位哈希"</span> \
+  -e NAVI_CONFIG_PATH=/app/data/config.json \
+  -v $(pwd)/data:/app/data \
+  navi:latest</pre>
+<p><strong>注意哈希必须带盐前缀</strong>：服务端比对的是 <code class="inline">sha256("navi-site:" + 密码)</code>。直接用裸 <code class="inline">sha256(密码)</code> 填进去会永远登录失败（返回 401 且无任何报错，极易误判成密码敲错）。</p>
+<div class="tip">用 compose 时，把这行写进 <code class="inline">.env</code> 更省事：<code class="inline">NAVI_PASSWORD_HASH=64位哈希</code>（并删掉或注释掉 <code class="inline">NAVI_PASSWORD</code> 那行）。</div>
+
+<h3>方式三：用户名 + 密码联合登录（更安全，推荐）</h3>
+<p>同时设置 <code class="inline">NAVI_USERNAME</code> 与密码，登录时必须同时输入正确的用户名与密码，两项任一错误均提示「用户名或密码错误」（不区分是哪项，防止用户名被枚举）：</p>
+<pre>docker run -d --name navi -p 8080:80 \
+  -e NAVI_USERNAME=<span class="k">"admin"</span> \
+  -e NAVI_PASSWORD=<span class="k">"你的强密码"</span> \
+  -e NAVI_CONFIG_PATH=/app/data/config.json \
+  -v $(pwd)/data:/app/data \
+  navi:latest</pre>
+<p>设置用户名后，登录页会自动多出「用户名」输入框并设为必填。</p>
+
+<div class="tip">三种方式的登录体验一致（登录后 72 小时内免重复登录，页头「退出」按钮可随时注销）；密码仅存在于服务器环境变量，代码内无任何硬编码。推荐公网部署采用「方式三 + 方式二的哈希」组合：用户名 + 哈希密码。</div>
+
+<!-- ==================== 6 自定义 ==================== -->
+<h2>6. 自定义导航内容</h2>
+<p><strong>推荐：直接在网页上编辑</strong>——登录后点击右上角「编辑」，即可添加 / 修改 / 删除 / 拖拽排序导航项，管理分组，完成后点「保存」写回服务器。</p>
+<p>也可以手动编辑宿主机上的 <code class="inline">public/config.json</code>（compose 挂载方式下改完刷新网页即生效）：</p>
+<pre>{
+  <span class="k">"title"</span>: <span class="k">"Jellyfin"</span>,            <span class="c">// 名称（必填）</span>
+  <span class="k">"desc"</span>: <span class="k">"影音媒体库"</span>,          <span class="c">// 描述（可选）</span>
+  <span class="k">"icon"</span>: <span class="k">"jellyfin"</span>,          <span class="c">// 图标（可选）</span>
+  <span class="k">"url"</span>: <span class="k">"https://media.example.com"</span>,  <span class="c">// 外网地址（必填）</span>
+  <span class="k">"lanUrl"</span>: <span class="k">"http://192.168.1.10:8096"</span> <span class="c">// 内网地址（可选）</span>
+}</pre>
+<table>
+  <tr><th>icon 写法</th><th>图标来源</th></tr>
+  <tr><td><code>"jellyfin"</code></td><td>Dashboard Icons（按名称自动匹配，推荐首选）</td></tr>
+  <tr><td><code>"selfhst:portainer"</code></td><td>selfh.st 图标库</td></tr>
+  <tr><td><code>"iconify:simple-icons:github"</code></td><td>Iconify 全量图标库</td></tr>
+  <tr><td><code>"https://…/logo.png"</code></td><td>任意图片直链</td></tr>
+  <tr><td>留空</td><td>按名称尝试 Dashboard Icons，失败回退首字母图标</td></tr>
+</table>
+
+<h3>卡片图标的两种来源</h3>
+<p>编辑导航项的弹窗里，图标区分为两行：<strong>「Logo（本地图床库）」</strong>与<strong>「在线图标」</strong>。两者可同时存在，渲染优先级为 <strong>本地图床库 &gt; 在线图标 &gt; 字母回退</strong>。</p>
+<table>
+  <tr><th>来源</th><th>存储字段</th><th>说明</th></tr>
+  <tr><td>本地图床库</td><td><code>logo</code></td><td>存为 <code>/uploads/&lt;文件名&gt;</code>，实体位于宿主机挂载目录的 <code>uploads/</code></td></tr>
+  <tr><td>在线图标</td><td><code>icon</code></td><td>写法见上表（<code>jellyfin</code> / <code>selfhst:xxx</code> / <code>iconify:集:名</code> / 图片直链）</td></tr>
+</table>
+
+<h3>本地图床库（批量上传与复用）</h3>
+<p>编辑模式底部点「图床库」打开弹窗，分为<strong>本地图床库</strong>与<strong>在线图标库</strong>两个标签页：</p>
+<ul>
+  <li><strong>批量上传</strong>：一次可多选或<strong>直接拖入</strong>大量图片，支持 <strong>PNG / JPEG / GIF / WebP</strong>，单张上限 <strong>3MB</strong>；前端按「字节预算 + 单批 20 张」自动分片上传并显示进度</li>
+  <li><strong>逐张独立校验</strong>：服务端按<strong>文件头魔数</strong>识别真实类型，防止伪造图片；<strong>个别失败不影响其余图片</strong>，逐条给出失败原因</li>
+  <li><strong>重复使用</strong>：上传的图片不再是「用完即弃」，任何导航卡片都可在图床库里挑选复用</li>
+  <li><strong>检索与引用可见</strong>：按文件名实时过滤，标注「使用中 N」并显示引用它的卡片名</li>
+  <li><strong>删除保护</strong>：仍被卡片引用的图片<strong>默认拒绝删除</strong>（返回 409 + 引用清单），二次确认后才强制删除，避免线上卡片集体变成字母图标</li>
+  <li><strong>存储位置</strong>：文件落在 <code class="inline">NAVI_UPLOAD_DIR</code>（Docker 即 <code class="inline">/app/data/uploads</code>），通过 <code class="inline">/uploads/&lt;文件名&gt;</code> 访问。<strong>务必持久化该目录</strong>，否则容器重建后图片全部丢失</li>
+</ul>
+<div class="warn"><strong>图床库不建数据库、不写索引文件</strong>：库内容直接由上传目录的文件系统推导，因此永远与磁盘一致，也不会给备份/恢复流程引入额外状态。另注意网页上的「备份」按钮<strong>只导出 <code class="inline">config.json</code>，不打包图片实体</strong>；迁移时请一并复制 <code class="inline">uploads/</code> 目录（图片缺失时卡片会自动回退字母图标，不会报错，所以容易察觉不到）。</div>
+
+<!-- ==================== 7 备份恢复 ==================== -->
+<h2>7. 数据备份与恢复</h2>
+<p>编辑模式底部提供「备份」与「导入」两个按钮，用于整体迁移或防误删：</p>
+<h3>备份（导出）</h3>
+<p>点击「备份」下载结构化备份文件 <code class="inline">navi-backup-&lt;时间&gt;.json</code>，内含格式标识、版本、导出时间、完整导航配置，以及基于配置计算的 <strong>SHA-256 校验和</strong>，可跨设备、跨部署迁移。</p>
+<h3>恢复（导入）</h3>
+<p>点击「导入」选择备份文件后，系统会依次校验 <strong>文件格式 → 版本 → 完整性（校验和）→ 数据结构</strong>，全部通过后弹出二次确认（显示将覆盖的导航项数量），确认后才原子写回并自动刷新。</p>
+<div class="warn"><strong>异常安全：</strong>文件损坏、格式不匹配、版本过高、校验和篡改、结构非法等任一情况都会被拦截并给出明确报错，<strong>绝不会破坏现有数据</strong>——只有全部校验通过才会写入。</div>
+<div class="tip">备份文件是纯 JSON，可安全存放在本地或网盘；恢复后数据与服务器当前状态完全一致。</div>
+<div class="tip"><strong>关于「完整性校验失败」：</strong>导入时的校验和比对是<strong>以后端为准</strong>的权威校验。前端只在浏览器支持的情况下做一次「提前预检」——浏览器仅在<strong>安全上下文</strong>（HTTPS 或 <code class="inline">localhost</code>）才提供 <code class="inline">crypto.subtle</code>，所以用 <code class="inline">http://局域网IP:端口</code> 访问时会自动跳过预检、直接交给后端，<strong>不会影响导入，也不会削弱篡改防护</strong>。若导入自己刚导出的文件仍报此错，说明文件确实被改动过（例如用编辑器打开后保存、传输过程损坏），重新导出一份即可。</div>
+
+<!-- ==================== 8 IPv6 ==================== -->
+<h2>8. IPv6 访问</h2>
+<p>容器内部默认双栈监听（<code class="inline">::</code>），宿主机开启 IPv6 时 Docker 端口映射会同时绑定两种协议栈，无需额外配置：</p>
+<pre><span class="c"># 验证容器双栈监听</span>
+docker exec navi netstat -tlnp     <span class="c"># 应看到 :::80</span>
+
+<span class="c"># 通过 IPv6 地址访问</span>
+curl -g <span class="k">"http://[2001:db8::1]:8080/api/health"</span></pre>
+<div class="tip">若 Docker 未自动绑定 IPv6，请在宿主机 <code class="inline">/etc/docker/daemon.json</code> 中设置 <code class="inline">"ipv6": true</code> 与 <code class="inline">"fixed-cidr-v6"</code> 后重启 Docker。</div>
+
+<!-- ==================== 9 运维 ==================== -->
+<h2>9. 日常运维命令</h2>
+<table>
+  <tr><th>操作</th><th>命令</th></tr>
+  <tr><td>查看日志</td><td><code>docker logs -f navi</code></td></tr>
+  <tr><td>停止 / 启动 / 重启</td><td><code>docker stop navi</code> · <code>docker start navi</code> · <code>docker restart navi</code></td></tr>
+  <tr><td>修改密码 / 用户名</td><td>改环境变量后重建容器（见下方更新流程）</td></tr>
+  <tr><td>备份导航数据</td><td>网页编辑模式点「备份」下载备份文件；或直接复制宿主机 <code>public/config.json</code> 与 <code>public/uploads/</code></td></tr>
+  <tr><td>删除容器与镜像</td><td><code>docker rm -f navi && docker rmi navi</code></td></tr>
+</table>
+
+<h3>升级到新版项目代码</h3>
+<pre><span class="c"># 配置在宿主机挂载，重建不丢数据</span>
+docker compose up -d --build     <span class="c"># compose 方式</span>
+
+<span class="c"># 或纯 docker 方式：</span>
+docker rm -f navi
+docker build -t navi .
+docker run -d --name navi <span class="c"># …与初次启动相同的参数</span></pre>
+<div class="warn">服务重启后所有登录会话会失效（会话密钥每次启动随机生成），用户重新登录即可，属正常安全设计。</div>
+
+<!-- ==================== 10 验证 ==================== -->
+<h2>10. 部署验证</h2>
+<div class="step"><span class="no">1</span><span class="t">健康检查</span></div>
+<pre>curl http://127.0.0.1:8080/api/health
+<span class="c"># 期望输出：{"ok":true,"ipv6":true,"authEnabled":true}</span></pre>
+<div class="step"><span class="no">2</span><span class="t">页面访问</span></div>
+<p>浏览器打开 <code class="inline">http://服务器IP:8080</code> → 应跳转登录页 → 输入用户名 / 密码 → 看到导航卡片。</p>
+<div class="step"><span class="no">3</span><span class="t">自动化测试（可选）</span></div>
+<p>项目内置 <strong>355 项断言 / 12 个套件</strong>。最省事的方式是一条命令全跑（它会自动用「临时 config + 临时 uploads」在 8633 端口拉起隔离实例，不碰真实数据）：</p>
+<pre>NODE_PATH=&lt;已装 playwright 的 node_modules&gt; node test/run-all.cjs
+
+<span class="c"># 排查单个功能时按文件名过滤，只跑关心的套件</span>
+NODE_PATH=&lt;已装 playwright 的 node_modules&gt; node test/run-all.cjs ui-backup</pre>
+<p>也可以按需单独运行：</p>
+<pre><span class="c"># ① 自包含套件（内部自行拉起隔离实例，直接运行即可）</span>
+node test/auth.test.js            <span class="c"># 密码保护 / 联合登录        27 项</span>
+node test/backup.test.js          <span class="c"># 备份恢复 / 图片魔数校验     20 项</span>
+node test/discover.test.js        <span class="c"># 服务发现（伪造 Docker API） 80 项</span>
+node test/library.test.js         <span class="c"># 图床库（引用保护 / 批量上传）40 项</span>
+node test/ui-auth.test.cjs        <span class="c"># 登录页 UI                  8 项</span>
+node test/ui-discover.test.cjs    <span class="c"># 服务发现 UI                36 项</span>
+node test/ui-library.test.cjs     <span class="c"># 图床库 UI                  47 项</span>
+node test/checkdeploy.test.cjs    <span class="c"># 部署判定探针自检            22 项</span>
+
+<span class="c"># ② 需要先有一个运行中的实例（下面四条都要传 baseUrl）</span>
+node test/server.test.js http://127.0.0.1:8080       <span class="c"># 服务端集成 24 项</span>
+node test/ui.test.cjs http://127.0.0.1:8080          <span class="c"># 主界面 UI  27 项</span>
+node test/ui-theme.test.cjs http://127.0.0.1:8080    <span class="c"># 主题切换 UI 8 项</span>
+node test/ui-backup.test.cjs http://127.0.0.1:8080   <span class="c"># 备份 UI    16 项</span></pre>
+<div class="warn"><strong>跑 ② 那四条前请先建一个隔离实例</strong>（把配置与上传目录指向临时位置），不要直接对生产实例执行——<code class="inline">ui.test.cjs</code> 会真实保存配置、<code class="inline">ui-backup.test.cjs</code> 会临时改写并还原 <code class="inline">public/config.json</code>。示例：
+<pre style="margin-top:8px">PORT=8633 NAVI_CONFIG_PATH=/tmp/navi-test/config.json \
+  NAVI_UPLOAD_DIR=/tmp/navi-test/uploads node server.js
+<span class="c"># 另开一个终端再跑测试，URL 用 http://127.0.0.1:8633</span></pre>
+浏览器端 UI 测试复用本机 Edge/Chrome 内核，无需下载 Chromium；需先设置 <code class="inline">NODE_PATH</code> 指向已安装 playwright 的目录。</div>
+<div class="tip"><strong>注意区分「正常拒绝」与「部署失败」：</strong>启用密码保护后，<code class="inline">/api/config</code> 等接口在未登录时返回 <strong>401</strong>、页面返回 <strong>302</strong> 跳登录页——这是安全设计生效的表现。判断服务是否正常，只看 <code class="inline">/api/health</code> 是否返回 200。</div>
+<div class="tip"><strong>改了源码、重建了镜像，页面却还是老样子？</strong>先跑一次部署判定探针，它会明确告诉你容器里跑的是不是新代码：
+<pre style="margin-top:8px">node scripts/check-deploy.cjs http://服务器IP:8080 你的密码
+<span class="c"># 退出码 0 = 新代码；1 = 仍是旧代码；2 = 检查无法完成（如端口不通/密码错）</span>
+<span class="c"># 密码不对或没给密码时不会中断：会凭公开的 /login.html 响应头给 server.js 定性，
+# 并标注 app.js 那一项「未验证」——部分判定，绝不假装通过</span></pre>
+它检查 HTML 的缓存策略、前端资源版本号是否为服务端自动推导、以及线上 <code class="inline">app.js</code> 是否含最新内容。若是旧代码，通常是<strong>漏传了某个文件</strong>（<code class="inline">server.js</code> / <code class="inline">discovery.js</code> / <code class="inline">public/</code> 缺一不可）或<strong>浏览器仍用 7 天强缓存的旧 js/css</strong>。脚本最后还会打印容器内文件的比对命令与期望字节数，照着 <code class="inline">wc -c</code> 出一遍就能确认源码是否同步。</div>
+
+<div class="footer-note">Navi 个人导航站 · Docker 部署指南 — 完 —</div>
+
+</body>
+</html>

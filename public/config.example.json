@@ -1,0 +1,49 @@
+{
+  "site": {
+    "title": "Navi",
+    "subtitle": "个人导航站",
+    "footer": "Powered by Navi · IPv4 / IPv6 双栈 · Docker Ready"
+  },
+  "groups": [
+    {
+      "name": "开发工具",
+      "items": [
+        {
+          "title": "GitHub",
+          "desc": "代码托管",
+          "icon": "github-light",
+          "url": "https://github.com"
+        },
+        {
+          "title": "MDN Web Docs",
+          "desc": "Web 技术文档",
+          "icon": "iconify:simple-icons:mdnwebdocs",
+          "url": "https://developer.mozilla.org"
+        },
+        {
+          "title": "Stack Overflow",
+          "desc": "编程问答社区",
+          "icon": "iconify:simple-icons:stackoverflow",
+          "url": "https://stackoverflow.com"
+        }
+      ]
+    },
+    {
+      "name": "搜索引擎",
+      "items": [
+        {
+          "title": "Google",
+          "desc": "搜索引擎",
+          "icon": "iconify:simple-icons:google",
+          "url": "https://www.google.com"
+        },
+        {
+          "title": "百度",
+          "desc": "搜索引擎",
+          "icon": "iconify:simple-icons:baidu",
+          "url": "https://www.baidu.com"
+        }
+      ]
+    }
+  ]
+}

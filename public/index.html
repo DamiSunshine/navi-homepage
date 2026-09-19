@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Navi · 个人导航站</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <!-- 静态资源带版本号：每次改版 app.js / style.css 后递增 v=，强制浏览器拉取新文件，避免旧缓存 -->
+  <link rel="stylesheet" href="css/style.css?v=20260919-3">
+</head>
+<body>
+  <!-- 科技感网格背景 -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-1" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-2" aria-hidden="true"></div>
+
+  <div class="page">
+    <!-- 顶部栏 -->
+    <header class="header">
+      <div class="brand">
+        <span class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+          </svg>
+        </span>
+        <div class="brand-text">
+          <h1 id="siteTitle">Navi</h1>
+          <p class="brand-sub" id="siteSubtitle">个人导航站</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- 搜索 -->
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input id="searchInput" type="text" placeholder="搜索站点…（按 / 快速聚焦）" autocomplete="off">
+        </div>
+
+        <!-- 编辑模式开关 -->
+        <button id="editToggle" class="tool-btn" type="button" aria-pressed="false" title="编辑导航项（增 / 删 / 改 / 拖动排序）">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+          </svg>
+          <span id="editLabel">编辑</span>
+        </button>
+
+        <!-- 退出登录（启用密码保护时显示） -->
+        <button id="logoutBtn" class="tool-btn" type="button" hidden title="退出登录">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>退出</span>
+        </button>
+
+        <!-- 日 / 夜模式切换 -->
+        <button id="themeToggle" class="theme-toggle" type="button" title="切换日间 / 夜间模式" aria-pressed="false">
+          <svg class="theme-icon-sun" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="theme-icon-moon" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+
+        <!-- 内外网切换按钮 -->
+        <button id="netToggle" class="net-toggle" type="button" aria-pressed="false" title="切换内网 / 外网地址">
+          <span class="toggle-dot" aria-hidden="true"></span>
+          <span class="toggle-label" id="netLabel">外网</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 时钟区 -->
+    <section class="hero">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="date-line">
+        <span id="dateText"></span>
+        <span class="net-badge" id="netBadge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <span id="netBadgeText">外网模式</span>
+        </span>
+      </div>
+    </section>
+
+    <!-- 导航分组（JS 渲染） -->
+    <main id="navRoot" class="nav-root">
+      <div class="loading"><div class="loading-ring"></div>加载中…</div>
+    </main>
+
+    <p id="emptyTip" class="empty-tip" hidden>没有匹配的站点</p>
+
+    <!-- 编辑模式：添加分组按钮 -->
+    <button id="addGroupBtn" class="add-group-btn" type="button" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      添加分组
+    </button>
+
+    <footer class="footer">
+      <span id="footerText">Navi · 简约个人导航站</span>
+    </footer>
+  </div>
+
+  <!-- 编辑模式：底部保存栏 -->
+  <div id="saveBar" class="savebar" hidden>
+    <span class="savebar-tip" id="saveBarTip">编辑模式：拖动卡片排序，完成后记得保存</span>
+      <div class="savebar-actions">
+        <button id="discoverBtn" class="btn btn-ghost" type="button" title="自动识别容器 / 本机端口，匹配图标并生成导航卡片">服务发现</button>
+        <button id="libraryBtn" class="btn btn-ghost" type="button" title="批量上传图标到本地图床库，供所有卡片重复选用">图床库</button>
+        <button id="backupBtn" class="btn btn-ghost" type="button" title="下载完整数据备份文件（含校验和）">备份</button>
+        <button id="importBtn" class="btn btn-ghost" type="button" title="从备份文件恢复数据">导入</button>
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+        <button id="cancelEditBtn" class="btn btn-ghost" type="button">取消</button>
+        <button id="saveBtn" class="btn btn-primary" type="button">保存</button>
+      </div>
+  </div>
+
+  <!-- 导航项编辑弹窗 -->
+  <div id="itemModal" class="modal-mask" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3 class="modal-title" id="itemModalTitle">编辑导航项</h3>
+      <form id="itemForm">
+        <label class="field">
+          <span>名称 *</span>
+          <input name="title" type="text" required maxlength="40" placeholder="例如 Jellyfin">
+        </label>
+        <label class="field">
+          <span>描述</span>
+          <input name="desc" type="text" maxlength="60" placeholder="一句话说明（可留空）">
+        </label>
+        <label class="field">
+          <span>外网地址 *</span>
+          <input name="url" type="url" required placeholder="https://…">
+        </label>
+        <label class="field">
+          <span>内网地址</span>
+          <input name="lanUrl" type="url" placeholder="http://192.168.x.x:端口（可留空）">
+        </label>
+        <label class="field">
+          <span>Logo（本地图床库）</span>
+          <div class="logo-box">
+            <div class="logo-preview-wrap">
+              <img id="logoPreview" class="logo-preview" alt="图标预览" hidden>
+              <span id="logoEmpty" class="logo-empty">无</span>
+            </div>
+            <div class="logo-actions">
+              <input id="logoFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
+              <button type="button" class="btn btn-ghost" id="logoPickBtn">上传图片</button>
+              <button type="button" class="btn btn-ghost" id="logoLibraryBtn">从图床库选择</button>
+              <button type="button" class="btn btn-ghost" id="logoClearBtn" hidden>清除</button>
+            </div>
+            <span id="logoStatus" class="logo-status"></span>
+          </div>
+          <input type="hidden" name="logo" id="logoInput">
+        </label>
+        <label class="field">
+          <span>在线图标</span>
+          <div class="icon-row">
+            <input name="icon" type="text" placeholder="jellyfin / selfhst:xxx / iconify:集:名 / 图片直链">
+            <button type="button" class="btn btn-ghost" id="iconGalleryBtn" title="从在线图标库挑选">图标库</button>
+          </div>
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close="itemModal">取消</button>
+          <button type="submit" class="btn btn-primary">确定</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 分组编辑弹窗 -->
+  <div id="groupModal" class="modal-mask" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3 class="modal-title" id="groupModalTitle">添加分组</h3>
+      <form id="groupForm">
+        <label class="field">
+          <span>分组名称 *</span>
+          <input name="name" type="text" required maxlength="20" placeholder="例如 常用工具">
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close="groupModal">取消</button>
+          <button type="submit" class="btn btn-primary">确定</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 服务发现弹窗（Docker 容器 / 本机端口 → 自动匹配图标 → 生成导航卡片） -->
+  <div id="discoverModal" class="modal-mask" hidden>
+    <div class="modal modal-wide" role="dialog" aria-modal="true">
+      <h3 class="modal-title">
+        服务发现
+        <span class="discover-src" id="discoverSrc"></span>
+      </h3>
+      <p class="discover-hint" id="discoverHint">正在扫描容器与本机监听端口…</p>
+
+      <div class="discover-toolbar" id="discoverToolbar" hidden>
+        <label class="discover-all">
+          <input type="checkbox" id="discoverAll">
+          <span>全选推荐项（运行中 · 非依赖容器）</span>
+        </label>
+        <span class="discover-count" id="discoverCount"></span>
+        <button type="button" class="btn btn-ghost" id="discoverRescan">重新扫描</button>
+      </div>
+
+      <div class="discover-list" id="discoverList"></div>
+
+      <div class="discover-empty" id="discoverEmpty" hidden></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="discoverModal">关闭</button>
+        <button type="button" class="btn btn-primary" id="discoverAddBtn" disabled>加入选中项</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图床库 / 图标选择弹窗（本地图床库 + 在线图标库） -->
+  <div id="libraryModal" class="modal-mask" hidden>
+    <div class="modal modal-wide" role="dialog" aria-modal="true">
+      <h3 class="modal-title">
+        <span id="libraryTitle">图床库</span>
+        <span class="lib-mode" id="libraryModeTag"></span>
+      </h3>
+
+      <div class="lib-tabs" id="libTabs" role="tablist">
+        <button type="button" class="lib-tab is-active" id="libTabLocal" data-tab="local" role="tab">本地图床库</button>
+        <button type="button" class="lib-tab" id="libTabOnline" data-tab="online" role="tab">在线图标库</button>
+      </div>
+
+      <!-- 本地图床库 -->
+      <section class="lib-pane" id="libPaneLocal">
+        <div class="lib-toolbar">
+          <input type="text" id="libSearch" class="lib-search" placeholder="按文件名搜索…" autocomplete="off">
+          <span class="lib-count" id="libCount"></span>
+          <button type="button" class="btn btn-ghost" id="libSelectAllBtn" hidden>全选</button>
+          <button type="button" class="btn btn-ghost" id="libDeleteBtn" hidden>删除选中</button>
+          <button type="button" class="btn btn-ghost" id="libRefreshBtn">刷新</button>
+        </div>
+
+        <div class="lib-drop" id="libDrop">
+          <input type="file" id="libFile" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
+          <button type="button" class="btn btn-ghost" id="libUploadBtn">批量选择图片</button>
+          <span class="lib-drop-hint">也可把多张图标直接拖到这里 · 支持 PNG / JPEG / GIF / WebP · 单张上限 3MB</span>
+        </div>
+
+        <div class="lib-progress" id="libProgress" hidden>
+          <div class="lib-progress-track"><i id="libProgressFill"></i></div>
+          <span class="lib-progress-text" id="libProgressText"></span>
+        </div>
+
+        <div class="lib-result" id="libResult" hidden></div>
+
+        <div class="lib-grid" id="libGrid"></div>
+        <div class="lib-empty" id="libEmpty" hidden></div>
+      </section>
+
+      <!-- 在线图标库 -->
+      <section class="lib-pane" id="libPaneOnline" hidden>
+        <div class="lib-toolbar">
+          <input type="text" id="iconSearch" class="lib-search" placeholder="搜索在线图标（如 github / jellyfin / nas）…" autocomplete="off">
+          <button type="button" class="btn btn-ghost" id="iconSearchBtn">搜索</button>
+        </div>
+        <p class="lib-online-hint" id="iconOnlineHint">
+          「推荐」来自内置服务指纹库，离线可用；搜索走 Iconify 公开 API，需要联网。
+        </p>
+        <div class="lib-grid lib-grid-icon" id="iconGrid"></div>
+        <div class="lib-empty" id="iconEmpty" hidden></div>
+      </section>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="libraryModal">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js?v=20260919-3"></script>
+</body>
+</html>

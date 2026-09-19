@@ -1,0 +1,53 @@
+# ============================================================
+# Navi · git 忽略规则（发布到 GitHub 前务必检查）
+# ============================================================
+
+# ---- 私有 / 运行时数据（不要提交到仓库） ----
+# 导航站实际配置：含你自己的站点链接、内网地址等，仅存于本地
+public/config.json
+# 环境变量文件：含真实访问密码等密钥，绝不入库（示例见 .env.example）
+.env
+.env.*
+!.env.example
+# 卡片 Logo 本地上传的图片
+public/uploads/
+# Docker 整目录挂载的数据目录（含 config.json 与上传图片）
+/data/
+# 迁移/升级脚本生成的备份目录（含历史 config 与图片）
+/backups/
+
+# ---- 残留 / 缓存 ----
+# 原子写入的半成品
+*.tmp
+# Node 依赖（本项目零依赖，通常不会出现；保留兜底）
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ---- 本地工具 / 平台元数据（含内部笔记与预览密码哈希，不入库） ----
+# AI 助手在本项目的工作记录与平台应用登记（仅本机有意义）
+.workbuddy/
+# 平台发布产生的应用标记文件
+.wbapp_*.genie
+# 云端预览专用启动壳：内含预览实例的密码哈希，严禁入库
+preview-launcher.js
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- 本地构建产物（如用 cloudstudio 等导出时可能出现） ----
+dist/
+build/
+out/
+
+# ---- 线上发布包（纯生成物，由 scripts/build-share.cjs 重建） ----
+# 落地页源文件是 scripts/share-index.html，不要直接改 share/ 里的副本
+/share/
+# 线上验证脚本运行时产生的截图
+test/share-*.png
+# make-pdf 在目标 PDF 被阅读器占用时的应急输出（正常重跑后会消失）
+docs/*-new.pdf
