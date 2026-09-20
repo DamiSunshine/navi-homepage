@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Navi 导航站 · 项目门户</title>
+<meta name="description" content="Navi 导航站：零依赖 Node 自托管导航页。项目总入口 —— 真实效果预览、核心能力、架构与模块、文档导航、三种部署形态与质量红线。">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%230f172a' font-family='system-ui' font-weight='700'%3EN%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0b1220; --bg2:#0f1a2e; --panel:#111d33; --panel2:#16243d; --panel3:#1b2c49;
+    --line:rgba(148,163,184,.18); --line2:rgba(148,163,184,.30);
+    --fg:#e8eefc; --fg2:#9fb0cc; --fg3:#6b7d99;
+    --accent:#38bdf8; --accent2:#22d3ee; --ok:#22c55e; --warn:#f59e0b; --bad:#f87171;
+    --radius:16px; --shadow:0 18px 40px rgba(0,0,0,.35);
+    --glow:radial-gradient(1100px 520px at 12% -8%, rgba(56,189,248,.16), transparent 60%),
+           radial-gradient(900px 460px at 92% 0%, rgba(34,211,238,.12), transparent 60%);
+  }
+  html[data-theme="light"]{
+    --bg:#f5f7fb; --bg2:#eef2f9; --panel:#ffffff; --panel2:#f7f9fd; --panel3:#eef3fb;
+    --line:rgba(15,23,42,.10); --line2:rgba(15,23,42,.18);
+    --fg:#0f172a; --fg2:#4b5b73; --fg3:#7b8aa1;
+    --accent:#0284c7; --accent2:#0891b2; --ok:#15803d; --warn:#b45309; --bad:#b91c1c;
+    --shadow:0 14px 32px rgba(15,23,42,.10);
+    --glow:radial-gradient(1100px 520px at 12% -8%, rgba(2,132,199,.10), transparent 60%),
+           radial-gradient(900px 460px at 92% 0%, rgba(8,145,178,.08), transparent 60%);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:74px}
+  body{
+    margin:0;background:var(--glow),var(--bg);color:var(--fg);
+    font:16px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    min-height:100dvh;
+  }
+  a{color:inherit}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+  code,kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;
+    background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+
+  /* ---------- 顶栏 ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+    background:color-mix(in srgb,var(--bg) 82%,transparent);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar .inner{max-width:1180px;margin:0 auto;padding:11px 22px;display:flex;align-items:center;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex:0 0 auto}
+  .brand .mark{
+    width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0b1220;
+    font-weight:800;font-size:17px;font-family:system-ui,sans-serif;
+  }
+  .brand b{font-size:15.5px;letter-spacing:-.005em;white-space:nowrap}
+  .brand small{color:var(--fg3);font-size:12px;display:block;line-height:1.1;font-weight:400}
+  /* flex-end + overflow 会让溢出部分无法滚动到达，故用 margin-left:auto 靠右、内容从左侧开始 */
+  .nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:0 1 auto;min-width:0;margin-left:auto;justify-content:flex-start}
+  .nav::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto;text-decoration:none;font-size:13.5px;color:var(--fg2);
+    padding:7px 12px;border-radius:9px;white-space:nowrap;transition:background .16s,color .16s;
+  }
+  .nav a:hover,.nav a:focus-visible{background:var(--panel);color:var(--fg);outline:none}
+  .themebtn{
+    flex:0 0 auto;width:36px;height:36px;border-radius:10px;cursor:pointer;
+    background:var(--panel);border:1px solid var(--line);color:var(--fg);font-size:16px;
+    display:grid;place-items:center;transition:border-color .16s,background .16s;
+  }
+  .themebtn:hover{border-color:var(--line2);background:var(--panel2)}
+
+  /* ---------- Hero ---------- */
+  .hero{padding:64px 0 22px}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-size:12.5px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--accent);background:var(--panel);
+    border:1px solid var(--line);border-radius:999px;padding:6px 14px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+  h1{margin:20px 0 14px;font-size:clamp(30px,4.6vw,50px);line-height:1.14;letter-spacing:-.02em}
+  h1 .grad{background:linear-gradient(100deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{margin:0;max-width:66ch;color:var(--fg2);font-size:17px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:30px 0 0}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .kpi b{display:block;font-size:26px;line-height:1.15;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .kpi b .u{font-size:13px;color:var(--fg3);font-weight:500;margin-left:2px}
+  .kpi span{display:block;margin-top:4px;font-size:12.5px;color:var(--fg3)}
+  .cta{display:flex;flex-wrap:wrap;gap:11px;margin:26px 0 0}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-size:14.5px;font-weight:600;
+    border-radius:12px;padding:12px 20px;border:1px solid var(--line);background:var(--panel);color:var(--fg);
+    transition:transform .16s ease,border-color .16s ease,background .16s ease;min-height:44px;
+  }
+  .btn:hover,.btn:focus-visible{transform:translateY(-2px);border-color:var(--line2);outline:none}
+  .btn.primary{
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0b1220;border-color:transparent;
+    box-shadow:0 12px 26px color-mix(in srgb,var(--accent) 30%,transparent);
+  }
+
+  /* ---------- 通用分节 ---------- */
+  section{padding:46px 0 6px}
+  .sect-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 8px}
+  .sect-h h2{margin:0;font-size:23px;letter-spacing:-.01em}
+  .sect-h .n{font-size:12.5px;color:var(--fg3);letter-spacing:.08em;font-variant-numeric:tabular-nums}
+  .sect-desc{margin:0 0 22px;color:var(--fg2);font-size:15px;max-width:74ch}
+
+  /* ---------- 截图画廊 ---------- */
+  .gallery{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:16px;align-items:start}
+  .shot-main{
+    position:relative;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+    background:var(--panel2);box-shadow:var(--shadow);
+  }
+  .shot-main img{display:block;width:100%;aspect-ratio:16/10;object-fit:contain;object-position:center;background:var(--panel3)}
+  .shot-main .cap{
+    position:absolute;left:0;right:0;bottom:0;padding:26px 18px 14px;
+    background:linear-gradient(180deg,transparent,rgba(4,10,22,.86));color:#eaf2ff;
+    font-size:13.5px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;
+  }
+  .shot-main .cap b{font-size:15px}
+  .shot-main .cap span{opacity:.78}
+  .thumbs{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow:auto;padding-right:2px}
+  .thumb{
+    display:flex;gap:9px;align-items:center;text-align:left;cursor:pointer;width:100%;
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:7px 9px;
+    color:var(--fg2);font-size:12.5px;font-family:inherit;line-height:1.35;
+    transition:border-color .16s,background .16s;
+  }
+  .thumb:hover{border-color:var(--line2)}
+  .thumb[aria-current="true"]{border-color:var(--accent);background:var(--panel3);color:var(--fg)}
+  .thumb img{width:52px;height:33px;object-fit:cover;object-position:top left;border-radius:5px;flex:0 0 auto;border:1px solid var(--line)}
+
+  /* ---------- 卡片网格 ---------- */
+  .cards{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(268px,1fr))}
+  .card{
+    display:flex;flex-direction:column;background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--line);border-radius:var(--radius);padding:20px 20px 18px;
+    box-shadow:var(--shadow);transition:transform .18s ease,border-color .18s ease;
+  }
+  a.card{text-decoration:none}
+  a.card:hover,a.card:focus-visible{transform:translateY(-3px);border-color:color-mix(in srgb,var(--accent) 55%,transparent);outline:none}
+  .card .ico{
+    width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:20px;
+    background:color-mix(in srgb,var(--accent) 14%,transparent);border:1px solid var(--line);margin-bottom:13px;
+  }
+  .card h3{margin:0 0 7px;font-size:17px;letter-spacing:-.005em}
+  .card p{margin:0 0 14px;color:var(--fg2);font-size:14.3px}
+  .card .meta{margin-top:auto;display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+  .tag{font-size:11.5px;color:var(--fg3);border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--panel2)}
+  .tag.on{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 42%,transparent)}
+  .go{margin-left:auto;font-size:13px;font-weight:600;color:var(--accent);white-space:nowrap}
+  .go::after{content:" →"}
+
+  /* ---------- 架构 ---------- */
+  .arch{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+  .mod{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
+  .mod .h{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+  .mod .h b{font-size:14px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .mod .h em{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--fg3);font-variant-numeric:tabular-nums}
+  .mod p{margin:0;font-size:13.2px;color:var(--fg2)}
+  .mod.entry{border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+  .mod.gen{border-style:dashed}
+  .deps{
+    margin-top:16px;padding:15px 18px;border:1px solid var(--line);border-radius:14px;
+    background:var(--panel);font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:13px;color:var(--fg2);overflow-x:auto;white-space:pre;line-height:1.9;
+  }
+  .deps b{color:var(--accent);font-weight:600}
+  .deps i{color:var(--fg3);font-style:normal}
+
+  /* ---------- 部署 ---------- */
+  .deploys{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  pre{
+    margin:10px 0 0;padding:13px 15px;border-radius:11px;background:var(--panel2);
+    border:1px solid var(--line);overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12.6px;line-height:1.75;color:var(--fg);
+  }
+  pre .c{color:var(--fg3)}
+  .deploys .card p{margin-bottom:0}
+
+  /* ---------- 红线 ---------- */
+  .rules{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+  .rule{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:12px;padding:14px 16px}
+  .rule b{display:block;font-size:14px;margin-bottom:5px}
+  .rule p{margin:0;font-size:13.2px;color:var(--fg2)}
+
+  /* ---------- 页脚 ---------- */
+  footer{margin-top:56px;border-top:1px solid var(--line);padding:26px 0 40px;color:var(--fg3);font-size:13px}
+  footer .frow{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+  footer a{color:var(--fg2);text-decoration:none;border-bottom:1px solid var(--line2)}
+  footer a:hover{color:var(--accent)}
+
+  /* ---------- 响应式 ---------- */
+  @media (max-width:900px){
+    .gallery{grid-template-columns:1fr}
+    .thumbs{flex-direction:row;max-height:none;overflow-x:auto;padding-bottom:6px}
+    .thumb{flex:0 0 auto;width:auto;flex-direction:column;align-items:flex-start;gap:5px}
+    .thumb img{width:78px;height:49px}
+    .thumb .tl{white-space:nowrap}
+  }
+  @media (max-width:760px){
+    .wrap{padding:0 16px}
+    .topbar .inner{padding:10px 16px;gap:10px}
+    .brand small{display:none}
+    html{scroll-padding-top:66px}
+    .hero{padding:40px 0 14px}
+    .kpis{grid-template-columns:repeat(2,1fr);gap:10px}
+    .kpi{padding:13px 14px}
+    .kpi b{font-size:22px}
+    .lead{font-size:16px}
+    section{padding:34px 0 4px}
+    .sect-h h2{font-size:20px}
+    .shot-main .cap{font-size:12.5px;padding:22px 13px 11px}
+    .btn{flex:1 1 auto;justify-content:center;padding:12px 16px}
+    .card{padding:17px 16px 15px}
+  }
+  @media (max-width:400px){
+    .kpis{grid-template-columns:1fr 1fr}
+    .kpi b{font-size:20px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *{transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="#top">
+      <span class="mark">N</span>
+      <b>Navi 导航站<small>零依赖自托管导航页</small></b>
+    </a>
+    <nav class="nav" id="nav">
+      <a href="#shots">效果</a>
+      <a href="#features">能力</a>
+      <a href="#arch">架构</a>
+      <a href="#docs">文档</a>
+      <a href="#deploy">部署</a>
+      <a href="#quality">质量</a>
+    </nav>
+    <button class="themebtn" id="themeBtn" type="button" title="切换日夜主题" aria-label="切换日夜主题">☾</button>
+  </div>
+</header>
+
+<main id="top">
+<div class="wrap">
+
+  <!-- ================= HERO ================= -->
+  <section class="hero" style="padding-top:52px">
+    <span class="eyebrow"><span class="dot"></span>自托管 · 零运行时依赖 · MIT</span>
+    <h1>把家里所有服务，收进<span class="grad">一个不会烂掉的导航页</span></h1>
+    <p class="lead">
+      Navi 导航站是一个零依赖的 Node 自托管导航页：自动发现局域网里的容器服务、图标本地优先、
+      日夜间双主题、状态板一眼看清机器水位。运行时只有 Node 内置模块 —— 仓库里连 package.json 都没有，
+      十年后 clone 下来仍然能跑。
+    </p>
+
+    <div class="kpis">
+      <div class="kpi"><b><span data-count="0">0</span></b><span>运行时依赖</span></div>
+      <div class="kpi"><b><span data-count="33">33</span><span class="u">类</span></b><span>服务指纹自动识别</span></div>
+      <div class="kpi"><b><span data-count="227">227</span><span class="u">个</span></b><span>内置本地图标</span></div>
+      <div class="kpi"><b><span data-count="19">19</span><span class="u">套</span></b><span>测试 · 958 项断言全通过</span></div>
+    </div>
+
+    <div class="cta">
+      <a class="btn primary" href="../preview.html">🖥️ 打开交互预览</a>
+      <a class="btn" href="#shots">📸 先看效果截图</a>
+      <a class="btn" href="overview.html">🧭 项目概览</a>
+    </div>
+  </section>
+
+  <!-- ================= 效果预览 ================= -->
+  <section id="shots">
+    <div class="sect-h"><h2>真实运行效果</h2><span class="n">10 张截图 / 全部来自真实运行实例</span></div>
+    <p class="sect-desc">
+      下面每一张都是实际跑起来的界面（不是设计稿）。点右侧缩略图即可切换 ——
+      想看可点的版本，去 <a href="../preview.html" style="color:var(--accent)">交互预览页</a>。
+    </p>
+
+    <div class="gallery">
+      <figure class="shot-main" style="margin:0">
+        <img id="shotImg" src="../test/ui-home.png" alt="Navi 导航站首页（夜间主题）">
+        <figcaption class="cap"><b id="shotTitle">首页总览 · 夜间</b><span id="shotDesc">时钟、状态板、分组与卡片网格</span></figcaption>
+      </figure>
+      <div class="thumbs" id="thumbs" role="tablist" aria-label="截图切换"></div>
+    </div>
+  </section>
+
+  <!-- ================= 核心能力 ================= -->
+  <section id="features">
+    <div class="sect-h"><h2>核心能力</h2><span class="n">P0 · P1 · P2</span></div>
+    <p class="sect-desc">每一项都标注了守住它的测试套件 —— 文档里的说法必须有人守着，否则它一定会烂掉。</p>
+    <div class="cards">
+      <div class="card">
+        <div class="ico">🔍</div>
+        <h3>离线拼音搜索</h3>
+        <p>内置 2 万余字拼音表，按音节边界对齐匹配首字母 —— 输入 <code>jtyy</code> 命中「家庭影院」，而不是被跨音节噪音污染。支持全拼与松散兜底。</p>
+        <div class="meta"><span class="tag on">ui.test.cjs</span><span class="tag">103 项</span></div>
+      </div>
+      <div class="card">
+        <div class="ico">⌘</div>
+        <h3>⌘K 命令面板</h3>
+        <p>与卡片网格共用同一套匹配排序函数（两处判定不可能不一致）。↑↓ 选择、Enter 打开，还能把关键词直接交给外部搜索引擎。</p>
+        <div class="meta"><span class="tag on">ui.test.cjs</span><span class="tag">103 项</span></div>
+      </div>
+      <div class="card">
+        <div class="ico">🌐</div>
+        <h3>卡片级内外网策略</h3>
+        <p>每张卡片独立选择自动 / 内网 / 外网，内网可达性异步探测并缓存，不阻塞渲染；浏览器能力缺失时降级跳过判定，而不是误判成失败。</p>
+        <div class="meta"><span class="tag on">ui.test.cjs</span><span class="tag">+ server.test.js</span></div>
+      </div>
+      <div class="card">
+        <div class="ico">🗄️</div>
+        <h3>含图片的完整备份</h3>
+        <p>自己实现 ZIP（写出 + 读取 + CRC32 校验），备份可连图床库图片一起打包，恢复时自动识别 zip / json 两种格式。</p>
+        <div class="meta"><span class="tag on">zipbackup.test.js</span><span class="tag">54 项</span></div>
+      </div>
+      <div class="card">
+        <div class="ico">📊</div>
+        <h3>首页状态板</h3>
+        <p>容器数 / CPU / 内存 / 磁盘水位。CPU 用两次采样差值算；<b>采不到就给 null、从不给 0</b>；从头到尾没成功过就静默隐藏并停止轮询。</p>
+        <div class="meta"><span class="tag on">status.test.js</span><span class="tag">90 项</span></div>
+      </div>
+      <div class="card">
+        <div class="ico">🎨</div>
+        <h3>图标本地优先</h3>
+        <p>内置 227 个图标、构建期生成映射表，解析顺序「本地 → CDN」。断网或纯内网也能出图，加载失败降为字母方块而不是破图。</p>
+        <div class="meta"><span class="tag on">icons.test.js</span><span class="tag">47 项</span></div>
+      </div>
+      <div class="card">
+        <div class="ico">🧩</div>
+        <h3>服务发现的来源追踪</h3>
+        <p>自动发现的卡片带来源标记，源侧消失时<b>只标记不删</b>；「检测不到」与「检测到坏了」严格分开，避免没挂 socket 就一屏标红。</p>
+        <div class="meta"><span class="tag on">discover.test.js</span><span class="tag">99 项</span></div>
+      </div>
+      <div class="card">
+        <div class="ico">🏷️</div>
+        <h3>标签 · 跨分组检索</h3>
+        <p>给「类别记得、名字忘了」兜底：标签进匹配链并支持拼音，点标签即跨分组筛选，面板命中时还会标注命中原因。</p>
+        <div class="meta"><span class="tag on">ui-tags.test.cjs</span><span class="tag">40 项</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 架构 ================= -->
+  <section id="arch">
+    <div class="sect-h"><h2>架构与模块</h2><span class="n">后端 4 文件 / 前端 4 文件 + 2 生成物</span></div>
+    <p class="sect-desc">依赖严格单向、无环。改动前先看这张图：任何一个模块改名或新增，都必须同步 Dockerfile 的 COPY 清单。</p>
+    <div class="arch">
+      <div class="mod entry">
+        <div class="h"><b>server.js</b><em>1428 行</em></div>
+        <p><b>唯一入口。</b>环境变量解析、配置读写与写入口校验、认证闸门、全部接口路由、静态托管与 HTML 注入、备份恢复上传、登录限流。</p>
+      </div>
+      <div class="mod">
+        <div class="h"><b>discovery.js</b><em>917 行</em></div>
+        <p>服务发现：Docker API 列容器 → 端口提取 → 指纹匹配 → 图标推断；不可用时退化为扫本机端口。33 类服务预设。</p>
+      </div>
+      <div class="mod">
+        <div class="h"><b>status.js</b><em>357 行</em></div>
+        <p>状态板采集：CPU 差值、内存（含 cgroup 限额）、磁盘水位、容器统计、上传目录占用。</p>
+      </div>
+      <div class="mod">
+        <div class="h"><b>zip.js</b><em>195 行</em></div>
+        <p>零依赖 ZIP：写出（store/deflate）与读取，含 CRC32 校验。「备份含图片」与「恢复整包」压在它上面。</p>
+      </div>
+    </div>
+    <div class="deps"><b>server.js</b>  <i>（require 即启动）</i>
+  ├─→ <b>discovery.js</b>   <i>服务发现 · 26 个导出</i>
+  ├─→ <b>status.js</b>      <i>状态采集 · 14 个导出</i>
+  │      └─→ discovery.js
+  └─→ <b>zip.js</b>         <i>ZIP 读写 · 4 个导出</i>
+
+<i>前端</i>  index.html <i>骨架 + 7 个弹窗</i>  ·  app.js <i>3271 行 / 37 分节</i>
+       style.css <i>1138 行 / 日夜间 CSS 变量</i>  ·  login.html <i>不引任何外部资源</i></div>
+    <p class="sect-desc" style="margin-top:16px">
+      两处刻意取舍：<b>登录页不引任何外部资源</b> —— 即使样式表被缓存污染，登录入口也必须能渲染；
+      <b>前端版本号按目录 mtime 自动推导</b> —— 手工维护必然忘，表现为「代码改了、镜像也重建了，页面还是老行为」。
+    </p>
+  </section>
+
+  <!-- ================= 文档导航 ================= -->
+  <section id="docs">
+    <div class="sect-h"><h2>文档与页面</h2><span class="n">7 页 + 3 份 PDF</span></div>
+    <p class="sect-desc">按「先看什么」排序：想直观感受就进预览页，想知道怎么做的读概览，想部署就读对应平台的指南。</p>
+    <div class="cards">
+      <a class="card" href="../preview.html">
+        <div class="ico">🖥️</div>
+        <h3>交互预览页</h3>
+        <p>完整还原首页布局与三大模块：服务发现 / 图床库 / 在线图标、主题切换、卡片编辑，含 10 张真实截图。</p>
+        <div class="meta"><span class="tag">最直观</span><span class="tag">可点击</span><span class="go">打开</span></div>
+      </a>
+      <a class="card" href="overview.html">
+        <div class="ico">🧭</div>
+        <h3>项目概览</h3>
+        <p>目录组织、模块职责与依赖方向、数据模型全字段、接口清单、6 条关键调用链、功能盘点与技术取舍。</p>
+        <div class="meta"><span class="tag">开发视角</span><span class="tag">全貌</span><span class="go">阅读</span></div>
+      </a>
+      <a class="card" href="showcase.html">
+        <div class="ico">📈</div>
+        <h3>迭代成果</h3>
+        <p>本轮 10 项改动的修改前后对照、可交互 demo、5 个真实缺陷的修前修后，以及断言增长曲线。</p>
+        <div class="meta"><span class="tag">改动记录</span><span class="tag">对照</span><span class="go">查看</span></div>
+      </a>
+      <a class="card" href="roadmap.html">
+        <div class="ico">🗺️</div>
+        <h3>改进路线图</h3>
+        <p>对标同类项目的差距分析、P0–P2 计划与逐项完成状态（含刻意搁置的项与理由）。</p>
+        <div class="meta"><span class="tag">规划</span><span class="tag">P0–P2</span><span class="go">查看</span></div>
+      </a>
+      <a class="card" href="docker-guide.html">
+        <div class="ico">🐳</div>
+        <h3>Docker 部署指南</h3>
+        <p>镜像构建、目录挂载、密码与环境变量、健康检查、升级与备份还原，适用于群晖 / 威联通 / 通用 Linux。</p>
+        <div class="meta"><span class="tag">通用</span><span class="tag">compose</span><span class="go">阅读</span></div>
+      </a>
+      <a class="card" href="image-deploy-guide.html">
+        <div class="ico">📦</div>
+        <h3>拉取镜像部署</h3>
+        <p>不构建、不传源码：镜像由 CI 自动发布到 GHCR（amd64 + arm64），目标机器只需一条 pull 命令。</p>
+        <div class="meta"><span class="tag">免构建</span><span class="tag">多架构</span><span class="go">阅读</span></div>
+      </a>
+      <a class="card" href="fnos-deploy-guide.html">
+        <div class="ico">🧰</div>
+        <h3>飞牛 fnOS 部署</h3>
+        <p>从 SSH 登录、镜像构建、Compose 校验、端口与存储映射，到启动验证与常见问题排查，共 15 个章节。</p>
+        <div class="meta"><span class="tag">fnOS</span><span class="tag">排错</span><span class="go">阅读</span></div>
+      </a>
+      <div class="card">
+        <div class="ico">📄</div>
+        <h3>PDF 离线版</h3>
+        <p>三份指南的 PDF，方便打印，或在没有网络的环境下逐条对照执行。</p>
+        <div class="meta" style="flex-direction:column;align-items:stretch;gap:7px">
+          <a class="tag" style="text-decoration:none;text-align:center" href="Navi-飞牛fnOS部署指南.pdf">飞牛 fnOS 部署指南</a>
+          <a class="tag" style="text-decoration:none;text-align:center" href="Navi-Docker部署指南.pdf">Docker 部署指南</a>
+          <a class="tag" style="text-decoration:none;text-align:center" href="Navi-拉取镜像部署指南.pdf">拉取镜像部署指南</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 部署 ================= -->
+  <section id="deploy">
+    <div class="sect-h"><h2>三种部署形态</h2><span class="n">数据目录是唯一不可再生的东西</span></div>
+    <p class="sect-desc">
+      镜像＝程序（随时可重建），<b>data/ 才是唯一不可再生数据</b>（<code>config.json</code> 与 <code>uploads/</code>）。
+      升级前先 <code>tar czf backup.tgz -C . data</code>。
+    </p>
+    <div class="deploys">
+      <div class="card">
+        <div class="ico">🔧</div>
+        <h3>源码构建（默认）</h3>
+        <p>本机构建镜像，改完代码重建即生效。</p>
+        <pre><span class="c"># 必须设置密码，否则服务主动退出</span>
+NAVI_PASSWORD=你的密码 docker compose up -d
+<span class="c"># 端口 8080:80 · 数据挂 ./data:/app/data</span></pre>
+      </div>
+      <div class="card">
+        <div class="ico">⬇️</div>
+        <h3>拉取预构建镜像</h3>
+        <p>不构建、不传源码，直接用 CI 发布的多架构镜像。</p>
+        <pre>docker compose -f docker-compose.image.yml up -d
+<span class="c"># 用 NAVI_IMAGE / NAVI_TAG 指定镜像源与版本</span></pre>
+      </div>
+      <div class="card">
+        <div class="ico">💻</div>
+        <h3>裸 Node 运行</h3>
+        <p>适合本地开发与预览，不碰容器。</p>
+        <pre>NAVI_PASSWORD=你的密码 node server.js
+<span class="c"># 读 public/config.json 与 public/uploads</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 质量 ================= -->
+  <section id="quality">
+    <div class="sect-h"><h2>质量与红线</h2><span class="n">19 套件 / 958 断言 / 0 失败</span></div>
+    <p class="sect-desc">四条红线是这个项目所有取舍的裁判。任何一条被破坏，改动就不算完成。</p>
+    <div class="rules">
+      <div class="rule"><b>① 零 npm 依赖 + 零构建</b><p>运行时只有 Node 内置模块，仓库里没有 package.json。写 ZIP、拼音、图标库都自己实现 —— 代价是多写代码，收益是十年后仍能跑。</p></div>
+      <div class="rule"><b>② 多架构镜像与冒烟 job 必须继续过</b><p>CI 里 amd64 + arm64 双架构构建，以及「启动容器请求健康接口」两个 job 是硬闸门，任何一个红都不算完成。</p></div>
+      <div class="rule"><b>③ 断言只增不减</b><p>基线记录通过数与失败数，任何改动通过数只能 ≥ 记录值且失败必须为 0。<b>文档里出现的每个数字都要有断言守着</b> —— 否则它一定会烂掉。</p></div>
+      <div class="rule"><b>④ 不挂 docker.sock 时全部功能可用</b><p>挂 socket 等于把宿主机 root 交给容器，所以它是可选的：未挂载时只有「容器视角」的状态板降级，服务发现退化为扫本机端口，其余照常。</p></div>
+    </div>
+    <p class="sect-desc" style="margin-top:18px">
+      最省事的一条命令跑完全部套件：<code>node test/run-all.cjs</code> ——
+      它会用临时 config 与临时 uploads 在 8633 端口拉起隔离实例，不碰真实数据。
+      其中 9 套是真实浏览器 UI 测试，2 套通过伪造 Docker API 端到端验证容器发现与状态采集链路。
+    </p>
+  </section>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="frow">
+      <span>Navi 导航站 · 零依赖 Node 自托管导航页</span>
+      <span>MIT License</span>
+      <a href="https://github.com/mijunyi/navi-homepage">GitHub 仓库</a>
+      <span style="margin-left:auto">本页为项目门户，刻意不进发布包（含仓库内文档链接）</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- 主题：初始跟随系统，可手动切换并记忆 ---------- */
+  var root = document.documentElement;
+  var btn = document.getElementById("themeBtn");
+  var KEY = "navi-site-theme";
+
+  function apply(t){
+    root.setAttribute("data-theme", t);
+    btn.textContent = (t === "dark") ? "☾" : "☀";
+    btn.title = (t === "dark") ? "切换到日间主题" : "切换到夜间主题";
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch(e){ saved = null; }
+  if (saved === "dark" || saved === "light") {
+    apply(saved);
+  } else {
+    var mq = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+    apply(mq && mq.matches ? "light" : "dark");
+  }
+  btn.addEventListener("click", function(){
+    var next = (root.getAttribute("data-theme") === "dark") ? "light" : "dark";
+    apply(next);
+    try { localStorage.setItem(KEY, next); } catch(e){}
+  });
+
+  /* ---------- 截图画廊 ---------- */
+  var SHOTS = [
+    { f:"ui-home.png",            t:"首页总览 · 夜间", d:"时钟、状态板、分组与卡片网格" },
+    { f:"theme-light.png",        t:"日间主题",        d:"同一页面切换 light 主题后的效果" },
+    { f:"status-board-dark.png",  t:"系统状态板 · 夜间", d:"容器数 / CPU / 内存 / 磁盘水位，30s 轮询" },
+    { f:"status-board-light.png", t:"系统状态板 · 日间", d:"采不到就显示「不可用」，而不是 0" },
+    { f:"preview-discover.png",   t:"服务发现",        d:"扫描到的候选容器，可一键生成卡片" },
+    { f:"ui-library-manage.png",  t:"本地图床库 · 管理", d:"批量上传、检索、删除与占用标记" },
+    { f:"ui-library-online.png",  t:"在线图标库",      d:"内置推荐图标 + Iconify 关键词检索" },
+    { f:"ui-login.png",           t:"密码登录页",      d:"启用 NAVI_PASSWORD 后未登录的落地页" }
+  ];
+
+  var img = document.getElementById("shotImg");
+  var ttl = document.getElementById("shotTitle");
+  var dsc = document.getElementById("shotDesc");
+  var box = document.getElementById("thumbs");
+
+  SHOTS.forEach(function(s, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "thumb";
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-current", i === 0 ? "true" : "false");
+    b.setAttribute("data-i", String(i));
+    var im = document.createElement("img");
+    im.src = "../test/" + s.f;
+    im.alt = s.t;
+    im.loading = "lazy";
+    var lb = document.createElement("span");
+    lb.className = "tl";
+    lb.textContent = s.t;
+    b.appendChild(im);
+    b.appendChild(lb);
+    box.appendChild(b);
+  });
+
+  function select(i){
+    var s = SHOTS[i];
+    if (!s) return;
+    img.src = "../test/" + s.f;
+    img.alt = "Navi 导航站 · " + s.t;
+    ttl.textContent = s.t;
+    dsc.textContent = s.d;
+    Array.prototype.forEach.call(box.children, function(el, k){
+      el.setAttribute("aria-current", k === i ? "true" : "false");
+    });
+  }
+  box.addEventListener("click", function(e){
+    var el = e.target.closest ? e.target.closest(".thumb") : null;
+    if (!el) return;
+    select(Number(el.getAttribute("data-i")));
+  });
+
+  /* ---------- KPI 数字滚动 ---------- */
+  var counters = document.querySelectorAll("[data-count]");
+  function run(el){
+    var target = Number(el.getAttribute("data-count")) || 0;
+    if (!target) return;
+    var start = performance.now(), dur = 780;
+    function step(now){
+      var p = Math.min(1, (now - start) / dur);
+      var e = 1 - Math.pow(1 - p, 3);
+      el.textContent = String(Math.round(target * e));
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        if (en.isIntersecting) { run(en.target); io.unobserve(en.target); }
+      });
+    }, { threshold:.4 });
+    Array.prototype.forEach.call(counters, function(el){
+      el.textContent = "0";
+      io.observe(el);
+    });
+  }
+
+  /* ---------- 顶栏当前分节高亮 ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll("#nav a"));
+  var secs = links.map(function(a){
+    return document.querySelector(a.getAttribute("href"));
+  });
+  if ("IntersectionObserver" in window) {
+    var io2 = new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        if (!en.isIntersecting) return;
+        var idx = secs.indexOf(en.target);
+        if (idx < 0) return;
+        links.forEach(function(a, k){ a.style.color = (k === idx) ? "var(--fg)" : ""; });
+      });
+    }, { rootMargin:"-72px 0px -70% 0px" });
+    secs.forEach(function(s){ if (s) io2.observe(s); });
+  }
+})();
+</script>
+</body>
+</html>

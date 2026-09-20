@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Navi 导航站 · 近期改进成果预览：10 项新功能的前后对比、5 处真实缺陷修复、19 套件 / 958 断言的回归护栏。">
+<title>Navi 导航站 · 迭代成果预览</title>
+<style>
+/* ============================================================
+   Navi · 迭代成果预览站点
+   自包含单文件：零外部依赖（与主站同一纪律），日/夜双主题，桌面/移动自适应
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#f5f7fb; --sf:#fff; --sf2:#f2f5fa; --sf3:#e9eef6;
+  --bd:#e2e8f0; --bd2:#cfd8e5;
+  --tx:#111827; --tx2:#5a6b83; --tx3:#8fa0b8;
+  --brand:#2563eb; --brand2:#0d9488; --ring:rgba(37,99,235,.16);
+  --ok:#047857; --okbg:#ecfdf5; --okbd:#a7f3d0;
+  --warn:#b45309; --warnbg:#fffbeb; --warnbd:#fde68a;
+  --bad:#b91c1c; --badbg:#fef2f2; --badbd:#fecaca;
+  --code:#be123c; --codebg:#eef2f7;
+  --sh:0 1px 2px rgba(16,24,40,.05), 0 12px 32px -20px rgba(16,24,40,.4);
+  --r:14px; --rm:10px;
+  --mono:Consolas,"SF Mono",Menlo,"Courier New",monospace;
+}
+html[data-theme=dark]{
+  --bg:#070d19; --sf:#0f1829; --sf2:#16223a; --sf3:#1d2b47;
+  --bd:#22304a; --bd2:#33456460;
+  --tx:#e8eefb; --tx2:#9cb0cd; --tx3:#6d82a3;
+  --brand:#5b9dff; --brand2:#2dd4bf; --ring:rgba(91,157,255,.2);
+  --ok:#34d399; --okbg:#052e23; --okbd:#0f5c46;
+  --warn:#fbbf24; --warnbg:#3a2c05; --warnbd:#6b5010;
+  --bad:#f87171; --badbg:#3a1010; --badbd:#7f2222;
+  --code:#fca5a5; --codebg:#1a2438;
+  --sh:0 1px 2px rgba(0,0,0,.5), 0 16px 40px -22px rgba(0,0,0,.9);
+}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:74px}
+body{
+  margin:0;background:var(--bg);color:var(--tx);font-size:15px;line-height:1.68;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--brand);text-decoration:none}
+code{font-family:var(--mono);font-size:.88em;background:var(--codebg);color:var(--code);padding:1px 5px;border-radius:5px;word-break:break-word}
+kbd{font-family:var(--mono);font-size:.78em;background:var(--sf2);border:1px solid var(--bd2);border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--tx2);white-space:nowrap}
+h1,h2,h3,h4{margin:0;font-weight:750;line-height:1.3;letter-spacing:-.01em}
+ul{margin:0;padding:0;list-style:none}
+.wrap{max-width:1200px;margin:0 auto;padding:0 22px}
+.only-sm{display:none!important}
+
+/* ---------- 顶栏 ---------- */
+.tb{position:sticky;top:0;z-index:60;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--bd)}
+.tb-in{display:flex;align-items:center;gap:14px;height:60px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:750;color:var(--tx);white-space:nowrap;font-size:15px}
+.brand .logo{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:#fff;font-size:14px;font-weight:800;
+  background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 4px 12px -4px var(--ring)}
+.nav{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
+.nav a{color:var(--tx2);font-size:13.5px;padding:7px 11px;border-radius:9px;white-space:nowrap}
+.nav a:hover{background:var(--sf2);color:var(--tx)}
+.tb-act{display:flex;gap:8px;margin-left:auto}
+.icon-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--bd);background:var(--sf);color:var(--tx2);
+  cursor:pointer;font-size:15px;display:grid;place-items:center;transition:.15s}
+.icon-btn:hover{border-color:var(--bd2);color:var(--tx);background:var(--sf2)}
+
+/* ---------- Hero / 总览 ---------- */
+.hero{padding:40px 0 8px}
+.eyebrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;
+  border:1px solid var(--bd);background:var(--sf);color:var(--tx2)}
+.pill.b{color:var(--brand);border-color:color-mix(in srgb,var(--brand) 35%,var(--bd));background:color-mix(in srgb,var(--brand) 8%,var(--sf))}
+.pill.g{color:var(--ok);border-color:var(--okbd);background:var(--okbg)}
+.hero h1{font-size:clamp(26px,4.4vw,40px);letter-spacing:-.02em}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--brand),var(--brand2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{margin:14px 0 0;max-width:80ch;color:var(--tx2);font-size:15.5px}
+.lede b{color:var(--tx)}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:26px 0 0}
+.kpi{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px 16px 14px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(var(--brand),var(--brand2))}
+.kpi .n{font-size:27px;font-weight:780;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi .n small{font-size:14px;font-weight:700;color:var(--brand);margin-left:2px}
+.kpi .l{font-size:12.5px;color:var(--tx2);margin-top:2px}
+/* 进度条（本轮断言增长） */
+.growth{margin-top:20px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh)}
+.growth .gh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--tx2)}
+.growth .gh b{color:var(--tx);font-size:14px}
+.bar{height:10px;border-radius:999px;background:var(--sf3);margin-top:12px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--brand2));transition:width 1.1s cubic-bezier(.22,1,.36,1)}
+.bar .mk{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--bd2)}
+.barlbl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--tx3);margin-top:7px;font-family:var(--mono)}
+.srcnote{margin-top:12px;font-size:12.5px;color:var(--tx3)}
+
+/* ---------- 通用分节 ---------- */
+section{padding:44px 0 6px}
+.shead{margin-bottom:20px}
+.shead .kicker{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--brand)}
+.shead h2{font-size:clamp(20px,2.6vw,26px);margin-top:6px}
+.shead p{margin:9px 0 0;color:var(--tx2);max-width:82ch}
+.grp{margin:26px 0 12px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.grp h3{font-size:16px}
+.grp .line{flex:1;height:1px;background:var(--bd);min-width:20px}
+
+/* ---------- 时间线 ---------- */
+.tl{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 16px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.tl::-webkit-scrollbar{height:8px}
+.tl::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:99px}
+.tlc{flex:0 0 228px;scroll-snap-align:start;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);
+  padding:14px;box-shadow:var(--sh);position:relative;display:flex;flex-direction:column;gap:7px}
+.tlc.top{border-color:color-mix(in srgb,var(--brand) 40%,var(--bd));background:color-mix(in srgb,var(--brand) 5%,var(--sf))}
+.tlc .h{display:flex;align-items:center;gap:8px}
+.tlc .h code{font-size:11.5px;background:transparent;color:var(--tx3);padding:0}
+.tlc .h .dot{width:8px;height:8px;border-radius:99px;background:var(--brand);flex:0 0 auto}
+.tlc .t{font-size:13.5px;font-weight:700;line-height:1.45}
+.tlc .d{font-size:12px;color:var(--tx2);flex:1}
+.tlc .b{font-size:11.5px;font-family:var(--mono);color:var(--tx3);border-top:1px dashed var(--bd);padding-top:7px;display:flex;justify-content:space-between;gap:8px}
+.tlc .b b{color:var(--brand)}
+
+/* ---------- 改动卡 ---------- */
+.cc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:18px}
+.cc-head{display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--bd);flex-wrap:wrap;background:linear-gradient(90deg,color-mix(in srgb,var(--brand) 5%,transparent),transparent 60%)}
+.stage{font-size:11.5px;font-weight:750;letter-spacing:.04em;padding:3px 9px;border-radius:7px;font-family:var(--mono)}
+.stage.p0{background:#dbeafe;color:#1d4ed8}
+.stage.p1{background:#ccfbf1;color:#0f766e}
+.stage.p2{background:#fef3c7;color:#92400e}
+html[data-theme=dark] .stage.p0{background:#1e3a8a55;color:#93c5fd}
+html[data-theme=dark] .stage.p1{background:#134e4a66;color:#5eead4}
+html[data-theme=dark] .stage.p2{background:#78350f66;color:#fcd34d}
+.cc-head h3{font-size:17px}
+.cc-head .tl-tag{font-size:12.5px;color:var(--tx3);margin-left:auto;text-align:right}
+.cc-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr)}
+.cc-left{padding:18px}
+.cc-right{border-left:1px solid var(--bd);background:var(--sf2);padding:16px;min-width:0}
+.pain,.gain{margin:0 0 10px;font-size:14px;line-height:1.62}
+.pain b,.gain b{display:inline-block;font-size:12px;padding:2px 8px;border-radius:6px;margin-right:7px;vertical-align:1px}
+.pain b{background:var(--badbg);color:var(--bad)}
+.gain b{background:var(--okbg);color:var(--ok)}
+.points{display:flex;flex-direction:column;gap:7px;margin:14px 0 0}
+.points li{position:relative;padding-left:20px;font-size:13.5px;color:var(--tx2)}
+.points li::before{content:"";position:absolute;left:4px;top:9px;width:6px;height:6px;border-radius:2px;background:var(--brand2)}
+.points li b{color:var(--tx)}
+.suites{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:15px;padding-top:13px;border-top:1px dashed var(--bd);font-size:12px;color:var(--tx3)}
+.suite{font-family:var(--mono);font-size:11.5px;background:var(--sf3);color:var(--tx2);border-radius:6px;padding:2px 7px}
+.delta{font-size:11.5px;font-family:var(--mono);color:var(--ok);margin-left:auto}
+
+/* ---------- demo 容器 ---------- */
+.demo{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rm);overflow:hidden}
+.dbar{display:flex;align-items:center;gap:10px;padding:9px 11px;border-bottom:1px solid var(--bd);background:var(--sf2);flex-wrap:wrap}
+.dbar .dhint{font-size:11.5px;color:var(--tx3);margin-left:auto}
+.seg{display:inline-flex;background:var(--sf3);border-radius:8px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--tx2);font-size:12.5px;font-weight:650;padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+.seg button.on{background:var(--sf);color:var(--tx);box-shadow:0 1px 3px rgba(16,24,40,.14)}
+.seg button.on[data-v=before]{color:var(--bad)}
+.seg button.on[data-v=after]{color:var(--ok)}
+.dpad{padding:13px}
+.demo[data-mode=before] .only-after{display:none!important}
+.demo[data-mode=after] .only-before{display:none!important}
+.demo[data-mode=before] .dpad{filter:saturate(.85)}
+.ip{width:100%;font-size:16px;font-family:inherit;color:var(--tx);background:var(--sf);border:1px solid var(--bd2);border-radius:9px;padding:10px 12px;outline:0;transition:.15s}
+.ip:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--ring)}
+.ip::placeholder{color:var(--tx3)}
+.btn{font-family:inherit;font-size:13px;font-weight:650;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand2));border:0;border-radius:9px;padding:9px 15px;cursor:pointer;transition:.15s}
+.btn:hover{filter:brightness(1.07)}
+.btn:active{transform:translateY(1px)}
+.btn.gh{background:var(--sf);color:var(--tx2);border:1px solid var(--bd2)}
+.btn.gh:hover{color:var(--tx);background:var(--sf2)}
+.btn.dg{background:linear-gradient(135deg,#dc2626,#b91c1c)}
+.btn.dg.arm{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.chip{font-family:var(--mono);font-size:11.5px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx2);border-radius:99px;padding:3px 10px;cursor:pointer}
+.chip:hover{border-color:var(--brand);color:var(--brand)}
+.note{font-size:12.5px;line-height:1.6;border-radius:9px;padding:9px 11px;margin-top:11px}
+.note.ib{background:var(--okbg);border:1px solid var(--okbd);color:var(--ok)}
+.note.iw{background:var(--warnbg);border:1px solid var(--warnbd);color:var(--warn)}
+.note.ir{background:var(--badbg);border:1px solid var(--badbd);color:var(--bad)}
+.note.ig{background:var(--sf2);border:1px solid var(--bd);color:var(--tx2)}
+.note code{background:transparent;color:inherit;font-weight:650}
+.empty{font-size:13px;color:var(--tx3);padding:16px;text-align:center;border:1px dashed var(--bd2);border-radius:9px;margin-top:10px}
+
+/* 搜索结果 / 面板结果 */
+.res{display:flex;flex-direction:column;gap:7px;margin-top:11px;max-height:250px;overflow:auto}
+.ri{display:flex;align-items:center;gap:10px;background:var(--sf2);border:1px solid var(--bd);border-radius:9px;padding:8px 11px;font-size:13.5px}
+.ri .ic{width:26px;height:26px;border-radius:7px;background:var(--sf);display:grid;place-items:center;font-size:15px;flex:0 0 auto}
+.ri .tx{min-width:0;flex:1}
+.ri .tx b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ri .tx span{font-size:11.5px;color:var(--tx3)}
+.why{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--okbg);color:var(--ok);border:1px solid var(--okbd);white-space:nowrap;flex:0 0 auto}
+.ri.hl{outline:1px solid var(--brand);background:color-mix(in srgb,var(--brand) 8%,var(--sf2))}
+mark{background:color-mix(in srgb,var(--warn) 30%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+
+/* 命令面板 */
+.panel{border:1px solid var(--bd2);border-radius:11px;overflow:hidden;box-shadow:var(--sh);margin-top:4px}
+.plist{max-height:210px;overflow:auto}
+.pgrp{font-size:11px;font-weight:750;letter-spacing:.08em;color:var(--tx3);padding:8px 12px 3px;text-transform:uppercase}
+.pi{display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:13.5px;cursor:pointer;border-left:2px solid transparent}
+.pi .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pi .sub{font-size:11.5px;color:var(--tx3)}
+.pi.sel{background:color-mix(in srgb,var(--brand) 10%,transparent);border-left-color:var(--brand)}
+.pfoot{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--bd);background:var(--sf2);font-size:11.5px;color:var(--tx3)}
+.pfoot .sp{margin-left:auto}
+
+/* mini 卡片 */
+.mcard{display:flex;align-items:center;gap:11px;background:var(--sf);border:1px solid var(--bd);border-radius:11px;padding:11px 13px}
+.mcard .av{width:38px;height:38px;border-radius:10px;background:var(--sf3);display:grid;place-items:center;font-size:19px;flex:0 0 auto}
+.mcard .mm{min-width:0}
+.mcard .mm b{display:block;font-size:14px}
+.mcard .mm span{font-size:12px;color:var(--tx3)}
+.seg3{display:inline-flex;background:var(--sf3);border-radius:8px;padding:2px;gap:2px}
+.seg3 button{border:0;background:transparent;color:var(--tx2);font-size:12.5px;font-weight:650;padding:5px 11px;border-radius:6px;cursor:pointer;font-family:inherit}
+.seg3 button.on{background:var(--sf);color:var(--brand);box-shadow:0 1px 3px rgba(16,24,40,.14)}
+.urlbox{font-family:var(--mono);font-size:12.5px;background:var(--sf3);border-radius:9px;padding:10px 12px;margin-top:11px;word-break:break-all;line-height:1.6}
+.urlbox .lbl{font-family:inherit;font-size:11px;color:var(--tx3);display:block}
+.urlbox b{color:var(--brand)}
+
+/* 文件树 */
+.tree{font-family:var(--mono);font-size:12.5px;background:var(--sf3);border-radius:9px;padding:11px 13px;line-height:1.85;overflow-x:auto;white-space:pre}
+.tree .dim{color:var(--tx3)}
+.tree .ok{color:var(--ok)}
+.tree .hash{color:var(--tx3);font-size:11px}
+
+/* 状态板 */
+.bars{display:flex;flex-direction:column;gap:11px}
+.brow{display:grid;grid-template-columns:74px 1fr 62px;align-items:center;gap:11px;font-size:13px}
+.brow .bn{color:var(--tx2)}
+.brow .bv{text-align:right;font-variant-numeric:tabular-nums;font-weight:650;font-family:var(--mono);font-size:12.5px}
+.track{height:9px;border-radius:99px;background:var(--sf3);overflow:hidden}
+.track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--brand),var(--brand2));transition:width .6s cubic-bezier(.22,1,.36,1)}
+.track i.warn{background:linear-gradient(90deg,#f59e0b,#d97706)}
+.track i.null{background:repeating-linear-gradient(45deg,var(--sf3),var(--sf3) 5px,var(--bd) 5px,var(--bd) 10px)}
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--tx2);cursor:pointer;user-select:none}
+.sw input{appearance:none;width:34px;height:19px;border-radius:99px;background:var(--bd2);position:relative;cursor:pointer;transition:.2s;flex:0 0 auto}
+.sw input::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:99px;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.sw input:checked{background:var(--brand)}
+.sw input:checked::after{transform:translateX(15px)}
+
+/* 图标格 */
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:9px}
+.icell{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:10px 4px 8px;text-align:center;position:relative}
+.icell .g{font-size:21px;line-height:1.3;font-family:"Segoe UI Emoji","Apple Color Emoji",sans-serif}
+.icell .n{font-size:10.5px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 3px}
+.icell .bdg{position:absolute;top:4px;right:4px;font-size:9px;font-weight:750;padding:1px 4px;border-radius:4px;background:var(--okbg);color:var(--ok);border:1px solid var(--okbd)}
+.icell.dead .g{color:var(--tx3);opacity:.45}
+.icell.dead .bdg{background:var(--badbg);color:var(--bad);border-color:var(--badbd)}
+.icell.dead{border-style:dashed}
+
+/* 发现列表 */
+.dlist{display:flex;flex-direction:column;gap:8px}
+.dit{display:flex;align-items:center;gap:10px;background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:9px 12px;font-size:13.5px;transition:.2s}
+.dit .dn{min-width:0;flex:1}
+.dit .dn b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dit .dn span{font-size:11px;color:var(--tx3);font-family:var(--mono)}
+.dit.stale{border-color:var(--warnbd);background:var(--warnbg)}
+.dit.gone{opacity:.4;text-decoration:line-through}
+.warnbdg{font-size:10.5px;font-weight:750;padding:2px 7px;border-radius:5px;background:var(--warnbg);color:var(--warn);border:1px solid var(--warnbd);white-space:nowrap}
+
+/* 标签演示 */
+.tgrp{margin-bottom:11px}
+.tgrp .gh2{font-size:12px;font-weight:700;color:var(--tx3);margin-bottom:6px;letter-spacing:.05em}
+.tcards{display:flex;flex-wrap:wrap;gap:8px}
+.tc{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:8px 11px;min-width:132px;transition:.18s}
+.tc .tt{font-size:13.5px;font-weight:650}
+.tc .tts{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.tg{font-size:10.5px;padding:2px 7px;border-radius:99px;background:var(--sf3);color:var(--tx2);cursor:pointer;border:1px solid transparent;font-family:inherit}
+.tg:hover{border-color:var(--brand);color:var(--brand)}
+.tg.on{background:var(--brand);color:#fff}
+.tc.dim{opacity:.28;filter:grayscale(1)}
+.tc.hit{border-color:var(--brand);box-shadow:0 0 0 3px var(--ring)}
+
+/* 向导 */
+.wiz{background:var(--sf);border:1px solid var(--bd2);border-radius:12px;padding:18px;box-shadow:var(--sh);text-align:center}
+.wiz .wi{font-size:32px;line-height:1.2}
+.wiz h4{margin:9px 0 6px;font-size:16px}
+.wiz p{margin:0;font-size:13.5px;color:var(--tx2);max-width:46ch;margin:0 auto}
+.wsteps{display:flex;gap:5px;justify-content:center;margin:13px 0}
+.wsteps i{width:22px;height:4px;border-radius:99px;background:var(--bd2)}
+.wsteps i.on{background:var(--brand)}
+.wfoot{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+
+/* 拖放 */
+.dz{border:2px dashed var(--bd2);border-radius:12px;padding:26px 16px;text-align:center;transition:.2s;background:var(--sf)}
+.dz.over{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 7%,var(--sf))}
+.dz .di{font-size:26px}
+.dz .dt{font-size:13.5px;color:var(--tx2);margin-top:6px}
+.dz .dt b{color:var(--tx)}
+
+/* ---------- 修复列表 ---------- */
+.fixes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.fx{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:9px}
+.fx .fh{display:flex;align-items:center;gap:9px}
+.fx .fh .no{width:24px;height:24px;border-radius:8px;background:var(--badbg);color:var(--bad);display:grid;place-items:center;font-size:12px;font-weight:750;flex:0 0 auto}
+.fx h4{font-size:15px}
+.fx .fb,.fx .fa{font-size:13px;line-height:1.62;padding:9px 11px;border-radius:9px}
+.fx .fb{background:var(--badbg);border:1px solid var(--badbd);color:var(--bad)}
+.fx .fa{background:var(--okbg);border:1px solid var(--okbd);color:var(--ok)}
+.fx .fb b,.fx .fa b{font-size:11.5px;letter-spacing:.04em;display:block;margin-bottom:2px;opacity:.85}
+.fx .fd{font-size:12.5px;color:var(--tx3);margin-top:auto}
+.fx.wide{grid-column:1/-1}
+
+/* ---------- 质量 / 图表 ---------- */
+.qgrid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
+.card h3{font-size:16px;margin-bottom:4px}
+.card .cd{font-size:12.5px;color:var(--tx3);margin-bottom:14px}
+.chart{width:100%;height:auto;display:block}
+.rules{display:flex;flex-direction:column;gap:11px}
+.rule{display:flex;gap:11px;font-size:13.5px}
+.rule .rn{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:grid;place-items:center;font-size:11.5px;font-weight:750;flex:0 0 auto}
+.rule b{display:block;font-size:13.5px}
+.rule span{color:var(--tx2);font-size:12.5px}
+.synclist{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.synclist code{font-size:11.5px}
+
+/* ---------- 命令 ---------- */
+.cmd{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)}
+.cmd + .cmd{margin-top:12px}
+.cmd .ch{display:flex;align-items:center;gap:9px;padding:11px 15px;border-bottom:1px solid var(--bd);background:var(--sf2);font-size:13.5px;font-weight:650}
+.cmd .ch .k{font-family:var(--mono);font-size:11px;color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,transparent);padding:2px 7px;border-radius:5px}
+.cmd pre{margin:0;padding:13px 15px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.8;color:var(--tx);background:transparent}
+.cmd pre .c{color:var(--tx3)}
+.cmd pre .g{color:var(--ok)}
+.cmd pre .w{color:var(--warn)}
+
+/* ---------- 页脚 ---------- */
+footer{margin-top:52px;padding:26px 0 40px;border-top:1px solid var(--bd);color:var(--tx3);font-size:12.5px}
+footer .fw{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+footer a{color:var(--tx2)}
+.up{position:fixed;right:16px;bottom:16px;z-index:50;opacity:0;pointer-events:none;transition:.2s}
+.up.on{opacity:1;pointer-events:auto}
+
+/* ---------- 响应式 ---------- */
+@media (max-width:1040px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .qgrid{grid-template-columns:1fr}
+  .cc-body{grid-template-columns:1fr}
+  .cc-right{border-left:0;border-top:1px solid var(--bd)}
+}
+@media (max-width:820px){
+  .only-sm{display:grid!important}
+  .nav{display:none;position:absolute;left:0;right:0;top:60px;flex-direction:column;background:var(--sf);border-bottom:1px solid var(--bd);padding:8px 14px 14px;box-shadow:var(--sh);margin:0}
+  .nav.open{display:flex}
+  .nav a{padding:11px 12px;border-radius:9px;font-size:14px}
+  .tb-in{position:relative}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpis .kpi:last-child{grid-column:1/-1}
+  .fixes{grid-template-columns:1fr}
+  .hero{padding-top:28px}
+  section{padding-top:34px}
+  .cc-head .tl-tag{margin-left:0;text-align:left;width:100%}
+}
+@media (max-width:520px){
+  .wrap{padding:0 15px}
+  .kpi .n{font-size:23px}
+  .tlc{flex:0 0 200px}
+  .cc-left,.cc-right{padding:14px}
+  .brow{grid-template-columns:60px 1fr 54px;gap:8px}
+  .dbar .dhint{display:none}
+  body{font-size:14.5px}
+  /* 触控目标放大：小屏上这些控件都要手指点得到 */
+  .seg button{padding:8px 14px}
+  .seg3 button{padding:8px 13px}
+  .chip{padding:7px 13px}
+  .tg{padding:6px 11px}
+  .pi{padding:11px 12px}
+}
+@media print{
+  .tb,.up,.seg,.seg3,.chip,.btn{display:none!important}
+  .demo[data-mode=before] .only-after{display:none!important}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+<a id="top"></a>
+
+<header class="tb">
+  <div class="tb-in wrap">
+    <a class="brand" href="#top"><span class="logo">N</span> Navi · 迭代成果预览</a>
+    <nav class="nav" id="nav">
+      <a href="#overview">总览</a>
+      <a href="#timeline">提交时间线</a>
+      <a href="#basics">基础能力</a>
+      <a href="#ops">内网与运维</a>
+      <a href="#exp">体验与检索</a>
+      <a href="#fixes">缺陷修复</a>
+      <a href="#quality">质量护栏</a>
+      <a href="#run">复现命令</a>
+    </nav>
+    <div class="tb-act">
+      <button class="icon-btn only-sm" id="navBtn" aria-label="展开导航">☰</button>
+      <button class="icon-btn" id="themeBtn" aria-label="切换主题" title="切换日/夜主题">🌙</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- ============ 总览 ============ -->
+<section id="overview" class="hero">
+  <div class="wrap">
+    <div class="eyebrow">
+      <span class="pill b">零 npm 依赖 · 零构建</span>
+      <span class="pill g">19 套件 / 958 断言 / 0 失败</span>
+      <span class="pill">本轮 7 次提交</span>
+      <span class="pill">整理于 2026-09-20</span>
+    </div>
+    <h1>近期改进成果 · <em>一页看全</em></h1>
+    <p class="lede">
+      这一轮针对 <b>10 项真实短板</b>做了系统性改进：拼音搜索与命令面板、卡片级内外网策略、含图片的备份、
+      首页状态板、离线可用的本地图标库、服务发现的失效管理、卡片标签、首次引导与拖链接建卡。
+      每一处改动都配了回归断言，并在过程中<b>修掉了 5 个真实缺陷</b>——其中两个是「跑一次测试就破坏一次线上产物」级别的问题。
+      下面每一项都可以<b>切换「修改前 / 修改后」</b>，并直接上手点。
+    </p>
+
+    <div class="kpis">
+      <div class="kpi"><div class="n" data-count="19">0</div><div class="l">测试套件（原 16）</div></div>
+      <div class="kpi"><div class="n" data-count="958">0</div><div class="l">通过断言（原 694）</div></div>
+      <div class="kpi"><div class="n"><small>+</small><span data-count="251">0</span></div><div class="l">本轮新增断言</div></div>
+      <div class="kpi"><div class="n" data-count="10">0</div><div class="l">新增 / 增强功能</div></div>
+      <div class="kpi"><div class="n" data-count="0">0</div><div class="l">失败断言</div></div>
+    </div>
+
+    <div class="growth">
+      <div class="gh">
+        <b>断言基线增长：694 → 958</b>
+        <span>断言只增不减 —— 任何改动「通过数」只能 ≥ 基线，失败必须为 0</span>
+      </div>
+      <div class="bar"><i id="growthBar"></i><span class="mk" style="left:23.5%"></span></div>
+      <div class="barlbl"><span>694 · 本轮起点</span><span>本次 958</span></div>
+      <div class="srcnote">
+        数据来源：<code>test/_baseline.txt</code> 的逐版记录（可 <code>git log -- test/_baseline.txt</code> 复核），
+        本文所有数字均由 <code>test/imagecompose.test.cjs</code> 对着代码校验。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 时间线 ============ -->
+<section id="timeline">
+  <div class="wrap">
+    <div class="shead">
+      <div class="kicker">Commit Timeline</div>
+      <h2>本轮 7 次提交，断言一步步长到 958</h2>
+      <p>每个节点下方是那一次提交后的基线快照。可横向滑动查看。</p>
+    </div>
+    <div class="tl">
+      <div class="tlc">
+        <div class="h"><span class="dot"></span><code>64e8c02</code></div>
+        <div class="t">P0 四项 + 首页状态板</div>
+        <div class="d">拼音搜索、⌘K 命令面板、卡片级内外网策略、含图片的 zip 备份、状态板；并首次引入断言基线记录。</div>
+        <div class="b"><span>16 套件</span><span>694 断言</span></div>
+      </div>
+      <div class="tlc">
+        <div class="h"><span class="dot"></span><code>81a0d16</code></div>
+        <div class="t">自检与文档同步</div>
+        <div class="d">补齐 compose 自检、发布前预检与文档一致性检查。</div>
+        <div class="b"><span>16 套件</span><span>713 断言</span></div>
+      </div>
+      <div class="tlc">
+        <div class="h"><span class="dot"></span><code>7bd8c41</code></div>
+        <div class="t">P1-6 图标本地优先</div>
+        <div class="d">内置 227 个图标随仓库与镜像分发，内网 / 断网不再是一排空框。</div>
+        <div class="b"><span>17 套件</span><span>771 断言</span></div>
+      </div>
+      <div class="tlc">
+        <div class="h"><span class="dot"></span><code>b73b08a</code></div>
+        <div class="t">P1-7 发现失效管理</div>
+        <div class="d">来源追踪 + 失效只标记不删；未接入的来源不做误判。</div>
+        <div class="b"><span>17 套件</span><span>825 断言</span></div>
+      </div>
+      <div class="tlc">
+        <div class="h"><span class="dot"></span><code>9784405</code></div>
+        <div class="t">P2 首次引导 / 拖链接</div>
+        <div class="d">三步新手向导、拖链接建卡、DOCKER_GID 说明、CHANGELOG。</div>
+        <div class="b"><span>18 套件</span><span>858 断言</span></div>
+      </div>
+      <div class="tlc">
+        <div class="h"><span class="dot"></span><code>455df07</code></div>
+        <div class="t">P2 卡片标签</div>
+        <div class="d">标签成为可检索索引：跨分组命中，面板给出「标签」命中原因。</div>
+        <div class="b"><span>19 套件</span><span>914 断言</span></div>
+      </div>
+      <div class="tlc">
+        <div class="h"><span class="dot"></span><code>a55999e</code></div>
+        <div class="t">项目概览 + 护栏</div>
+        <div class="d">概览文档的模块表 / 套件表 / 路由表全部改由断言对着代码校验。</div>
+        <div class="b"><span>19 套件</span><span>940 断言</span></div>
+      </div>
+      <div class="tlc top">
+        <div class="h"><span class="dot"></span><code>本次</code></div>
+        <div class="t">预览站点 + 护栏</div>
+        <div class="d">本页面本身，以及钉住本文数字的 3 条断言。</div>
+        <div class="b"><span>19 套件</span><span><b>958 断言</b></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 基础能力 ============ -->
+<section id="basics">
+  <div class="wrap">
+    <div class="shead">
+      <div class="kicker">P0 · 基础能力</div>
+      <h2>先用起来最痛的四件事</h2>
+      <p>搜索、打开、连通、备份 —— 这四项决定了这个站「好不好用」和「敢不敢用」。</p>
+    </div>
+
+    <!-- 1 拼音搜索 -->
+    <article class="cc" id="c-py">
+      <div class="cc-head">
+        <span class="stage p0">P0-1</span>
+        <h3>拼音搜索</h3>
+        <span class="tl-tag">读音记得、字忘了 —— 也能搜到</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-left">
+          <p class="pain"><b>改动前</b>只按标题与描述做子串匹配。记得住「家庭影院」但想不起字、手上只敲得出 <code>jtyy</code> 的时候，结果永远是空。</p>
+          <p class="gain"><b>改动后</b>支持中文子串、全拼（<code>jiating</code>）与首字母缩写（<code>jtyy</code>），且<b>按拼音音节边界对齐</b>——拼音串里的偶然字母组合不会误命中。</p>
+          <ul class="points">
+            <li><b>20924 个常用汉字</b>的拼音表（<code>pinyin.js</code>，465 行）<b>首次搜索时才按需注入</b>，不拖慢首屏。</li>
+            <li>取不到拼音表时<b>静默降级为纯子串匹配</b>——功能缺失不等于报错。</li>
+            <li>命中原因会显示出来（标题 / 全拼 / 首字母），不再是「莫名其妙出现在结果里」。</li>
+          </ul>
+          <div class="suites">守它的套件<span class="suite">ui.test.cjs</span><span class="suite">server.test.js</span><span class="delta">+18 断言</span></div>
+        </div>
+        <div class="cc-right">
+          <div class="demo" data-mode="after" id="d-py">
+            <div class="dbar">
+              <div class="seg" data-seg><button data-v="before">修改前</button><button class="on" data-v="after">修改后</button></div>
+              <span class="dhint">在输入框里打字试试</span>
+            </div>
+            <div class="dpad">
+              <input class="ip" id="pyQ" placeholder="bd / jtyy / xiazai / yiyun" autocomplete="off" spellcheck="false">
+              <div class="chips">
+                <button class="chip" data-py="bd">bd</button>
+                <button class="chip" data-py="jtyy">jtyy</button>
+                <button class="chip" data-py="xiazai">xiazai</button>
+                <button class="chip" data-py="yiyun">yiyun</button>
+                <button class="chip" data-py="ang">ang（不在音节边界）</button>
+              </div>
+              <div class="res" id="pyRes"></div>
+              <div class="note ig size-note" id="pyMeta"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 2 命令面板 -->
+    <article class="cc" id="c-panel">
+      <div class="cc-head">
+        <span class="stage p0">P0-2</span>
+        <h3>⌘K 命令面板</h3>
+        <span class="tl-tag">键盘一路走到底，还能顺手搜索</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-left">
+          <p class="pain"><b>改动前</b>找站点只能靠鼠标在网格里一张张扫；想「找不到就直接搜一下」也没有入口。</p>
+          <p class="gain"><b>改动后</b><kbd>Ctrl/⌘</kbd>+<kbd>K</kbd> 唤起面板：分组结果、<kbd>↑</kbd><kbd>↓</kbd> 选择、<kbd>Enter</kbd> 打开；还可以把关键词<b>交给搜索引擎</b>。</p>
+          <ul class="points">
+            <li>面板与首页网格<b>共用同一个匹配入口</b>（<code>matchRank()</code>），所以拼音、标签、描述命中的行为完全一致，不会两边结果不同。</li>
+            <li>搜索引擎可配置（<code>site.searchEngines</code> / <code>site.defaultEngine</code>），支持 <code>%s</code> 与 <code>{q}</code> 两种占位写法。</li>
+            <li>命中时标出<b>原因徽章</b>（标题 / 标签 / 拼音…），可解释、可信任。</li>
+          </ul>
+          <div class="suites">守它的套件<span class="suite">ui.test.cjs</span><span class="suite">ui-tags.test.cjs</span></div>
+        </div>
+        <div class="cc-right">
+          <div class="demo" data-mode="after" id="d-panel">
+            <div class="dbar">
+              <div class="seg" data-seg><button data-v="before">修改前</button><button class="on" data-v="after">修改后</button></div>
+              <span class="dhint">点按钮打开面板</span>
+            </div>
+            <div class="dpad">
+              <div class="only-before note ir">修改前没有命令面板：只能回到网格里用鼠标一张张找，也没有「搜不到就交给搜索引擎」的出口。</div>
+              <div class="only-after">
+                <button class="btn" id="pnOpen">打开命令面板</button>
+                <div class="panel" id="pn" hidden>
+                  <input class="ip" id="pnQ" placeholder="搜索站点 / 标签，或回车用搜索引擎搜索" autocomplete="off" spellcheck="false">
+                  <div class="plist" id="pnList"></div>
+                  <div class="pfoot"><span id="pnFoot">↑↓ 选择 · Enter 打开 · Esc 关闭</span><span class="sp"><kbd>⌘</kbd><kbd>K</kbd></span></div>
+                </div>
+                <div class="note ig" id="pnMsg">面板不会真的跳转，只演示交互。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 3 内外网策略 -->
+    <article class="cc" id="c-net">
+      <div class="cc-head">
+        <span class="stage p0">P0-3</span>
+        <h3>卡片级内外网策略</h3>
+        <span class="tl-tag">在家走内网、在外走公网，且不阻塞点击</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-left">
+          <p class="pain"><b>改动前</b>一张卡只有一个地址。用域名在家访问要绕出去再绕回来；填了内网 IP 出门又打不开。</p>
+          <p class="gain"><b>改动后</b>全局三态（自动 / 只用内网 / 只用外网）+ 每张卡自己的 <code>netMode</code>；「自动」模式对每张卡片的内网地址做<b>异步可达性探测</b>。</p>
+          <ul class="points">
+            <li><b>不阻塞点击</b>：首帧先用启发式渲染，探测出结论后原地改写链接，用户感觉不到等待。</li>
+            <li>探测结果<b>逐卡缓存</b>，不会每次刷新都重跑一轮。</li>
+            <li><b>无法判断就如实说</b>：HTTPS 页面探测 <code>http://内网IP</code> 会被浏览器混合内容策略拦掉，此时<b>显式跳过判定</b>并说明原因，不给假结论。</li>
+            <li>写入口严格校验 <code>netMode</code> 取值——写成 <code>"LAN"</code> 会被拒绝，否则会静默退化成「自动」。</li>
+          </ul>
+          <div class="suites">守它的套件<span class="suite">ui.test.cjs</span><span class="suite">discover.test.js</span><span class="delta">+26 断言</span></div>
+        </div>
+        <div class="cc-right">
+          <div class="demo" data-mode="after" id="d-net">
+            <div class="dbar">
+              <div class="seg" data-seg><button data-v="before">修改前</button><button class="on" data-v="after">修改后</button></div>
+              <span class="dhint">切场景看结论</span>
+            </div>
+            <div class="dpad">
+              <div class="mcard">
+                <div class="av">🐙</div>
+                <div class="mm"><b>GitHub</b><span>代码托管</span></div>
+              </div>
+              <div class="row" style="margin-top:12px">
+                <div class="seg3" id="netModes">
+                  <button class="on" data-m="auto">自动</button>
+                  <button data-m="lan">只用内网</button>
+                  <button data-m="wan">只用外网</button>
+                </div>
+              </div>
+              <div class="row" style="margin-top:9px" id="netScenes">
+                <button class="chip" data-s="ok">家里（内网可达）</button>
+                <button class="chip" data-s="no">在外（内网不可达）</button>
+                <button class="chip" data-s="mix">HTTPS 页下（无法判断）</button>
+              </div>
+              <div class="urlbox" id="netBox"><span class="lbl">当前会打开的地址</span></div>
+              <div class="note ig" id="netTip"></div>
+              <div class="only-before note ir">修改前：卡片只存一个地址（这里是 <code>https://github.com</code>），内网访问要绕公网出去再回来。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 4 备份 -->
+    <article class="cc" id="c-backup">
+      <div class="cc-head">
+        <span class="stage p0">P0-4</span>
+        <h3>含图片的完整备份</h3>
+        <span class="tl-tag">手写 ZIP，仍然零第三方依赖</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-left">
+          <p class="pain"><b>改动前</b>导出的备份只有 <code>config.json</code>——配置回来了，图床库里的图片却要自己一张张另存。</p>
+          <p class="gain"><b>改动后</b><code>GET /api/backup?format=zip</code> 把配置 + 图床库全部图片打成一个包，<b>包内逐项记录 SHA-256</b>。</p>
+          <ul class="points">
+            <li>ZIP 的读写是<b>手写的</b>（<code>zip.js</code>，195 行，含 CRC32 校验）——为了守住「零 npm 依赖」，宁可自己写。</li>
+            <li>恢复时<b>按文件头判格式</b>，自动识别 ZIP 与 JSON；图片<b>只增不删</b>，被覆盖的原图另存回滚副本。</li>
+            <li>默认 JSON 备份仍只含配置（轻量），需要图片时再加 <code>?format=zip</code>。</li>
+          </ul>
+          <div class="suites">守它的套件<span class="suite">zipbackup.test.js</span><span class="suite">backup.test.js</span><span class="delta">+54 断言</span></div>
+        </div>
+        <div class="cc-right">
+          <div class="demo" data-mode="after" id="d-bak">
+            <div class="dbar">
+              <div class="seg" data-seg><button data-v="before">修改前</button><button class="on" data-v="after">修改后</button></div>
+              <span class="dhint">点「导出备份」和「校验」</span>
+            </div>
+            <div class="dpad">
+              <div class="row">
+                <button class="btn" id="bakGo">导出备份</button>
+                <button class="btn gh" id="bakChk">校验包内完整性</button>
+              </div>
+              <div class="tree" id="bakTree" style="margin-top:11px"></div>
+              <div class="note" id="bakMsg">点击上方按钮开始演示。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ============ 内网与运维 ============ -->
+<section id="ops">
+  <div class="wrap">
+    <div class="shead">
+      <div class="kicker">P1 · 内网与运维</div>
+      <h2>NAS 上的真实处境：会断网、会采不到、会失效</h2>
+      <p>这三项的共同点是<b>降级必须是一等公民</b>——拿不到数据不等于报错，更不等于假装拿到了。</p>
+    </div>
+
+    <!-- 5 状态板 -->
+    <article class="cc" id="c-status">
+      <div class="cc-head">
+        <span class="stage p1">P1-5</span>
+        <h3>首页状态板</h3>
+        <span class="tl-tag">采不到就给 null，而不是 0</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-left">
+          <p class="pain"><b>改动前</b>首页没有运行状态。想知道「那台机器还活着吗」，得另外开一个面板。</p>
+          <p class="gain"><b>改动后</b>首页直接显示容器数 / CPU / 内存 / 磁盘水位（<code>GET /api/status</code>），全部带服务端缓存。</p>
+          <ul class="points">
+            <li><b>降级是一等公民</b>：采不到的项返回 <code>null</code>，<b>从不返回 <code>0</code></b>——把「不知道」显示成「0%」是误导。</li>
+            <li>整块取不到时<b>静默隐藏并停止轮询</b>，不在页面上挂一个永远转圈的错误块。</li>
+            <li>后台标签页<b>暂停轮询</b>；容器视角的数字在未挂 <code>docker.sock</code> 时降级，其余功能照常。</li>
+          </ul>
+          <div class="suites">守它的套件<span class="suite">status.test.js</span><span class="suite">ui-status.test.cjs</span><span class="delta">+122 断言</span></div>
+        </div>
+        <div class="cc-right">
+          <div class="demo" data-mode="after" id="d-status">
+            <div class="dbar">
+              <div class="seg" data-seg><button data-v="before">修改前</button><button class="on" data-v="after">修改后</button></div>
+              <span class="dhint">拨两个开关</span>
+            </div>
+            <div class="dpad">
+              <div class="bars" id="stBars"></div>
+              <div class="row" style="margin-top:13px;gap:16px">
+                <label class="sw"><input type="checkbox" id="stOne">模拟「磁盘采不到」</label>
+                <label class="sw"><input type="checkbox" id="stAll">模拟「整块采不到」</label>
+              </div>
+              <div class="note ig" id="stMsg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 6 图标库 -->
+    <article class="cc" id="c-icons">
+      <div class="cc-head">
+        <span class="stage p1">P1-6</span>
+        <h3>内置本地图标库</h3>
+        <span class="tl-tag">内网 / 断网不再是一排空框</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-left">
+          <p class="pain"><b>改动前</b>图标全部走公共 CDN。而这个站最典型的部署环境恰恰是<b>没有外网的家庭内网</b>——打开首页是一整页空框。</p>
+          <p class="gain"><b>改动后</b>随仓库与镜像分发 <b>227 个常用图标</b>（含国内站点 favicon），解析顺序为「<b>本地 → 公共 CDN → 首字母回退</b>」。</p>
+          <ul class="points">
+            <li>本地命中就<b>不发任何外网请求</b>，内网环境首屏不再等超时。</li>
+            <li>三级回退的最后一级是<b>首字母方块</b>——最差情况也显示一个像样的占位，不出现碎图。</li>
+            <li>图标库可重复生成（<code>scripts/build-icons.cjs</code>），产物入库，构建过程不需要联网。</li>
+          </ul>
+          <div class="suites">守它的套件<span class="suite">icons.test.js</span><span class="suite">ui-library.test.cjs</span><span class="delta">+47 断言</span></div>
+        </div>
+        <div class="cc-right">
+          <div class="demo" data-mode="after" id="d-icons">
+            <div class="dbar">
+              <div class="seg" data-seg><button data-v="before">修改前</button><button class="on" data-v="after">修改后</button></div>
+              <span class="dhint">打开「断网」开关</span>
+            </div>
+            <div class="dpad">
+              <label class="sw"><input type="checkbox" id="icoOff">模拟断网 / 纯内网环境</label>
+              <div class="igrid" id="icoGrid" style="margin-top:12px"></div>
+              <div class="note ig" id="icoMsg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 7 发现失效 -->
+    <article class="cc" id="c-discover">
+      <div class="cc-head">
+        <span class="stage p1">P1-7</span>
+        <h3>服务发现的来源追踪与失效管理</h3>
+        <span class="tl-tag">只标记，绝不自动删除</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-left">
+          <p class="pain"><b>改动前</b>重新扫描时，源侧已经消失的卡片会被静默清掉——用户精心改过的标题、描述、图标一起消失，且没有任何提示。</p>
+          <p class="gain"><b>改动后</b>卡片记录来源（来自哪个容器 / 端口），源侧消失时只打上 <code>stale</code> 与「⚠ 可能失效」角标，<b>绝不自动删除</b>。</p>
+          <ul class="points">
+            <li>两个<b>显式动作</b>交给用户：<b>恢复全部</b>、<b>清理失效项（二次确认）</b>。</li>
+            <li><b>未接入的来源不做失效判定</b>——Docker 没挂载时，不会把已有的发现卡片集体冤枉成「已失效」。</li>
+            <li>只有 <code>source.type === "discover"</code> 参与判定，<b>手工添加与导入的卡片永远不会被误标</b>。</li>
+            <li>失效标记字段严格校验（必须是布尔），写成字符串 <code>"true"</code> 会在写入口被拒。</li>
+          </ul>
+          <div class="suites">守它的套件<span class="suite">discover.test.js</span><span class="suite">ui-discover.test.cjs</span><span class="delta">+54 断言</span></div>
+        </div>
+        <div class="cc-right">
+          <div class="demo" data-mode="after" id="d-disc">
+            <div class="dbar">
+              <div class="seg" data-seg><button data-v="before">修改前</button><button class="on" data-v="after">修改后</button></div>
+              <span class="dhint">点「重新扫描」</span>
+            </div>
+            <div class="dpad">
+              <div class="row">
+                <button class="btn" id="dcScan">重新扫描</button>
+                <label class="sw"><input type="checkbox" id="dcNoDocker">Docker 未挂载</label>
+              </div>
+              <div class="dlist" id="dcList" style="margin-top:11px"></div>
+              <div class="row" style="margin-top:11px">
+                <button class="btn gh" id="dcRestore">恢复全部</button>
+                <button class="btn dg" id="dcClean">清理失效项</button>
+              </div>
+              <div class="note ig" id="dcMsg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ============ 体验与检索 ============ -->
+<section id="exp">
+  <div class="wrap">
+    <div class="shead">
+      <div class="kicker">P2 · 体验与检索</div>
+      <h2>从「能用」到「顺手」</h2>
+      <p>新用户第一次打开的三十秒、以及老用户「忘了叫什么名字」的那一刻。</p>
+    </div>
+
+    <!-- 8 标签 -->
+    <article class="cc" id="c-tags">
+      <div class="cc-head">
+        <span class="stage p2">P2</span>
+        <h3>卡片标签 · 跨分组检索</h3>
+        <span class="tl-tag">类别记得、名字忘了</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-left">
+          <p class="pain"><b>改动前</b>搜索只能命中名称与描述，而且结果受分组限制——「下载类的站点到底散在哪几个组里」只能靠人翻。</p>
+          <p class="gain"><b>改动后</b>卡片可加可选 <code>tags[]</code>（最多 8 个、单个 12 字），搜索框与 <kbd>⌘K</kbd> 面板都能按标签命中，<b>命中不再受分组限制</b>。</p>
+          <ul class="points">
+            <li>与拼音搜索<b>天然互补</b>：拼音解决「读音记得、字忘了」，标签解决「类别记得、名字忘了」。</li>
+            <li>卡片上的标签<b>点一下就筛</b>（跨分组）；标签本身也支持拼音——搜 <code>xz</code> 或 <code>xiazai</code> 都能命中「下载」。</li>
+            <li>标签是人工整理的索引，所以<b>随备份原样带走</b>。</li>
+            <li>后端<b>校验字段形状</b>：写成字符串会被直接拒——否则前端会把字符串遍历成单个汉字当标签，检索结果变得莫名其妙。</li>
+          </ul>
+          <div class="suites">守它的套件<span class="suite">ui-tags.test.cjs</span><span class="suite">server.test.js</span><span class="delta">+40 断言</span></div>
+        </div>
+        <div class="cc-right">
+          <div class="demo" data-mode="after" id="d-tags">
+            <div class="dbar">
+              <div class="seg" data-seg><button data-v="before">修改前</button><button class="on" data-v="after">修改后</button></div>
+              <span class="dhint">点标签筛选</span>
+            </div>
+            <div class="dpad">
+              <div class="row"><button class="chip" id="tgClear">清除筛选</button></div>
+              <div id="tgBody" style="margin-top:11px"></div>
+              <div class="note ig" id="tgMsg">点任意标签试试：命中会跨越下方所有分组。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 9 首次引导 -->
+    <article class="cc" id="c-guide">
+      <div class="cc-head">
+        <span class="stage p2">P2</span>
+        <h3>首次使用引导</h3>
+        <span class="tl-tag">空白首页是最劝退的界面</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-left">
+          <p class="pain"><b>改动前</b>新用户初次打开是一个空白的网格，没有任何提示——不知道要先加卡片、也不知道公网部署要设密码。</p>
+          <p class="gain"><b>改动后</b>配置为空时给出<b>可跳过</b>的新手向导：三步说明 + 公网部署务必设 <code>NAVI_PASSWORD</code> 的提醒。</p>
+          <ul class="points">
+            <li>「以后再说」会被记住，<b>之后不再打扰</b>——引导不是路障。</li>
+            <li>已有卡片的<b>老用户不会看到</b>；纯静态托管（改不了数据）时同样不出现。</li>
+            <li>顺带把「公网部署必须设密码」这条最容易踩的安全线放在第一次见面时讲。</li>
+          </ul>
+          <div class="suites">守它的套件<span class="suite">ui-firstrun.test.cjs</span><span class="delta">+33 断言</span></div>
+        </div>
+        <div class="cc-right">
+          <div class="demo" data-mode="after" id="d-guide">
+            <div class="dbar">
+              <div class="seg" data-seg><button data-v="before">修改前</button><button class="on" data-v="after">修改后</button></div>
+              <span class="dhint">点「下一步」走完三步</span>
+            </div>
+            <div class="dpad">
+              <div class="only-before note ir">修改前：打开就是一片空白网格，没有任何引导，用户只能自己猜「这玩意儿怎么用」。</div>
+              <div class="only-after">
+                <div class="wiz" id="wiz">
+                  <div class="wi" id="wizIco">👋</div>
+                  <h4 id="wizT">欢迎使用 Navi</h4>
+                  <p id="wizP">这是一个自己搭的导航站。三步就能用起来。</p>
+                  <div class="wsteps" id="wizSteps"></div>
+                  <div class="wfoot">
+                    <button class="btn gh" id="wizSkip">以后再说</button>
+                    <button class="btn" id="wizNext">下一步</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 10 拖链接 -->
+    <article class="cc" id="c-drop">
+      <div class="cc-head">
+        <span class="stage p2">P2</span>
+        <h3>拖链接建卡</h3>
+        <span class="tl-tag">从地址栏直接拖进来</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-left">
+          <p class="pain"><b>改动前</b>看到想收的站点，得先点「添加」，再手动把标题和地址一个个字敲进去。</p>
+          <p class="gain"><b>改动后</b>把地址栏 / 书签 / 聊天窗口里的链接<b>直接拖到页面上</b>，即弹出「添加导航项」并<b>预填地址与标题</b>。</p>
+          <ul class="points">
+            <li><b>仅在编辑模式生效</b>——浏览时误触不会改数据。</li>
+            <li><b>只认链接</b>：拖进来普通文字不打扰、不弹窗。</li>
+            <li>解析兼容 <code>text/uri-list</code> 与 <code>text/plain</code> 两种形态（<code>标题\r\nURL</code> / <code>URL\r\n标题</code> / 多链接取第一个 / 忽略 <code>#</code> 注释行）。</li>
+            <li>「谁带标题就用谁」——不因为拿到了裸 URL 就把已解析出的标题覆盖成空。</li>
+          </ul>
+          <div class="suites">守它的套件<span class="suite">ui-firstrun.test.cjs</span><span class="suite">ui.test.cjs</span></div>
+        </div>
+        <div class="cc-right">
+          <div class="demo" data-mode="after" id="d-drop">
+            <div class="dbar">
+              <div class="seg" data-seg><button data-v="before">修改前</button><button class="on" data-v="after">修改后</button></div>
+              <span class="dhint">真的可以拖东西进来</span>
+            </div>
+            <div class="dpad">
+              <div class="dz" id="dz">
+                <div class="di">🔗</div>
+                <div class="dt">把链接<b>拖到这里</b>（也可以点下面的按钮模拟）</div>
+                <div class="row" style="justify-content:center;margin-top:11px">
+                  <button class="btn gh" id="dzUri">模拟拖入（uri-list）</button>
+                  <button class="btn gh" id="dzTitle">模拟拖入（带标题）</button>
+                  <button class="btn gh" id="dzPlain">模拟拖入（普通文字）</button>
+                </div>
+              </div>
+              <div class="note" id="dzMsg">等待拖入……</div>
+              <div id="dzModal" hidden>
+                <div class="panel" style="margin-top:11px">
+                  <div class="pgrp">添加导航项（预填）</div>
+                  <div style="padding:11px">
+                    <input class="ip" value="Jellyfin 影视库" readonly>
+                    <input class="ip" value="http://10.10.10.8:8096" readonly style="margin-top:8px">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ============ 缺陷修复 ============ -->
+<section id="fixes">
+  <div class="wrap">
+    <div class="shead">
+      <div class="kicker">Bug Fixes</div>
+      <h2>顺手修掉的 5 个真实缺陷</h2>
+      <p>都不是「代码写得丑」，而是<b>会真的伤到数据或线上产物</b>的问题。前两个尤其值得单独说。</p>
+    </div>
+    <div class="fixes">
+      <div class="fx wide">
+        <div class="fh"><span class="no">1</span><h4>对外发布的首页截图被测试套件反复覆盖</h4></div>
+        <div class="fb"><b>修改前</b><code>test/ui.test.cjs</code> 顺手把正式发布图 <code>ui-home.png</code> 重截了一次——跟随系统偏好截成<b>浅色</b>，而预览页标注的是「夜间主题」。更糟的是<b>跑一次回归就覆盖一次</b>，并随发布包上线。</div>
+        <div class="fa"><b>修改后</b>删除该写者，并把「谁有权写哪张发布图」变成<b>机器可查的清单</b>：多一个写者、或新图没有生成脚本，回归直接红。截图只允许 <code>test/page-shots.cjs</code> 这一个生产者。</div>
+        <div class="fd">教训：测试的副作用不能外溢到发布产物。已加断言：发布截图清单可解析、引用图都存在、孤儿图集合与已知清单一致。</div>
+      </div>
+      <div class="fx">
+        <div class="fh"><span class="no">2</span><h4>新增模块漏进 Dockerfile 的 COPY 清单</h4></div>
+        <div class="fb"><b>修改前</b>本地测试全绿（测试直读源码目录），但镜像里缺文件，容器启动即 <code>MODULE_NOT_FOUND</code>——最讽刺的是「本地完美、上线全挂」。</div>
+        <div class="fa"><b>修改后</b>补上 COPY，并加断言：从 <code>server.js</code> 抽出全部 <code>require("./x")</code> 逐个核对镜像清单，缺一个就红。</div>
+        <div class="fd">护栏：<code>test/imagecompose.test.cjs</code>。动过模块清单就跑它。</div>
+      </div>
+      <div class="fx">
+        <div class="fh"><span class="no">3</span><h4>弹窗过高，底部按钮点不到</h4></div>
+        <div class="fb"><b>修改前</b><code>.modal</code> 没有高度上限。字段一多（编辑弹窗新增「标签」后就到了临界点），弹窗向视口上下两端同时溢出，<b>「保存 / 取消」被推到屏幕外</b>，小屏笔记本根本点不到。</div>
+        <div class="fa"><b>修改后</b>封顶为 <code>calc(100vh - 40px)</code> 并改为弹窗内滚动。</div>
+        <div class="fd">这个问题是 <b>UI 套件真实点击按钮</b>时暴露的，肉眼看截图完全看不出来。</div>
+      </div>
+      <div class="fx">
+        <div class="fh"><span class="no">4</span><h4>图床库「空库提示」偶发消失</h4></div>
+        <div class="fb"><b>修改前</b>长期存在的「全量回归偶发 1 项失败、单独跑必过」。打开弹窗的一瞬间空状态区显示的是加载文案「正在读取图床库…」，断言没等它切到空状态就取值——机器稍忙就会失败，<b>看起来像产品缺陷，实际是断言早于数据到达</b>。</div>
+        <div class="fa"><b>修改后</b>改为等状态落定后再断言。这是那条「不稳定测试」的真正原因，已定位并修掉。</div>
+        <div class="fd">教训：不稳定测试要查到底，别用「单独跑能过」搪塞过去。</div>
+      </div>
+      <div class="fx">
+        <div class="fh"><span class="no">5</span><h4>部署判定脚本在缺密码时「假装通过」</h4></div>
+        <div class="fb"><b>修改前</b><code>scripts/check-deploy.cjs</code> 在没提供密码的情况下会给出看似成功的结论，让人以为「线上已经是新代码」。</div>
+        <div class="fa"><b>修改后</b>如实标注<b>「未验证」</b>并说明如何补全，而不是假装通过。</div>
+        <div class="fd">判定口径：<code>0</code>=新 / <code>1</code>=旧 / <code>2</code>=判不了。判不了就说不确定。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 质量护栏 ============ -->
+<section id="quality">
+  <div class="wrap">
+    <div class="shead">
+      <div class="kicker">Quality</div>
+      <h2>这些改动凭什么可信</h2>
+      <p>每一项功能背后都有一组断言守着；而文档里的每个数字，也有断言对着代码校验。</p>
+    </div>
+
+    <div class="qgrid">
+      <div class="card">
+        <h3>断言基线增长曲线</h3>
+        <div class="cd">横轴为 8 个检查点，纵轴为通过断言数（含本次）。失败数全程为 0。</div>
+        <svg class="chart" viewBox="0 0 660 250" role="img" aria-label="断言基线增长曲线：694 到 958">
+          <defs>
+            <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2563eb" stop-opacity=".28"/>
+              <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- grid -->
+          <g stroke="#94a3b8" stroke-opacity=".22" stroke-width="1">
+            <line x1="46" y1="30" x2="640" y2="30"/>
+            <line x1="46" y1="78" x2="640" y2="78"/>
+            <line x1="46" y1="126" x2="640" y2="126"/>
+            <line x1="46" y1="174" x2="640" y2="174"/>
+            <line x1="46" y1="206" x2="640" y2="206"/>
+          </g>
+          <g fill="#8fa0b8" font-size="11" font-family="monospace">
+            <text x="40" y="34" text-anchor="end">950</text>
+            <text x="40" y="82" text-anchor="end">880</text>
+            <text x="40" y="130" text-anchor="end">810</text>
+            <text x="40" y="178" text-anchor="end">740</text>
+            <text x="40" y="210" text-anchor="end">694</text>
+          </g>
+          <!-- area + line: 694@206 713@196 771@163 825@129 858@111 914@79 940@64 958@62 -->
+          <path d="M70,206 L150,196 L230,163 L310,129 L390,111 L470,79 L550,64 L620,62 L620,206 L70,206 Z" fill="url(#ag)"/>
+          <polyline points="70,206 150,196 230,163 310,129 390,111 470,79 550,64 620,62"
+                    fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+          <g fill="#2563eb">
+            <circle cx="70" cy="206" r="3.6"/><circle cx="150" cy="196" r="3.6"/><circle cx="230" cy="163" r="3.6"/>
+            <circle cx="310" cy="129" r="3.6"/><circle cx="390" cy="111" r="3.6"/><circle cx="470" cy="79" r="3.6"/>
+            <circle cx="550" cy="64" r="3.6"/>
+          </g>
+          <circle cx="620" cy="62" r="5.5" fill="#0d9488"/>
+          <text x="620" y="46" text-anchor="middle" font-size="12" font-weight="bold" fill="#0d9488" font-family="monospace">958</text>
+          <text x="70" y="228" text-anchor="middle" font-size="11" fill="#8fa0b8" font-family="monospace">起点</text>
+          <text x="230" y="228" text-anchor="middle" font-size="11" fill="#8fa0b8" font-family="monospace">P1-6</text>
+          <text x="390" y="228" text-anchor="middle" font-size="11" fill="#8fa0b8" font-family="monospace">P2 引导</text>
+          <text x="550" y="228" text-anchor="middle" font-size="11" fill="#8fa0b8" font-family="monospace">概览</text>
+          <text x="620" y="228" text-anchor="middle" font-size="11" fill="#0d9488" font-family="monospace">本次</text>
+          <g fill="#5a6b83" font-size="11" font-family="monospace" text-anchor="middle">
+            <text x="150" y="188">713</text>
+            <text x="310" y="121">825</text>
+            <text x="470" y="71">914</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="card">
+        <h3>四条工程红线</h3>
+        <div class="cd">反复被验证过、不接受任何单项收益去交换的约束。</div>
+        <div class="rules">
+          <div class="rule"><span class="rn">1</span><div><b>零 npm 依赖 + 零构建</b><span>运行时只有 Node 内置模块，仓库里没有 <code>package.json</code>。ZIP 读写、拼音表、图标库都自己实现。</span></div></div>
+          <div class="rule"><span class="rn">2</span><div><b>多架构镜像与冒烟 job 必须继续过</b><span><code>amd64</code> + <code>arm64</code> 双架构构建与「启动容器请求健康接口」两个 job 是硬闸门。</span></div></div>
+          <div class="rule"><span class="rn">3</span><div><b>断言只增不减</b><span>通过数只能 ≥ 基线且失败必须为 0；<b>文档里的每个数字都要有断言守着</b>。</span></div></div>
+          <div class="rule"><span class="rn">4</span><div><b>不挂 docker.sock 时全部功能可用</b><span>未挂载时只有「容器视角」的状态板数字降级，其余功能照常。</span></div></div>
+        </div>
+        <div class="synclist">
+          <code>test/_baseline.txt</code><code>preview.html</code><code>README.md</code><code>docs/docker-guide.html</code>
+          <code>scripts/share-index.html</code><code>scripts/verify-share-ui.cjs</code><code>docs/overview.html</code><code>MEMORY.md</code>
+        </div>
+        <div class="note ig" style="margin-top:12px">改测试数时上面 8 处必须一起改（其中 <code>verify-share-ui.cjs</code> 要把旧数字写进 <code>mustNots</code>，才防得住把旧发布包发上线）。</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>本次改动的关键变更点一览</h3>
+      <div class="cd">下面每一行都对应一处代码变更，以及守着它的测试套件。</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px">
+          <thead>
+            <tr style="text-align:left">
+              <th style="padding:8px 10px;border-bottom:1px solid var(--bd)">变更点</th>
+              <th style="padding:8px 10px;border-bottom:1px solid var(--bd)">落点模块</th>
+              <th style="padding:8px 10px;border-bottom:1px solid var(--bd)">关键实现</th>
+              <th style="padding:8px 10px;border-bottom:1px solid var(--bd)">守它的套件</th>
+            </tr>
+          </thead>
+          <tbody id="chgTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 命令 ============ -->
+<section id="run">
+  <div class="wrap">
+    <div class="shead">
+      <div class="kicker">Reproduce</div>
+      <h2>自己跑一遍</h2>
+      <p>所有结论都可以在本地复现。回归套件会自建隔离实例（临时配置 + 临目录），<b>不会碰你的真实数据</b>。</p>
+    </div>
+
+    <div class="cmd">
+      <div class="ch"><span class="k">1</span>全量回归 —— 应输出「958 通过, 0 失败 / 共 19 个套件」</div>
+      <pre><span class="c"># NODE_PATH 指向含 playwright 的 node_modules（开发期依赖，运行时不依赖）</span>
+NODE_PATH=&lt;含 playwright 的 node_modules&gt; node test/run-all.cjs
+
+<span class="c"># 只跑名字含某串的套件</span>
+NODE_PATH=&lt;...&gt; node test/run-all.cjs ui-tags</pre>
+    </div>
+
+    <div class="cmd">
+      <div class="ch"><span class="k">2</span>重建发布包并本地验证 —— 顺序不能反</div>
+      <pre><span class="c"># 先杀掉占着 share/ 的本地服务，否则 Windows 下 rmdir 会 EBUSY</span>
+node test/make-pdf.cjs &amp;&amp; node scripts/build-share.cjs
+
+<span class="c"># 用本地静态服务验一遍，别等发布后才发现</span>
+cd share &amp;&amp; python -m http.server 8640 --bind 127.0.0.1
+NODE_PATH=&lt;...&gt; node scripts/verify-share-ui.cjs http://127.0.0.1:8640</pre>
+    </div>
+
+    <div class="cmd">
+      <div class="ch"><span class="k">3</span>判定线上跑的是新代码还是旧代码</div>
+      <pre>node scripts/check-deploy.cjs http://&lt;NAS_IP&gt;:&lt;端口&gt; &lt;密码&gt;
+<span class="c"># 退出码 0=新 / 1=旧 / 2=判不了（缺密码时如实标注「未验证」，不假装通过）</span>
+
+node scripts/check-compose.cjs      <span class="c"># compose 起飞前自检</span>
+node scripts/check-github-net.cjs   <span class="c"># 区分「凭据问题」与「网络问题」</span></pre>
+    </div>
+
+    <div class="note ig" style="margin-top:14px">
+      本页面的数字受 <code>test/imagecompose.test.cjs</code> 的护栏约束：套件数与断言数必须等于
+      <code>test/_baseline.txt</code>，模块清单必须等于 <code>server.js</code> 实际 require 的本地模块 ——
+      数字改错、或者这里写了一个不存在的模块，回归会直接变红。
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="fw wrap">
+    <div>
+      <b>Navi 导航站</b> · 零依赖的个人导航站 · 迭代成果预览<br>
+      仓库 <a href="https://github.com/mijunyi/navi-homepage">mijunyi/navi-homepage</a> ·
+      镜像 <code>ghcr.io/mijunyi/navi-homepage</code>
+    </div>
+    <div style="text-align:right">
+      19 套件 / 958 断言 / 0 失败<br>
+      <span style="color:var(--tx3)">整理于 2026-09-20 · 数据取自工作区实测</span>
+    </div>
+  </div>
+</footer>
+
+<button class="icon-btn up" id="up" aria-label="回到顶部">↑</button>
+
+<script>
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+/* ---------- 主题 ---------- */
+var html=document.documentElement, themeBtn=$("#themeBtn");
+function applyTheme(t){
+  html.setAttribute("data-theme",t);
+  themeBtn.textContent = t==="dark" ? "☀️" : "🌙";
+  try{ localStorage.setItem("navi-showcase-theme",t); }catch(e){}
+}
+(function initTheme(){
+  var saved=null;
+  try{ saved=localStorage.getItem("navi-showcase-theme"); }catch(e){}
+  if(!saved){ saved = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light"; }
+  applyTheme(saved);
+})();
+themeBtn.addEventListener("click",function(){
+  applyTheme(html.getAttribute("data-theme")==="dark" ? "light" : "dark");
+});
+
+/* ---------- 移动端导航 ---------- */
+var nav=$("#nav"), navBtn=$("#navBtn");
+navBtn.addEventListener("click",function(){ nav.classList.toggle("open"); });
+$$("#nav a").forEach(function(a){ a.addEventListener("click",function(){ nav.classList.remove("open"); }); });
+
+/* ---------- 回到顶部 ---------- */
+var up=$("#up");
+window.addEventListener("scroll",function(){ up.classList.toggle("on", window.scrollY>600); },{passive:true});
+up.addEventListener("click",function(){ window.scrollTo({top:0,behavior:"smooth"}); });
+
+/* ---------- Before/After 分段控件（通用） ---------- */
+$$("[data-seg]").forEach(function(seg){
+  var demo=seg.closest(".demo");
+  $$("button",seg).forEach(function(b){
+    b.addEventListener("click",function(){
+      $$("button",seg).forEach(function(x){ x.classList.remove("on"); });
+      b.classList.add("on");
+      demo.setAttribute("data-mode", b.getAttribute("data-v"));
+      if(demo.__onMode) demo.__onMode();
+    });
+  });
+});
+function modeOf(sel){ var d=$(sel); return d ? d.getAttribute("data-mode") : "after"; }
+
+/* ---------- KPI 数字动画 ---------- */
+(function(){
+  var els=$$("[data-count]");
+  if(!("IntersectionObserver" in window)){ els.forEach(function(e){ e.textContent=e.getAttribute("data-count"); }); return; }
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(en){
+      if(!en.isIntersecting) return;
+      var el=en.target, to=Number(el.getAttribute("data-count")), t0=null;
+      function step(ts){ if(!t0)t0=ts; var p=Math.min((ts-t0)/900,1); el.textContent=Math.round(to*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(step); }
+      requestAnimationFrame(step);
+      io.unobserve(el);
+    });
+  },{threshold:.4});
+  els.forEach(function(e){ io.observe(e); });
+  var bar=$("#growthBar");
+  var io2=new IntersectionObserver(function(es){
+    es.forEach(function(en){ if(en.isIntersecting){ setTimeout(function(){ bar.style.width="85.8%"; },120); io2.unobserve(en.target); } });
+  },{threshold:.3});
+  if(bar) io2.observe(bar.parentNode);
+})();
+
+/* =========================================================
+   1) 拼音搜索
+   ========================================================= */
+var PY=[
+  {t:"百度",       syl:["bai","du"],        ab:"bd",   d:"搜索引擎",      g:"常用",  ic:"🔎"},
+  {t:"GitHub",     syl:["github"],          ab:"gh",   d:"代码托管",      g:"开发",  ic:"🐙"},
+  {t:"网易云音乐", syl:["wang","yi","yun","yin","yue"], ab:"wyyyy", d:"在线音乐", g:"影音", ic:"🎵"},
+  {t:"家庭影院",   syl:["jia","ting","ying","yuan"],    ab:"jtyy",  d:"Jellyfin 影视库", g:"影音", ic:"🎬"},
+  {t:"下载中心",   syl:["xia","zai","zhong","xin"],     ab:"xzzx",  d:"qBittorrent 下载器", g:"下载", ic:"📥"},
+  {t:"阿里云盘",   syl:["a","li","yun","pan"],          ab:"alyp",  d:"个人网盘",   g:"存储",  ic:"☁️"}
+];
+function pyFull(it){ return it.syl.join("") }
+/* 音节边界：查询必须从一个音节的开头开始 —— 避免拼音串中的偶然字母组合误命中 */
+function pyMatch(it,q){
+  q=q.toLowerCase().replace(/\s+/g,"");
+  if(!q) return null;
+  if(it.t.toLowerCase().indexOf(q)>=0) return "标题";
+  if(it.d.toLowerCase().indexOf(q)>=0) return "描述";
+  var f=pyFull(it);
+  if(f.indexOf(q)===0) return "全拼";
+  for(var i=0;i<it.syl.length;i++){ if(it.syl[i].indexOf(q)===0) return "全拼"; }
+  if(it.ab.indexOf(q)===0) return "首字母";
+  /* 连续多音节的组合（如 jiating / xiazai） */
+  var acc="";
+  for(var j=0;j<it.syl.length;j++){ acc+=it.syl[j]; if(acc.indexOf(q)===0) return "全拼"; }
+  return null;
+}
+function pyPlain(it,q){
+  q=q.toLowerCase();
+  if(!q) return null;
+  if(it.t.toLowerCase().indexOf(q)>=0) return "标题";
+  if(it.d.toLowerCase().indexOf(q)>=0) return "描述";
+  return null;
+}
+var pyQ=$("#pyQ"), pyRes=$("#pyRes"), pyMeta=$("#pyMeta");
+function renderPy(){
+  var q=pyQ.value.trim();
+  var before = modeOf("#d-py")==="before";
+  var out=[];
+  for(var i=0;i<PY.length;i++){
+    var why = before ? pyPlain(PY[i],q) : pyMatch(PY[i],q);
+    if(q && why) out.push({it:PY[i],why:why});
+  }
+  if(!q){
+    pyRes.innerHTML = '<div class="empty">输入 <b>bd</b> / <b>jtyy</b> / <b>xiazai</b> 试试（或点上方快捷词）</div>';
+  } else if(!out.length){
+    pyRes.innerHTML = '<div class="empty">没有匹配结果 —— '+(before?'修改前只匹配标题与描述的子串':'这条查询在音节边界上对不齐，正是「不误命中」的设计')+'</div>';
+  } else {
+    pyRes.innerHTML = out.map(function(o){
+      return '<div class="ri"><span class="ic">'+o.it.ic+'</span><span class="tx"><b>'+esc(o.it.t)+'</b><span>'+esc(o.it.g)+' · '+esc(o.it.d)+'</span></span><span class="why">'+(before?'子串':o.why)+'</span></div>';
+    }).join("");
+  }
+  if(before){
+    pyMeta.className="note ir size-note";
+    pyMeta.innerHTML = "修改前：只做标题 / 描述的子串匹配。输入 <code>jtyy</code> 这类拼音缩写，结果永远是 0。";
+  } else {
+    pyMeta.className="note ib size-note";
+    pyMeta.innerHTML = q
+      ? '修改后：命中 '+out.length+' 项，右侧徽章是<b>命中原因</b>。拼音匹配按<b>音节边界</b>对齐 —— 输入 <code>ang</code> 不会命中「网易云音乐」（音节是 wang/yi/yun，<code>ang</code> 不是任何一个音节的开头），避免拼音串里的偶然字母组合造成误报。'
+      : "修改后：标题 / 全拼（jiating、xiazai）/ 首字母（jtyy、bdy）都能命中，并显示命中原因。";
+  }
+}
+pyQ.addEventListener("input",renderPy);
+$$("[data-py]").forEach(function(b){
+  b.addEventListener("click",function(){ pyQ.value=b.getAttribute("data-py"); renderPy(); pyQ.focus(); });
+});
+$("#d-py").__onMode=renderPy;
+renderPy();
+
+/* =========================================================
+   2) ⌘K 命令面板
+   ========================================================= */
+var PN=[
+  {t:"家庭影院", sub:"影音 · Jellyfin 影视库", why:"标题", g:"影音"},
+  {t:"下载中心", sub:"下载 · qBittorrent", why:"标签", g:"下载"},
+  {t:"百度", sub:"常用 · 搜索引擎", why:"首字母", g:"常用"},
+  {t:"阿里云盘", sub:"存储 · 个人网盘", why:"标签", g:"存储"}
+];
+var pn=$("#pn"), pnQ=$("#pnQ"), pnList=$("#pnList"), pnFoot=$("#pnFoot"), pnMsg=$("#pnMsg");
+var pnSel=0, pnItems=[];
+function pnRender(){
+  var q=pnQ.value.trim().toLowerCase();
+  pnItems = q ? PN.filter(function(x){ return x.t.toLowerCase().indexOf(q)>=0 || x.sub.toLowerCase().indexOf(q)>=0; }) : PN.slice();
+  if(pnSel>=pnItems.length) pnSel=Math.max(0,pnItems.length-1);
+  var html="";
+  if(pnItems.length){
+    html+='<div class="pgrp">站点（'+pnItems.length+'）</div>';
+    html+=pnItems.map(function(x,i){
+      return '<div class="pi'+(i===pnSel?" sel":"")+'" data-i="'+i+'"><span>'+ (i===pnSel?"▸":" ") +'</span><span class="tt">'+esc(x.t)+' <span class="sub">'+esc(x.sub)+'</span></span><span class="why">'+x.why+'</span></div>';
+    }).join("");
+  }
+  if(q) html+='<div class="pgrp">用搜索引擎</div><div class="pi'+(pnItems.length?"":" sel")+'" data-i="search"><span>🔎</span><span class="tt">用「百度」搜索 “'+esc(pnQ.value.trim())+'”</span></div>';
+  pnList.innerHTML = html || '<div class="empty" style="margin:11px">没有匹配项</div>';
+  $$(".pi",pnList).forEach(function(el){
+    el.addEventListener("click",function(){
+      var i=el.getAttribute("data-i");
+      pnMsg.textContent = i==="search" ? ('已交给搜索引擎：'+pnQ.value.trim()) : ('已打开：'+pnItems[Number(i)].t);
+      pnMsg.className="note ib";
+    });
+  });
+}
+function pnOpen(){ pn.hidden=false; pnQ.value=""; pnSel=0; pnRender(); pnQ.focus(); }
+$("#pnOpen").addEventListener("click",function(){ pn.hidden ? pnOpen() : (pn.hidden=true); });
+pnQ.addEventListener("input",function(){ pnSel=0; pnRender(); });
+pnQ.addEventListener("keydown",function(e){
+  if(e.key==="ArrowDown"){ e.preventDefault(); if(pnSel<pnItems.length-1){pnSel++;pnRender();} }
+  else if(e.key==="ArrowUp"){ e.preventDefault(); if(pnSel>0){pnSel--;pnRender();} }
+  else if(e.key==="Enter"){ e.preventDefault();
+    if(pnItems.length) { pnMsg.textContent="已打开："+pnItems[pnSel].t; pnMsg.className="note ib"; }
+    else if(pnQ.value.trim()){ pnMsg.textContent="已交给搜索引擎："+pnQ.value.trim(); pnMsg.className="note ib"; }
+  }
+  else if(e.key==="Escape"){ pn.hidden=true; }
+});
+
+/* =========================================================
+   3) 内外网策略
+   ========================================================= */
+var netMode="auto", netScene="ok";
+var netUrl=$("#netBox"), netTip=$("#netTip");
+var NET_WAN="https://github.com", NET_LAN="http://10.10.10.8:3000";
+function netRender(){
+  var url, tip, cls="note ib";
+  if(netMode==="wan"){ url=NET_WAN; tip="全局设为「只用外网」：忽略内网地址，始终走公网。"; }
+  else if(netMode==="lan"){ url=NET_LAN; tip="全局设为「只用内网」：卡片一律用内网地址（出门在外会打不开，属于用户显式选择）。"; }
+  else if(netScene==="ok"){ url=NET_LAN; tip="自动探测：内网地址可达 → 就用内网地址，流量不出家门。"; }
+  else if(netScene==="no"){ url=NET_WAN; tip="自动探测：内网地址不可达 → 自动回退到外网地址，用户无感。"; }
+  else { url=NET_WAN; cls="note iw"; tip="HTTPS 页面无法探测 http://内网IP（浏览器混合内容限制）→ 显式跳过判定并如实说明，不给假结论。"; }
+  netUrl.innerHTML='<span class="lbl">当前会打开的地址</span><b>'+esc(url)+'</b>';
+  netTip.className=cls; netTip.innerHTML=tip;
+}
+$$("#netModes button").forEach(function(b){
+  b.addEventListener("click",function(){
+    $$("#netModes button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on"); netMode=b.getAttribute("data-m"); netRender();
+  });
+});
+$$("#netScenes button").forEach(function(b){
+  b.addEventListener("click",function(){
+    netScene=b.getAttribute("data-s");
+    netTip.className="note ig"; netTip.textContent="探测中……";
+    netUrl.innerHTML='<span class="lbl">当前会打开的地址</span><b>探测中……</b>';
+    setTimeout(netRender,520);
+  });
+});
+$("#d-net").__onMode=netRender;
+netRender();
+
+/* =========================================================
+   4) 备份
+   ========================================================= */
+var bakTree=$("#bakTree"), bakMsg=$("#bakMsg");
+var BAK_IMGS=["logo-jellyfin.png","logo-qb.png","logo-nas.png","favicon-baidu.png","pic-homepage.png","avatar.png"];
+function bakRender(){
+  var before = modeOf("#d-bak")==="before";
+  if(before){
+    bakTree.innerHTML='config.json\n<span class="dim">（仅此一个文件 —— 图床库里的图片不在包内）</span>';
+    bakMsg.className="note ir";
+    bakMsg.innerHTML="修改前：默认备份只导出 <code>config.json</code>。配置能恢复，但图床库的图片要自己一张张另存，很容易漏。";
+    return;
+  }
+  var lines=['config.json','MANIFEST.json'];
+  BAK_IMGS.forEach(function(n){ lines.push('uploads/'+n); });
+  bakTree.innerHTML = lines.map(function(n,i){
+    var h = (n==="MANIFEST.json") ? '<span class="hash">  ← 每项 SHA-256</span>'
+          : (n.indexOf("uploads/")===0 ? '<span class="hash">  sha256:'+("00000000"+(i*7919)%99999999).slice(-8)+'…</span>' : '');
+    return esc(n)+h;
+  }).join("\n") + '\n<span class="dim">共 '+(lines.length)+' 个条目 · 手写 ZIP（store/deflate + CRC32）· 零第三方依赖</span>';
+  bakMsg.className="note ib";
+  bakMsg.innerHTML="修改后：配置 + 图床库全部图片 + 逐项 SHA-256 清单。点「校验包内完整性」试试。";
+}
+$("#bakGo").addEventListener("click",bakRender);
+$("#bakChk").addEventListener("click",function(){
+  var before = modeOf("#d-bak")==="before";
+  if(before){ bakMsg.className="note ir"; bakMsg.textContent="修改前没有校验手段：图片根本不在包里。"; return; }
+  var n=0;
+  bakMsg.className="note ig"; bakMsg.textContent="正在逐项校验 CRC32 与 SHA-256…";
+  var t=setInterval(function(){
+    n++;
+    if(n>BAK_IMGS.length){ clearInterval(t); bakMsg.className="note ib"; bakMsg.innerHTML='<b>校验通过</b>：7/7 个条目哈希一致，ZIP 结构完整。恢复时按文件头自动识别 ZIP / JSON，图片只增不删，被覆盖的原图另存回滚副本。'; return; }
+    bakMsg.textContent="校验中 "+n+"/7 …… "+BAK_IMGS[n-1]+" ✓";
+  },260);
+});
+$("#d-bak").__onMode=bakRender;
+bakRender();
+
+/* =========================================================
+   5) 状态板
+   ========================================================= */
+var ST=[{n:"容器",v:12,max:20,unit:""},{n:"CPU",v:23,max:100,unit:"%"},{n:"内存",v:41,max:100,unit:"%"},{n:"磁盘",v:68,max:100,unit:"%"}];
+var stBars=$("#stBars"), stMsg=$("#stMsg"), stOne=$("#stOne"), stAll=$("#stAll");
+function stRender(){
+  var before = modeOf("#d-status")==="before";
+  var all=stAll.checked;
+  if(before){
+    stBars.innerHTML = ST.map(function(m){
+      var dead = all || (m.n==="磁盘" && stOne.checked);
+      var pct = dead ? 0 : m.v;
+      return '<div class="brow"><span class="bn">'+m.n+'</span><span class="track"><i style="width:'+pct+'%"></i></span><span class="bv">'+(dead?("0"+m.unit):(m.v+m.unit))+'</span></div>';
+    }).join("");
+    stMsg.className="note ir";
+    stMsg.innerHTML="修改前：采不到就显示 <b>0</b> —— 用户看到「CPU 0%」会以为机器很闲，实际是<b>根本没采到</b>。这是误导，不是降级。";
+    return;
+  }
+  if(all){
+    stBars.innerHTML='<div class="empty">（整块已隐藏 —— 采不到时静默隐藏并停止轮询，不在页面上挂一个永远转圈的错误块）</div>';
+    stMsg.className="note iw";
+    stMsg.innerHTML="整块取不到：<b>静默隐藏 + 停止轮询</b>；后台标签页同样暂停轮询。拿不到就什么都不显示，而不是显示一个假的 0。";
+    return;
+  }
+  stBars.innerHTML = ST.map(function(m){
+    var dead = (m.n==="磁盘" && stOne.checked);
+    if(dead) return '<div class="brow"><span class="bn">'+m.n+'</span><span class="track"><i class="null" style="width:100%"></i></span><span class="bv">—</span></div>';
+    var warn = m.v>=60;
+    return '<div class="brow"><span class="bn">'+m.n+'</span><span class="track"><i class="'+(warn?"warn":"")+'" style="width:'+m.v+'%"></i></span><span class="bv">'+m.v+m.unit+'</span></div>';
+  }).join("");
+  stMsg.className = stOne.checked ? "note iw" : "note ib";
+  stMsg.innerHTML = stOne.checked
+    ? '这一项采不到 → 返回 <code>null</code>，界面显示为 <b>—</b>，<b>不是 0</b>。用户一眼就知道「没拿到」，而不是「真的是 0」。'
+    : '四项都拿到了。注意磁盘已到 68% 会走告警色；数据带服务端缓存，避免每次刷新都重算。';
+}
+stOne.addEventListener("change",stRender);
+stAll.addEventListener("change",stRender);
+$("#d-status").__onMode=stRender;
+stRender();
+
+/* =========================================================
+   6) 图标库
+   ========================================================= */
+var ICO=[{e:"🐙",n:"GitHub"},{e:"🎬",n:"Jellyfin"},{e:"📊",n:"Grafana"},{e:"☁️",n:"阿里云盘"},{e:"📥",n:"qBittorrent"},{e:"🔎",n:"百度"}];
+var icoGrid=$("#icoGrid"), icoMsg=$("#icoMsg"), icoOff=$("#icoOff");
+function icoRender(){
+  var before = modeOf("#d-icons")==="before";
+  var off=icoOff.checked;
+  icoGrid.innerHTML = ICO.map(function(x){
+    var dead = off && before;   /* 修改前一律走 CDN：断网即失败；修改后本地命中：断网也正常 */
+    return '<div class="icell'+(dead?" dead":"")+'"><span class="g">'+(dead?"▢":x.e)+'</span><span class="n">'+esc(x.n)+'</span><span class="bdg">'+(dead?"CDN 失败":(before?"CDN":"本地"))+'</span></div>';
+  }).join("");
+  icoMsg.className = (off&&before) ? "note ir" : "note ib";
+  icoMsg.innerHTML = before
+    ? (off
+        ? "修改前：图标全走公共 CDN。这就是最典型的部署环境（无外网的家庭内网）——首页整片空框。"
+        : "修改前：图标全部来自公共 CDN。有网时正常，内网 / 断网就整片空框。")
+    : (off
+        ? "修改后：本地 227 个图标命中，<b>不发任何外网请求</b>，断网也照常显示。解析顺序「本地 → CDN → 首字母方块」，最差也是一个像样的占位、不出现碎图。"
+        : "修改后：本地图标库优先命中。断网时依然完好——把上面的开关拨到「断网」对比一下。");
+}
+icoOff.addEventListener("change",icoRender);
+$("#d-icons").__onMode=icoRender;
+icoRender();
+
+/* =========================================================
+   7) 服务发现失效
+   ========================================================= */
+var DC=[
+  {n:"Jellyfin", v:"容器 jellyfin · 8096", stale:false},
+  {n:"qBittorrent", v:"容器 qbittorrent · 8080", stale:false},
+  {n:"Grafana", v:"容器 grafana · 3000", stale:false},
+  {n:"手工添加的博客", v:"manual · 不参与判定", stale:false},
+  {n:"AdGuard Home", v:"容器 adguard · 3000", stale:false}
+];
+var dcList=$("#dcList"), dcMsg=$("#dcMsg"), dcNoDocker=$("#dcNoDocker"), dcClean=$("#dcClean");
+function dcRender(){
+  var before = modeOf("#d-disc")==="before";
+  var nd = dcNoDocker.checked;
+  var html = DC.map(function(x){
+    if(before && x.stale) return '<div class="dit gone"><span class="g">▢</span><span class="dn"><b>'+esc(x.n)+'</b><span>'+esc(x.v)+'</span></span><span class="warnbdg">已删除</span></div>';
+    var st = x.stale && !(before);
+    return '<div class="dit'+(st?" stale":"")+'"><span>'+(st?"⚠":"🔗")+'</span><span class="dn"><b>'+esc(x.n)+'</b><span>'+esc(x.v)+'</span></span>'+(st?'<span class="warnbdg">可能失效</span>':(x.v.indexOf("manual")===0?'<span class="warnbdg" style="background:var(--sf3);color:var(--tx3);border-color:var(--bd)">手工添加 · 永不误标</span>':''))+'</div>';
+  }).join("");
+  dcList.innerHTML=html;
+  var n=DC.filter(function(x){return x.stale;}).length;
+  if(before){
+    dcMsg.className="note ir";
+    dcMsg.innerHTML = "修改前：重新扫描时源侧消失的卡片被<b>静默删除</b> —— 用户改过的标题、描述、图标一起没了，也没有任何提示。";
+  } else if(nd){
+    dcMsg.className="note iw";
+    dcMsg.innerHTML = "Docker 未挂载：<b>未接入的来源不做失效判定</b>（本次 checked=0 / skipped=全部），不会把已有的发现卡片集体冤枉成「已失效」。";
+  } else if(n){
+    dcMsg.className="note iw";
+    dcMsg.innerHTML = "本轮扫描：<b>"+n+" 项标记为可能失效</b>，<b>一张都没有删除</b>。要清理必须显式点「清理失效项」并二次确认。";
+  } else {
+    dcMsg.className="note ib";
+    dcMsg.innerHTML = "点「重新扫描」模拟一次源侧变化。只有 <code>source.type === \"discover\"</code> 的卡片参与判定，手工添加与导入的卡片永远不会被误标。";
+  }
+}
+function dcReset(){ DC.forEach(function(x){ x.stale=false; }); dcClean.classList.remove("arm"); dcClean.textContent="清理失效项"; }
+$("#dcScan").addEventListener("click",function(){
+  if(modeOf("#d-disc")==="before"){ DC[2].stale=true; dcRender(); return; }
+  if(dcNoDocker.checked){ DC.forEach(function(x){x.stale=false;}); dcRender(); return; }
+  DC[2].stale=true;
+  dcMsg.className="note ig"; dcMsg.textContent="扫描中……";
+  setTimeout(dcRender,480);
+});
+$("#dcRestore").addEventListener("click",function(){
+  dcReset(); dcRender();
+  dcMsg.className="note ib"; dcMsg.textContent="已恢复全部：失效标记被清空，卡片保持原样。";
+});
+dcClean.addEventListener("click",function(){
+  if(!dcClean.classList.contains("arm")){
+    dcClean.classList.add("arm"); dcClean.textContent="确认清理？（再点一次）";
+    dcMsg.className="note iw"; dcMsg.textContent="这是破坏性动作 —— 需要二次确认才会执行。";
+    return;
+  }
+  dcClean.classList.remove("arm"); dcClean.textContent="清理失效项";
+  var n=DC.filter(function(x){return x.stale;}).length;
+  DC.forEach(function(x){ if(x.stale) x.gone=true; });
+  DC = DC.filter(function(x){ return !x.gone; });
+  dcRender();
+  dcMsg.className="note ib"; dcMsg.textContent="已清理 "+n+" 项（这是你显式点两次确认的结果 —— 系统自己绝不这么干）。";
+});
+dcNoDocker.addEventListener("change",dcRender);
+$("#d-disc").__onMode=dcRender;
+dcRender();
+
+/* =========================================================
+   8) 标签筛选
+   ========================================================= */
+var TG=[
+  {g:"影音", items:[{t:"家庭影院",tags:["下载","影音"]},{t:"网易云音乐",tags:["影音"]},{t:"B站",tags:["影音","常用"]}]},
+  {g:"下载", items:[{t:"qBittorrent",tags:["下载"]},{t:"下载中心",tags:["下载","常用"]}]},
+  {g:"存储", items:[{t:"阿里云盘",tags:["下载","存储"]},{t:"NAS 面板",tags:["存储","运维"]}]},
+  {g:"开发", items:[{t:"GitHub",tags:["开发"]},{t:"Docker Hub",tags:["开发","运维"]}]}
+];
+var tgBody=$("#tgBody"), tgMsg=$("#tgMsg"), tgActive=null;
+function tgRender(){
+  var before = modeOf("#d-tags")==="before";
+  /* 修改前：搜索不覆盖标签，所以点标签只筛「当前分组」 */
+  tgBody.innerHTML = TG.map(function(grp,gi){
+    var cards=grp.items.map(function(it,ii){
+      var hit = tgActive && it.tags.indexOf(tgActive)>=0;
+      var dim = tgActive && !hit;
+      return '<div class="tc'+(dim?" dim":"")+(hit?" hit":"")+'"><div class="tt">'+esc(it.t)+'</div><div class="tts">'+
+        (before ? it.tags.slice(0,1).map(function(t){return '<span class="tg">'+esc(t)+'</span>';}).join("")
+                : it.tags.map(function(t){return '<span class="tg'+(t===tgActive?" on":"")+'" data-g="'+gi+'" data-i="'+ii+'">'+esc(t)+'</span>';}).join(""))+
+      '</div></div>';
+    }).join("");
+    return '<div class="tgrp"><div class="gh2">'+esc(grp.g)+'</div><div class="tcards">'+cards+'</div></div>';
+  }).join("");
+  if(!before){
+    $$(".tg",tgBody).forEach(function(el){
+      el.addEventListener("click",function(){
+        var t = el.textContent.trim();
+        tgActive = (tgActive===t) ? null : t;
+        tgRender();
+        tgMsg.className="note ib";
+        tgMsg.innerHTML = tgActive
+          ? '按标签「<b>'+esc(tgActive)+'</b>」筛选：命中 <b>'+TG.reduce(function(a,gr){return a+gr.items.filter(function(x){return x.tags.indexOf(tgActive)>=0;}).length;},0)+'</b> 张卡片，<b>跨越了全部 '+TG.length+' 个分组</b>。搜索框输入 <code>'+esc(tgActive)+'</code> 或它的拼音也能得到同样结果。'
+          : '已清除筛选。';
+      });
+    });
+  }
+}
+$("#tgClear").addEventListener("click",function(){ tgActive=null; tgRender(); tgMsg.className="note ig"; tgMsg.textContent="已清除筛选。点任意标签试试：命中会跨越下方所有分组。"; });
+$("#d-tags").__onMode=function(){ tgActive=null; tgRender(); };
+tgRender();
+
+/* =========================================================
+   9) 首次引导
+   ========================================================= */
+var WIZ=[
+  {i:"👋",t:"欢迎使用 Navi",p:"这是一个自己搭的导航站：零依赖、零构建，改完文件刷新即生效。三步就能用起来。"},
+  {i:"🧩",t:"添加你的第一个站点",p:"点右上角「编辑」→「添加导航项」；或者直接把浏览器地址栏里的链接拖到页面上，标题和地址会自动填好。"},
+  {i:"🔒",t:"公网部署，务必设密码",p:"如果这个站要暴露到公网，一定要设置 NAVI_PASSWORD —— 不设密码等于把家里的服务清单公开挂在网上。"}
+];
+var wizI=$("#wizIco"), wizT=$("#wizT"), wizP=$("#wizP"), wizSteps=$("#wizSteps"), wizNext=$("#wizNext"), wizSkip=$("#wizSkip");
+var wizI2=0;
+function wizRender(){
+  var s=WIZ[wizI2];
+  wizI.textContent=s.i; wizT.textContent=s.t; wizP.textContent=s.p;
+  wizSteps.innerHTML=WIZ.map(function(_,i){return '<i class="'+(i<=wizI2?"on":"")+'"></i>';}).join("");
+  wizNext.textContent = wizI2===WIZ.length-1 ? "开始使用" : "下一步";
+}
+wizNext.addEventListener("click",function(){
+  if(wizI2<WIZ.length-1){ wizI2++; wizRender(); }
+  else { $("#wiz").innerHTML='<div class="wi">✅</div><h4>引导完成</h4><p>下次打开直接进入首页。你也可以随时在「站点信息」里重新查看这些说明。</p>'; }
+});
+wizSkip.addEventListener("click",function(){
+  $("#wiz").innerHTML='<div class="wi">💤</div><h4>已选择「以后再说」</h4><p>这个选择会被记住，之后不再打扰 —— 引导是帮助，不是路障。</p>';
+});
+wizRender();
+
+/* =========================================================
+   10) 拖链接建卡
+   ========================================================= */
+var dz=$("#dz"), dzMsg=$("#dzMsg"), dzModal=$("#dzModal");
+function dzShow(text, ok){
+  dzMsg.className = ok===false ? "note ir" : (ok===true ? "note ib" : "note ig");
+  dzMsg.innerHTML=text;
+}
+function dzDrop(kind){
+  var before = modeOf("#d-drop")==="before";
+  if(before){
+    dzModal.hidden=true;
+    dzShow("修改前：拖进来没有任何反应，只能自己点「添加」再把标题和地址一个字一个字敲进去。", false);
+    return;
+  }
+  if(kind==="plain"){
+    dzModal.hidden=true;
+    dzShow("拖进来的是普通文字（不是链接）→ <b>什么都不做</b>，不弹窗、不打扰。只认链接。", null);
+    return;
+  }
+  dzModal.hidden=false;
+  if(kind==="uri"){
+    dzShow("解析 <code>text/uri-list</code>：<code>http://10.10.10.8:8096</code>（含 <code>#</code> 注释行已忽略）→ 已预填地址，标题取域名。", true);
+  } else {
+    dzShow("解析 <code>text/plain</code>：<code>Jellyfin 影视库\\r\\nhttp://10.10.10.8:8096</code> → <b>标题与地址都已预填</b>。（若只拿到裸 URL，也不会把已解析出的标题覆盖成空。）", true);
+  }
+}
+$("#dzUri").addEventListener("click",function(){ dzDrop("uri"); });
+$("#dzTitle").addEventListener("click",function(){ dzDrop("title"); });
+$("#dzPlain").addEventListener("click",function(){ dzDrop("plain"); });
+["dragenter","dragover"].forEach(function(ev){
+  dz.addEventListener(ev,function(e){ e.preventDefault(); dz.classList.add("over"); });
+});
+["dragleave","drop"].forEach(function(ev){
+  dz.addEventListener(ev,function(e){ e.preventDefault(); dz.classList.remove("over"); });
+});
+dz.addEventListener("drop",function(e){
+  var dt=e.dataTransfer;
+  var txt = dt ? (dt.getData("text/uri-list")||dt.getData("text/plain")||"") : "";
+  dzDrop(/^https?:\/\//m.test(txt) || /^https?:\/\//.test(txt.trim()) ? (dt.getData("text/uri-list")?"uri":"title") : "plain");
+});
+
+/* =========================================================
+   变更点总表
+   ========================================================= */
+var CHG=[
+  ["拼音全拼 / 首字母检索","public/js/app.js","matchRank() 唯一匹配入口 + 音节边界对齐，拼音表按需注入","ui.test.cjs"],
+  ["⌘K 命令面板","public/js/app.js","与网格共用 matchRank()，含命中原因徽章与搜索引擎回退","ui.test.cjs"],
+  ["卡片级内外网策略","public/js/app.js · discovery.js","异步可达性探测（不阻塞点击）+ 逐卡缓存 + 混合内容显式跳过","ui.test.cjs · discover.test.js"],
+  ["含图片的 ZIP 备份","zip.js · server.js","手写 ZIP 读写（store/deflate + CRC32）+ 包内逐项 SHA-256","zipbackup.test.js · backup.test.js"],
+  ["首页状态板","status.js · server.js","采不到返回 null 而非 0；整块取不到静默隐藏并停轮询","status.test.js · ui-status.test.cjs"],
+  ["本地图标库（227 个）","public/icons/ · icon-map.js","本地 → CDN → 首字母方块 三级回退，离线可用","icons.test.js"],
+  ["发现来源追踪与失效标记","discovery.js · server.js","computeStale() 只标记不删；未接入来源不做判定","discover.test.js · ui-discover.test.cjs"],
+  ["卡片标签（跨分组检索）","public/js/app.js · server.js","tags[] 前后端同值校验（8 个 / 12 字），点标签即筛","ui-tags.test.cjs"],
+  ["首次使用引导","public/js/app.js","配置为空才出现；「以后再说」被记住，不再打扰","ui-firstrun.test.cjs"],
+  ["拖链接建卡","public/js/app.js","仅编辑模式生效；兼容 uri-list / plain 两种形态","ui-firstrun.test.cjs"],
+  ["弹窗高度封顶","public/css/style.css",".modal 封顶 calc(100vh - 40px) 并改为内部滚动","ui.test.cjs"],
+  ["发布截图唯一生产者","test/page-shots.cjs · imagecompose.test.cjs","机器可查的「谁有权写哪张发布图」清单","imagecompose.test.cjs"],
+  ["概览文档对着代码校验","docs/overview.html · imagecompose.test.cjs","模块表 / 套件表 / 路由表 / 图标数 全部由断言钉住","imagecompose.test.cjs"],
+  ["本预览站点 + 护栏","docs/showcase.html · imagecompose.test.cjs","站点引用的套件数 / 断言数 / 模块清单由断言校验","imagecompose.test.cjs"]
+];
+$("#chgTable").innerHTML = CHG.map(function(r){
+  return '<tr>'+r.map(function(c,i){
+    var st = i===0 ? 'font-weight:650' : (i===1||i===3 ? 'font-family:var(--mono);font-size:12.5px;color:var(--tx2)' : 'color:var(--tx2)');
+    return '<td style="padding:9px 10px;border-bottom:1px solid var(--bd);vertical-align:top;'+st+'">'+esc(c)+'</td>';
+  }).join("")+'</tr>';
+}).join("");
+})();
+</script>
+</body>
+</html>
