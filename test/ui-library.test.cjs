@@ -129,6 +129,20 @@ function cleanup() {
       await page.locator("#libraryTitle").textContent());
     check("管理模式隐藏「在线图标库」标签页",
       await page.locator("#libTabs[hidden]").count() === 1);
+    // ⚠️ 必须先等「读取中 → 空状态」切换完成再断言。
+    // 打开弹窗的一瞬间 #libEmpty 显示的是 loading 文案「正在读取图床库…」，
+    // 直接断言就会偶发拿到它 —— 这正是本套件长期「全量回归偶发 1 项失败、
+    // 单独跑必过」的真正原因：机器忙时 /api/library 回得慢一点就中招，
+    // 而它看起来像产品缺陷（空库提示消失），实际是断言早于数据到达。
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById("libEmpty");
+        return !!el && !el.hidden &&
+          !/正在读取/.test(el.textContent || "") &&
+          /批量选择图片|还是空的/.test(el.textContent || "");
+      },
+      null, { timeout: 5000 }
+    ).catch(() => { /* 超时交给下面的断言报出真实文案 */ });
     check("空库给出可操作提示",
       /批量选择图片|还是空的/.test(await page.locator("#libEmpty").textContent()),
       await page.locator("#libEmpty").textContent());

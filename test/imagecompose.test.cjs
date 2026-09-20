@@ -8,11 +8,14 @@
  *   要等到用户在另一台机器上 pull 失败才发现。
  *   本套件把这批"看不见的契约"固化成断言。
  *
- * 覆盖三块：
+ * 覆盖七块：
  *   A. .github/workflows/docker-publish.yml —— 触发/权限/多架构/推送/冒烟
  *   B. docker-compose.image.yml —— 无 build:、指向远程仓库、护栏齐全
  *   C. 两条部署路径不能漂移 —— 源码编排与镜像编排的环境变量/端口/挂载必须一致
  *   D. 调用真的 scripts/check-compose.cjs（含反向验证：畸形夹具必须被判失败）
+ *   E. 文档入口与镜像契约（Dockerfile COPY 清单 ↔ 代码 require、发布截图唯一生产者）
+ *   F. 指南文档结构（目录锚点必须真实存在）
+ *   G. 项目概览与代码结构一致（docs/overview.html 的模块表 / 套件表 / 路由表）
  *
  * 自包含：不联网、不起服务、不碰真实数据。
  */
@@ -501,6 +504,154 @@ try {
   }
 } catch (e) {
   bad("指南文档结构检查异常", e && e.message ? e.message : String(e));
+}
+
+/* ---------------- G. 项目概览与代码结构一致 ---------------- */
+/*
+ * docs/overview.html 是「结构 / 职责 / 调用关系 / 功能盘点」的总览。这类文档的
+ * 典型死法是：写的时候全对，之后代码一路改、文档一路烂，最后没人再信它。
+ * 所以这里不给它留「靠自觉维护」的口子 —— 概览里三张关键表全部对着**代码事实**校验：
+ *   ① 模块表  ↔ server.js 实际 require 的本地模块（新增模块忘写文档 → 红）
+ *   ② 套件表  ↔ test/_baseline.txt 的套件名与断言数（逐条比，含合计）
+ *   ③ 路由表  ↔ server.js 里所有 pathname === "..." 的字面量
+ * 另有图标数、服务指纹数两条「说法的数字」也一并钉住。
+ *
+ * ⚠️ 概览里的行数是**快照**：改了代码就得顺手改那几个数字，本断言会指出该改成多少。
+ *    这是刻意的摩擦 —— 与其让数字静悄悄地烂掉，不如让它在回归里响亮地红一次。
+ */
+section("G. docs/overview.html（概览文档不能与代码脱节）");
+try {
+  const OVERVIEW = path.join(ROOT, "docs", "overview.html");
+  check(fs.existsSync(OVERVIEW), "docs/overview.html 存在");
+  const ov = fs.existsSync(OVERVIEW) ? readText(OVERVIEW) : "";
+
+  check(/<\/html>\s*$/.test(ov), "概览文档 HTML 正常闭合");
+  check(!/<!--\s*##PART\d+##\s*-->/.test(ov), "概览文档没有残留的占位注释");
+
+  // 受护栏保护的区块：<!-- guard:名字 --> … <!-- /guard:名字 -->
+  const blockOf = (name) => {
+    const re = new RegExp("<!--\\s*guard:" + name + "\\s*-->([\\s\\S]*?)<!--\\s*/guard:" + name + "\\s*-->");
+    const m = ov.match(re);
+    return m ? m[1] : "";
+  };
+
+  /* ---- ① 模块表 ↔ server.js 的本地 require ---- */
+  const srvAll = readText(path.join(ROOT, "server.js"));
+  const reqMods = Array.from(new Set(Array.from(
+    srvAll.matchAll(/require\(\s*["']\.\/([A-Za-z0-9_-]+)(?:\.js)?["']\s*\)/g)
+  ).map((m) => m[1] + ".js"))).sort();
+  const wantMods = ["server.js"].concat(reqMods).sort();
+
+  const modBlock = blockOf("modules");
+  check(!!modBlock, "概览文档里有 guard:modules 区块（护栏自身有效）");
+  const docMods = Array.from(new Set(Array.from(
+    modBlock.matchAll(/<td><code>([A-Za-z0-9_.-]+\.js)<\/code><\/td>/g)
+  ).map((m) => m[1]))).sort();
+  check(reqMods.length >= 2 && docMods.length >= 2, "两侧的模块清单都不为空（护栏自身有效）",
+    "server.js require " + reqMods.length + " 个 / 概览列出 " + docMods.length + " 个");
+  check(docMods.join(",") === wantMods.join(","),
+    "概览的模块清单 = server.js + 它实际 require 的本地模块（加了模块忘写文档会红）",
+    "文档: " + docMods.join(", ") + "  ／  实际: " + wantMods.join(", "));
+
+  // 行数是快照：与真实行数不一致时直接把「该改成多少」写进提示里
+  const lineCells = blockOf("modules").match(/<td><code>([A-Za-z0-9_.-]+\.js)<\/code><\/td><td class="num">(\d+)<\/td>/g) || [];
+  const lineMismatch = [];
+  for (const row of lineCells) {
+    const m = row.match(/<td><code>([A-Za-z0-9_.-]+\.js)<\/code><\/td><td class="num">(\d+)<\/td>/);
+    const real = readText(path.join(ROOT, m[1])).split("\n").length;
+    if (real !== Number(m[2])) lineMismatch.push(m[1] + " 文档 " + m[2] + " → 实际 " + real);
+  }
+  check(lineCells.length === docMods.length,
+    "模块表的每个模块都写了行数（结构概览的核心信息）",
+    lineCells.length + " / " + docMods.length);
+  check(lineMismatch.length === 0, "模块表里的行数与代码一致", lineMismatch.join("; "));
+
+  /* ---- ② 套件表 ↔ test/_baseline.txt ---- */
+  const base = readText(path.join(ROOT, "test", "_baseline.txt"));
+  const baseMap = new Map();
+  for (const m of base.matchAll(/\u2713\s+(\S+)\s+(\d+)\s+通过,\s+(\d+)\s+失败/g)) {
+    baseMap.set(m[1], Number(m[2]));
+  }
+  check(baseMap.size >= 15, "从 _baseline.txt 解析出足够多的套件（护栏自身有效）", baseMap.size + " 个");
+
+  const suiteBlock = blockOf("suites");
+  check(!!suiteBlock, "概览文档里有 guard:suites 区块（护栏自身有效）");
+  const docSuites = new Map();
+  for (const m of suiteBlock.matchAll(
+    /<tr><td><code>([^<]+)<\/code><\/td><td>[^<]*<\/td><td class="num">(\d+)<\/td>/g)) {
+    docSuites.set(m[1], Number(m[2]));
+  }
+  check(docSuites.size > 0, "能从概览的套件表里解析出套件（护栏自身有效）", docSuites.size + " 行");
+  check(docSuites.size === baseMap.size, "概览列出的套件数与基线一致",
+    docSuites.size + " vs " + baseMap.size);
+
+  const onlyDoc = Array.from(docSuites.keys()).filter((k) => !baseMap.has(k));
+  const onlyBase = Array.from(baseMap.keys()).filter((k) => !docSuites.has(k));
+  check(onlyDoc.length === 0 && onlyBase.length === 0,
+    "套件名单双向一致（文档里多一个、或漏一个都红）",
+    (onlyDoc.length ? "文档多出: " + onlyDoc.join(", ") : "文档无多余") +
+    " ／ " + (onlyBase.length ? "文档漏掉: " + onlyBase.join(", ") : "无遗漏"));
+
+  const cntDiff = Array.from(docSuites.keys())
+    .filter((k) => baseMap.has(k) && docSuites.get(k) !== baseMap.get(k))
+    .map((k) => k + " 文档 " + docSuites.get(k) + " → 基线 " + baseMap.get(k));
+  check(cntDiff.length === 0, "每个套件的断言数与 _baseline.txt 逐条一致", cntDiff.join("; "));
+
+  const baseTotal = base.match(/合计：(\d+)\s*通过,\s*(\d+)\s*失败\s*\/\s*共\s*(\d+)\s*个套件/);
+  check(!!baseTotal, "能从 _baseline.txt 解析出合计行");
+  const docTotal = suiteBlock.match(/合计\s*(\d+)\s*套[\s\S]{0,90}?<strong>(\d+)<\/strong>/);
+  check(!!docTotal, "能从概览的合计行解析出套数与断言数");
+  const bT = baseTotal ? { pass: Number(baseTotal[1]), fail: Number(baseTotal[2]), suites: Number(baseTotal[3]) } : { pass: -1, fail: -1, suites: -1 };
+  const dT = docTotal ? { suites: Number(docTotal[1]), pass: Number(docTotal[2]) } : { suites: -1, pass: -1 };
+  check(dT.suites === bT.suites && dT.pass === bT.pass && bT.fail === 0,
+    "概览的「N 套 / M 断言 / 0 失败」与基线完全一致",
+    "文档 " + dT.suites + " 套 / " + dT.pass + " 断言  ／  基线 " + bT.suites + " 套 / " + bT.pass + " 断言 / " + bT.fail + " 失败");
+
+  /* ---- ③ 路由表 ↔ server.js 的 pathname 字面量 ---- */
+  const srvPaths = Array.from(new Set(Array.from(
+    srvAll.matchAll(/pathname\s*===\s*["'](\/[^"']+)["']/g)
+  ).map((m) => m[1]))).sort();
+  const routeRows = Array.from(ov.matchAll(
+    /<tr><td><code>(\/[A-Za-z0-9_\/.-]+)<\/code><\/td><td>(GET|POST|PUT)<\/td>/g
+  )).map((m) => m[1]);
+  const docPaths = Array.from(new Set(routeRows)).sort();
+  check(srvPaths.length >= 10, "从 server.js 解析出足够多的路由（护栏自身有效）", srvPaths.length + " 个地址");
+  check(docPaths.join(",") === srvPaths.join(","),
+    "概览的接口清单 = server.js 里所有 pathname 字面量（加了接口忘写文档会红）",
+    "文档: " + docPaths.join(", ") + "  ／  实际: " + srvPaths.join(", "));
+
+  const claimed = ov.match(/共\s*<strong>(\d+)\s*条接口路由<\/strong>/);
+  check(!!claimed, "概览正文写明了接口路由条数");
+  const claimedN = claimed ? Number(claimed[1]) : -1;
+  check(claimedN === routeRows.length, "正文声明的路由条数与清单行数一致（含 config 的 GET/PUT 两行）",
+    "正文 " + claimedN + " 条 vs 清单 " + routeRows.length + " 行");
+  check(routeRows.length === srvPaths.length + 1,
+    "清单行数 = 地址数 + 1（/api/config 有 GET 与 PUT 两条，是本项目唯一的例外）",
+    routeRows.length + " 行 vs " + srvPaths.length + " 个地址");
+
+  /* ---- ④ 图标数与服务指纹数：说法的数字也要钉住 ---- */
+  const iconDir = fs.readdirSync(path.join(ROOT, "public", "icons"));
+  const svgN = iconDir.filter((f) => f.endsWith(".svg")).length;
+  const icoN = iconDir.filter((f) => f.endsWith(".ico")).length;
+  const mapN = (readText(path.join(ROOT, "public", "js", "icon-map.js"))
+    .match(/^\s*"[^"]+":\s*"/gm) || []).length;
+  check(ov.indexOf((svgN + icoN) + " 个图标（" + svgN + " SVG + " + icoN + " ICO）") >= 0,
+    "概览里的图标数量与 public/icons/ 实际一致",
+    "实际 " + (svgN + icoN) + " 个（" + svgN + " svg + " + icoN + " ico）");
+  check(ov.indexOf(mapN + " 条 <code>slug") >= 0,
+    "概览里的本地图标映射条数与 icon-map.js 实际一致", "实际 " + mapN + " 条");
+
+  const disc = require(path.join(ROOT, "discovery.js"));
+  const presetN = (disc.SERVICE_PRESETS || []).length;
+  check(presetN >= 10 && ov.indexOf("（" + presetN + " 条）") >= 0 && ov.indexOf(presetN + " 类常见自建服务") >= 0,
+    "概览里的服务指纹条数与 SERVICE_PRESETS 实际一致", "实际 " + presetN + " 条");
+
+  /* ---- ⑤ 概览刻意不进发布包（与 roadmap.html 同策略） ---- */
+  const bs2 = readText(path.join(ROOT, "scripts", "build-share.cjs"));
+  check(bs2.indexOf("overview.html") < 0 && bs2.indexOf("roadmap.html") < 0,
+    "概览与 roadmap 刻意不进发布包（维护视角文档，不面向访客）");
+} catch (e) {
+  bad("概览文档一致性检查异常", e && e.message ? e.message : String(e));
 }
 
 console.log("");

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Navi 导航站 · 项目概览</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    color: #1f2937; font-size: 10.5pt; line-height: 1.75;
+  }
+
+  /* ---------- 页眉 ---------- */
+  .cover {
+    padding: 34px 30px 30px;
+    background: linear-gradient(135deg, #eff6ff, #f0fdfa);
+    border: 1px solid #dbeafe; border-radius: 14px;
+    margin-bottom: 22px;
+  }
+  .cover h1 {
+    font-size: 23pt; font-weight: 800; letter-spacing: 1px;
+    background: linear-gradient(90deg, #2563eb, #0d9488);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .cover .sub { margin-top: 8px; font-size: 12pt; color: #4b5563; }
+  .cover .meta { margin-top: 16px; font-size: 9pt; color: #6b7280; line-height: 1.9; }
+  .cover .badge {
+    display: inline-block; margin: 4px 6px 0 0; padding: 3px 12px;
+    border: 1px solid #bfdbfe; border-radius: 999px; background: #fff;
+    color: #2563eb; font-size: 8.5pt; letter-spacing: 0.5px;
+  }
+
+  /* ---------- 正文 ---------- */
+  h2 {
+    font-size: 15pt; font-weight: 700; color: #111827;
+    margin: 24px 0 10px; padding-left: 12px;
+    border-left: 4px solid #2563eb;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11.5pt; font-weight: 700; color: #1f2937;
+    margin: 16px 0 6px;
+    page-break-after: avoid;
+  }
+  h4 {
+    font-size: 10.5pt; font-weight: 700; color: #374151;
+    margin: 12px 0 4px;
+    page-break-after: avoid;
+  }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0 6px 22px; }
+  li { margin: 3px 0; }
+  strong { color: #111827; }
+  a { color: #2563eb; text-decoration: none; }
+
+  code.inline {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9pt;
+    background: #f1f5f9; color: #be123c;
+    padding: 1px 6px; border-radius: 4px;
+  }
+  pre {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 8.6pt; line-height: 1.65;
+    background: #0f172a; color: #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    overflow-x: auto;
+    page-break-inside: avoid;
+  }
+  pre .c { color: #64748b; }   /* 注释 */
+  pre .k { color: #7dd3fc; }   /* 关键字 / 目录名 */
+  pre .g { color: #6ee7b7; }   /* 强调 */
+
+  .tip, .warn, .danger, .note {
+    border-radius: 8px; padding: 10px 14px; margin: 10px 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  .tip { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e40af; }
+  .warn { background: #fff7ed; border-left: 4px solid #f97316; color: #9a3412; }
+  .danger { background: #fef2f2; border-left: 4px solid #dc2626; color: #991b1b; }
+  .note { background: #f8fafc; border-left: 4px solid #94a3b8; color: #475569; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9.5pt;
+  }
+  th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; font-weight: 700; }
+  td code { font-family: Consolas, monospace; font-size: 8.8pt; color: #be123c; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  tr { page-break-inside: avoid; }
+
+  .footer-note {
+    margin-top: 28px; padding-top: 10px; border-top: 1px solid #e5e7eb;
+    font-size: 9pt; color: #9ca3af; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== 页眉 ==================== -->
+<div class="cover">
+  <h1>Navi · 项目概览</h1>
+  <p class="sub">零依赖的个人导航站 —— 模块职责、目录组织、调用关系与实现要点</p>
+  <p class="meta">
+    仓库：<code class="inline">mijunyi/navi-homepage</code> ｜ 形态：零 npm 依赖的 Node HTTP 服务 + 原生前端<br>
+    整理时间：2026-09-20 ｜ 依据：当前工作区代码实测（行数、导出、路由、依赖均取自源码，非估计）
+  </p>
+  <div>
+    <span class="badge">4 个后端模块</span>
+    <span class="badge">零 package.json</span>
+    <span class="badge">19 个测试套件 / 940 项断言</span>
+    <span class="badge">amd64 + arm64 镜像</span>
+  </div>
+</div>
+
+<!-- ==================== 一 ==================== -->
+<h2>一、一句话定位</h2>
+<p>
+  一个<strong>不依赖任何第三方包</strong>的轻量导航站：Node 内置模块直接起 HTTP 服务，前端是原生
+  HTML / CSS / JS，<strong>没有构建步骤</strong>——改完文件刷新即生效，容器镜像只多一份 <code class="inline">node:22-alpine</code>。
+  它面向的是「家里有 NAS / 一台小主机、想把自己的一堆服务收成一个主页」的场景，因此把
+  <strong>服务发现</strong>（自动识别容器与内网端口并生成卡片）、<strong>图床库</strong>（本地图标可重复选用）、
+  <strong>状态板</strong>（CPU / 内存 / 磁盘 / 容器数）和<strong>含图片的备份</strong>都做在了内置功能里。
+</p>
+
+<h3>四条工程红线</h3>
+<p>下面四条是这个项目反复被验证过、<strong>不接受任何单项收益去交换</strong>的约束，后续所有改动都要落在它们之内：</p>
+<table>
+  <tr><th style="width:32%">红线</th><th>含义与代价</th></tr>
+  <tr>
+    <td><strong>① 零 npm 依赖 + 零构建</strong></td>
+    <td>运行时只有 Node 内置模块；仓库里<strong>没有 <code>package.json</code></strong>。写 ZIP、拼音、图标库都自己实现。代价是要多写代码，收益是「十年后 clone 下来仍能跑」。</td>
+  </tr>
+  <tr>
+    <td><strong>② 多架构镜像与冒烟 job 必须继续过</strong></td>
+    <td>CI 里 amd64 + arm64 双架构构建与「启动容器请求健康接口」两个 job 是硬闸门，任何一个红都不算完成。</td>
+  </tr>
+  <tr>
+    <td><strong>③ 断言只增不减</strong></td>
+    <td><code class="inline">test/_baseline.txt</code> 记录通过数与失败数，任何改动通过数只能 ≥ 记录值且失败必须为 0。<strong>文档里出现的每个数字都要有断言守着</strong>——否则它一定会烂掉（见第九节）。</td>
+  </tr>
+  <tr>
+    <td><strong>④ 不挂 <code>docker.sock</code> 时全部功能可用</strong></td>
+    <td>挂 socket 等于把宿主机 root 权限交给容器，所以它是可选的：未挂载时只有「容器视角」的状态板数字降级，其余功能（含服务发现退化为扫本机端口）照常工作。</td>
+  </tr>
+</table>
+
+<!-- ==================== 二 ==================== -->
+<h2>二、目录组织</h2>
+<pre><span class="k">导航站/</span>
+├── <span class="g">server.js</span>              1428 行 · 唯一的 HTTP 服务入口（路由 / 认证 / 静态托管 / 配置读写 / 备份）
+├── <span class="g">discovery.js</span>            917 行 · 服务发现（Docker API + 本机端口扫描 + 33 类服务指纹 + 图标匹配）
+├── <span class="g">status.js</span>               357 行 · 首页状态板采集（CPU / 内存 / 磁盘 / 容器统计，全部可降级）
+├── <span class="g">zip.js</span>                  195 行 · 手写 ZIP 读写（零依赖，「备份含图片」的地基）
+│
+├── <span class="k">public/</span>                    前端与运行时数据（静态托管根目录）
+│   ├── index.html           430 行 · 主页面 DOM 骨架 + 7 个弹窗
+│   ├── login.html           323 行 · 登录页（<strong>完全自包含</strong>，不引外部 css/js）
+│   ├── css/style.css       1138 行 · 唯一样式表（日/夜双主题，全部走 CSS 变量）
+│   ├── js/app.js           3271 行 · 全部前端逻辑（单文件 IIFE，内部 37 处分节）
+│   ├── js/icon-map.js       232 行 · ← 由 scripts/build-icons.cjs 生成（227 条 slug→本地图标）
+│   ├── js/pinyin.js         465 行 · ← 由 scripts/build-pinyin.cjs 生成（20924 常用汉字）
+│   ├── icons/               227 个图标（217 SVG + 10 ICO）+ catalog.json 元数据
+│   ├── config.example.json   56 行 · 示例配置（镜像内会被拷成 /app/data/config.json）
+│   └── config.json                · <strong>本地真实数据，已 gitignore，绝不入库</strong>
+│
+├── <span class="k">docs/</span>                      文档（HTML 为主要形态，另有 3 份 PDF）
+│   ├── docker-guide.html    409 行 · Docker 部署指南
+│   ├── fnos-deploy-guide.html 749 行 · 飞牛 fnOS 部署指南
+│   ├── image-deploy-guide.html 684 行 · 拉取预构建镜像部署指南
+│   ├── roadmap.html        1066 行 · 改进路线与实施进度（<strong>刻意不进发布包</strong>）
+│   └── overview.html              · 本文档（同上，不进发布包）
+│
+├── <span class="k">scripts/</span>                   构建 / 自检 / 发布工具（12 个，均为开发期使用）
+│   ├── build-icons.cjs            生成 public/js/icon-map.js 与图标库
+│   ├── build-pinyin.cjs           生成 public/js/pinyin.js
+│   ├── build-share.cjs            构建线上发布包 share/
+│   ├── verify-share-ui.cjs        验证发布包内容新鲜度（含截图实际解码）
+│   ├── check-compose.cjs          compose 起飞前自检（缩进 + 安全护栏）
+│   ├── check-deploy.cjs           判定「线上跑的是新代码还是旧代码」
+│   ├── git-preflight.cjs          推送前密钥自检（公开仓库的硬闸门）
+│   ├── check-github-net.cjs       区分「凭据问题」与「网络问题」
+│   ├── publish-github.cjs         一键发布到 GitHub
+│   ├── migrate-to-dir-mount.sh    单文件挂载 → 整目录挂载的迁移脚本
+│   ├── share-index.html           线上落地页的<strong>源文件</strong>（share/index.html 由它生成）
+│   └── verify-share.cjs           发布包存在性检查
+│
+├── <span class="k">test/</span>                      19 个测试套件 + 夹具与截图生成器
+│   ├── run-all.cjs               一键全跑（自建隔离实例，用临时 config + 临时 uploads）
+│   ├── lib/hermetic.cjs          让 UI 测试真正自包含（把公网请求就地应答）
+│   ├── _baseline.txt             断言基线（只增不减的对照物）
+│   ├── page-shots.cjs            <strong>对外发布截图的唯一生产者</strong>
+│   ├── doc-shot.cjs / login-shot.cjs   部署指南 / 登录页截图
+│   └── make-pdf.cjs              生成 docs/*.pdf
+│
+├── <span class="k">.github/workflows/</span>          docker-publish.yml（166 行）· 多架构构建 + 冒烟两 job
+├── Dockerfile                    镜像定义（显式 COPY 每个后端模块）
+├── docker-compose.yml            源码构建模式（build: .）
+├── docker-compose.image.yml      拉取预构建镜像模式
+├── .env.example                  全部环境变量及其含义（65 行）
+├── README.md                     690 行 · 功能、结构、接口、部署、排障
+├── CHANGELOG.md                   84 行 · Keep a Changelog 格式
+└── preview.html / preview.cmd / preview-launcher.js   静态效果预览页与其启动壳
+</pre>
+
+<div class="warn">
+  <strong>三个「不进仓库 / 不进镜像」的目录，别误提交：</strong>
+  <code class="inline">/data/</code>（Docker 整目录挂载的运行时数据）、<code class="inline">/share/</code>（纯生成物，由 <code class="inline">build-share.cjs</code> 重建）、
+  <code class="inline">public/config.json</code> 与 <code class="inline">public/uploads/</code>（本地真实数据）。前两者在 <code class="inline">.gitignore</code> 与 <code class="inline">.dockerignore</code> 里都排除。
+</div>
+
+<!-- ==================== 三 ==================== -->
+<h2>三、后端模块与依赖关系</h2>
+<p>后端只有 4 个文件。<code class="inline">server.js</code> 是唯一的入口与路由中心，其余三个都是<strong>可被单独 require、可单独测试</strong>的能力模块：</p>
+
+<pre>                       ┌──────────────────────────────────────────────┐
+   HTTP 请求  ────────▶ │                server.js                     │
+                       │   路由 · 认证闸门 · 静态托管 · 配置读写/校验   │
+                       └───┬──────────────────┬───────────────────┬───┘
+                           │                  │                   │
+              require ─────┘                  │                   └───── require
+                    ┌──────────────────┐      │            ┌───────────────────┐
+                    │  discovery.js     │      │            │     zip.js        │
+                    │  服务发现 / 指纹   │      │            │  手写 ZIP 读写     │
+                    │  26 个导出         │      │            │  4 个导出          │
+                    └─────────▲─────────┘      │            └───────────────────┘
+                              │ require        │
+                    ┌─────────┴─────────┐      │
+                    │    status.js      │      │
+                    │  状态板采集        │      │
+                    │  14 个导出        │      │
+                    └───────────────────┘      │
+                                               ▼
+                    静态资源  public/（index.html · app.js · style.css · icons/ · uploads/）</pre>
+
+<h3>各模块职责与对外接口</h3>
+<!-- guard:modules -->
+<table>
+  <tr><th style="width:15%">文件</th><th style="width:8%" class="num">行数</th><th style="width:45%">职责</th><th>关键导出</th></tr>
+  <tr>
+    <td><code>server.js</code></td><td class="num">1428</td>
+    <td>唯一入口：环境变量解析、配置读写与<strong>写入口校验</strong>、认证闸门、15 条接口路由、静态托管与 HTML 注入、备份/恢复/上传、图床库、登录限流</td>
+    <td>无导出（<code>require</code> 即启动，监听 <code>PORT</code>）</td>
+  </tr>
+  <tr>
+    <td><code>discovery.js</code></td><td class="num">917</td>
+    <td>服务发现：Docker API（socket 或 TCP）列容器 → 端口提取 → 服务指纹匹配 → 图标推断 → 生成候选卡片；不可用时退化为扫本机监听端口；<code>computeStale()</code> 负责「源侧消失只标记不删」</td>
+    <td><code>SERVICE_PRESETS</code>（33 条）<code>discover</code> <code>computeStale</code> <code>listContainers</code> <code>scanLocalPorts</code> <code>matchPreset</code> <code>resolveAutoIcon</code> 等 26 个</td>
+  </tr>
+  <tr>
+    <td><code>status.js</code></td><td class="num">357</td>
+    <td>状态板：CPU（两次采样差值）、内存（含 cgroup 限额）、磁盘水位、容器统计、上传目录占用；<strong>采不到就给 null，从不给 0</strong>，并带服务端缓存</td>
+    <td><code>getStatus</code> <code>buildStatus</code> <code>cpuPercentBetween</code> <code>parseMeminfo</code> <code>diskInfo</code> <code>summarizeContainers</code> 等 14 个</td>
+  </tr>
+  <tr>
+    <td><code>zip.js</code></td><td class="num">195</td>
+    <td>零依赖 ZIP：写出（store/deflate）与读取，含 CRC32 校验；「备份含图片」与「恢复整包」都压在它上面</td>
+    <td><code>zipCreate</code> <code>zipRead</code> <code>looksLikeZip</code> <code>crc32</code></td>
+  </tr>
+</table>
+<!-- /guard:modules -->
+
+<div class="note">
+  <strong>依赖是单向的、无环的：</strong><code class="inline">server.js → {discovery, zip, status}</code>，
+  <code class="inline">status.js → discovery</code>，<code class="inline">discovery.js</code> 与 <code class="inline">zip.js</code> <strong>不依赖任何本地模块</strong>。
+  因此后两者可以被测试直接 <code class="inline">require</code> 做纯函数验证，不必起服务——这正是 <code class="inline">discover.test.js</code>(99) 与 <code class="inline">zipbackup.test.js</code>(54) 能做得很细的原因。
+</div>
+
+<!-- ==================== 四 ==================== -->
+<h2>四、前端结构</h2>
+<p>前端没有框架、没有打包器，只有 4 个手写文件 + 2 个生成的数据文件：</p>
+
+<table>
+  <tr><th style="width:26%">文件</th><th style="width:8%" class="num">行数</th><th>角色</th></tr>
+  <tr><td><code>public/index.html</code></td><td class="num">430</td><td>唯一页面的 DOM 骨架：顶栏（搜索 / 编辑 / 主题 / 内外网切换）、hero（时钟 + 网络徽章）、状态板、卡片网格、以及 <strong>7 个弹窗</strong>（首次引导 / 卡片编辑 / 分组 / <code>Ctrl+K</code> 面板 / 备份 / 服务发现 / 图床库）。只引 <code>style.css</code>、<code>icon-map.js</code>、<code>app.js</code> 三个资源。</td></tr>
+  <tr><td><code>public/js/app.js</code></td><td class="num">3271</td><td>全部前端逻辑，单文件 IIFE，内部以注释分节划出 <strong>37 个区块</strong>（图标解析 → 搜索匹配 → 标签 → 命令面板 → 编辑 → 备份 → 图床库 → 拖拽 → 服务发现 → 状态板 → 启动）。对外只暴露一个<strong>只读</strong>的测试探针 <code>window.NaviApp</code>。</td></tr>
+  <tr><td><code>public/css/style.css</code></td><td class="num">1138</td><td>唯一样式表。日 / 夜主题靠 <code>html[data-theme]</code> 切换 CSS 变量实现，无重复样式定义。</td></tr>
+  <tr><td><code>public/login.html</code></td><td class="num">323</td><td>登录页。<strong>刻意不引任何外部资源</strong>——即使静态资源出错、样式表被缓存污染，登录入口也必须能渲染出来。</td></tr>
+  <tr><td><code>public/js/icon-map.js</code></td><td class="num">232</td><td>生成物。227 条 <code>slug → icons/xxx.svg</code> 映射，供前端「本地图标优先」查表。</td></tr>
+  <tr><td><code>public/js/pinyin.js</code></td><td class="num">465</td><td>生成物。20924 个常用汉字的拼音表（单读音、无声调、<code>ü</code> 记作 <code>v</code>），<strong>首次搜索时才按需注入</strong>，不拖慢首屏。</td></tr>
+</table>
+
+<h3>app.js 的主要分节（按数据流向排列）</h3>
+<pre>图标解析 → 内网环境自动识别 → 状态 → DOM 引用 → 工具 → 渲染
+   ├─ <span class="g">内网可达性探测</span>         逐卡探测、结果缓存、混合内容场景直接跳过判定
+   ├─ <span class="g">搜索匹配</span>              标题 → 拼音 → 标签 → 描述 → 网址（唯一入口 matchRank）
+   ├─ 卡片标签（P2）          收敛 / 截断 / 去重，与后端同值（8 个 · 12 字）
+   ├─ 拼音表按需加载           动态注入 &lt;script&gt;，失败静默降级
+   ├─ 图标加载失败回退         降为「首字母方块」，不显示碎图
+   ├─ 内外网切换 / 日夜间切换   两个全局视图开关
+   ├─ <span class="g">命令面板（Ctrl / ⌘ + K）</span>  与网格共用 matchRank，含命中原因徽章
+   ├─ 时钟 → 保存 / 取消 / 导出 → 数据备份 / 恢复
+   ├─ 弹窗 → 首次使用引导 → 来源文案与失效说明 → Logo 上传
+   ├─ <span class="g">图床库</span>                本地库 / 在线图标库两个页签、批传进度、选用与删除
+   ├─ 点击标签即筛选 → 卡片 / 分组操作 → 拖拽排序（跨分组）
+   ├─ <span class="g">从外部拖入链接建卡</span>      仅编辑模式生效（P2）
+   ├─ 站点信息 → 认证状态与退出登录
+   ├─ <span class="g">失效卡片（只标记、不删除）</span>  标记 / 恢复 / 清理（P1-7）
+   └─ 服务发现：交互 → 失效项的两个显式动作 → 启动：加载配置</pre>
+
+<!-- ==================== 五 ==================== -->
+<h2>五、数据模型</h2>
+<p>整个应用只有<strong>一份结构化数据</strong>：一个 JSON 配置 + 一个图片目录。<strong>没有数据库、没有 ORM。</strong></p>
+
+<pre>{
+  "site": {
+    "title": "Navi", "subtitle": "个人导航站", "footer": "…",
+    "defaultEngine": "百度",
+    "searchEngines": [ { "name": "百度", "url": "https://www.baidu.com/s?wd=%s" } ]
+  },
+  "groups": [
+    { "name": "开发工具",
+      "items": [ { "title": "GitHub", "desc": "代码托管", "icon": "github-light",
+                   "url": "https://github.com" }, … ] }
+  ]
+}</pre>
+
+<h3>导航项（item）字段全表</h3>
+<table>
+  <tr><th style="width:16%">字段</th><th style="width:12%">类型</th><th style="width:10%">必填</th><th>说明与校验位置</th></tr>
+  <tr><td><code>title</code></td><td>string</td><td>✔</td><td>卡片标题。后端拒绝空标题。</td></tr>
+  <tr><td><code>url</code></td><td>string</td><td>✔</td><td>外网地址，后端强制 <code>http(s)://</code> 前缀。</td></tr>
+  <tr><td><code>desc</code></td><td>string</td><td>—</td><td>副标题。空值不落库（保存时删除该键）。</td></tr>
+  <tr><td><code>lanUrl</code></td><td>string</td><td>—</td><td>内网地址，同样强制 <code>http(s)://</code>。</td></tr>
+  <tr><td><code>netMode</code></td><td>enum</td><td>—</td><td><code>auto</code> / <code>lan</code> / <code>wan</code>。<strong>写错会静默退化成自动</strong>，故在写入口明确拒绝（P0-3）。</td></tr>
+  <tr><td><code>icon</code></td><td>string</td><td>—</td><td>图标名。支持本地 slug、<code>iconify:库:名</code>、以及直接给 URL。</td></tr>
+  <tr><td><code>logo</code></td><td>string</td><td>—</td><td>本地上传的图片路径（图床库或 <code>/uploads/</code>），优先级高于 <code>icon</code>。</td></tr>
+  <tr><td><code>tags</code></td><td>string[]</td><td>—</td><td>标签（P2）。后端限制 <strong>≤ 8 个、单个 ≤ 12 字、必须是非空字符串</strong>，与前端 <code>normalizeTags()</code> 同值——避免「前端存得进去、后端存不下」。</td></tr>
+  <tr><td><code>source</code></td><td>object</td><td>—</td><td>来源追踪（P1-7）：<code>{ type: discover｜manual｜import, via, id, syncedAt }</code>。<strong>只有 <code>type==="discover"</code> 参与失效判定</strong>，手工添加与导入的卡片永远不会被误标。</td></tr>
+  <tr><td><code>stale</code></td><td>boolean</td><td>—</td><td>源侧已消失的标记（P1-7）。只写 <code>true</code>/<code>false</code>，写成字符串会在入口被拒。</td></tr>
+  <tr><td><code>staleAt</code></td><td>string</td><td>—</td><td>标记时间（ISO 字符串）。</td></tr>
+</table>
+
+<div class="tip">
+  <strong>为什么这些「可选字段」也要严格校验？</strong>因为它们的失败方式都是<strong>静默的</strong>：
+  <code class="inline">netMode:"LAN"</code> 会退化成自动、<code class="inline">stale:"true"</code> 会让前端的布尔分支走错、
+  <code class="inline">tags:"下载"</code> 会让遍历字符串得到单个汉字当标签。
+  与其让用户看到「莫名其妙的行为」，不如在写入口直接给出可读的错误文案。
+</div>
+
+<!-- ==================== 六 ==================== -->
+<h2>六、接口清单</h2>
+<p>共 <strong>15 条接口路由</strong>（13 个 <code class="inline">/api/*</code> 接口 + 登录页 <code class="inline">/login.html</code>，
+  其中 <code class="inline">/api/config</code> 有 GET / PUT 两个），另有 1 条静态资源兜底。
+  除下表中标注「公开」的 5 条外，<strong>其余全部经过同一个认证闸门</strong>（<code class="inline">/api/</code> 前缀统一拦截，未认证返回 401）。</p>
+
+<h3>公开（无需认证）</h3>
+<table>
+  <tr><th style="width:31%">路由</th><th style="width:12%">方法</th><th>说明</th></tr>
+  <tr><td><code>/api/health</code></td><td>GET</td><td>健康检查。CI 的冒烟 job 靠它确认容器真的起来了。</td></tr>
+  <tr><td><code>/api/login</code></td><td>POST</td><td>密码登录（可配用户名），签发 HMAC 会话 Cookie；带登录限流。</td></tr>
+  <tr><td><code>/api/logout</code></td><td>POST</td><td>退出登录，服务端吊销会话。</td></tr>
+  <tr><td><code>/api/auth/status</code></td><td>GET</td><td>查询认证状态与是否启用认证（前端据此显示/隐藏退出按钮）。</td></tr>
+  <tr><td><code>/login.html</code></td><td>GET</td><td>登录页；已认证时直接跳回首页。</td></tr>
+</table>
+
+<h3>需认证</h3>
+<table>
+  <tr><th style="width:31%">路由</th><th style="width:12%">方法</th><th>说明</th></tr>
+  <tr><td><code>/api/config</code></td><td>GET</td><td>读取导航配置（<code>SITE_TITLE</code> / <code>SITE_SUBTITLE</code> 环境变量在读取时覆盖展示层）。</td></tr>
+  <tr><td><code>/api/config</code></td><td>PUT</td><td>写回配置：先 <code>validateConfig</code> 全量校验，再<strong>原子写</strong>（临时文件 + rename，跨挂载点失败时降级直写并报告）。</td></tr>
+  <tr><td><code>/api/backup</code></td><td>GET</td><td>导出备份。默认 JSON（仅配置）；<code>?format=zip</code> 时打包 config + 图床库图片 + 逐项 SHA-256。</td></tr>
+  <tr><td><code>/api/backup/restore</code></td><td>POST</td><td>校验并恢复备份，<strong>自动识别 ZIP 与 JSON 两种格式</strong>。</td></tr>
+  <tr><td><code>/api/upload</code></td><td>POST</td><td>上传单张卡片 Logo（base64，落盘上传目录）。</td></tr>
+  <tr><td><code>/api/library</code></td><td>GET</td><td>列出本地图床库全部图片（含「被哪些卡片引用」）与在线图标预设。</td></tr>
+  <tr><td><code>/api/library/upload</code></td><td>POST</td><td>批量上传图标：<strong>逐张独立校验，允许部分成功</strong>，并回报每张的结果。</td></tr>
+  <tr><td><code>/api/library/delete</code></td><td>POST</td><td>删除图床库图片，默认<strong>拒绝删除仍被卡片引用的图片</strong>。</td></tr>
+  <tr><td><code>/api/discover</code></td><td>GET</td><td>服务发现：返回可直接生成卡片的候选条目 + <code>stale</code> 判定结果（<code>checked</code> / <code>skipped</code>）；不可用时返回明确原因而非空数组。</td></tr>
+  <tr><td><code>/api/status</code></td><td>GET</td><td>状态板数据。<code>?fresh=1</code> 绕过服务端缓存（前端手动刷新走这条）。</td></tr>
+</table>
+
+<!-- ==================== 七 ==================== -->
+<h2>七、关键调用链</h2>
+<p>下面六条链路覆盖了绝大部分代码，理解它们基本就理解了整个项目。</p>
+
+<h3>① 页面加载</h3>
+<pre>浏览器 GET /  →  serveStatic → sendHtml
+                 ├─ 把 HTML 里所有 <span class="k">.js/.css?v=…</span> 统一替换成本次资源版本号
+                 │    （版本号 = public/js + public/css 里的<strong>最新 mtime</strong>，带 3 秒内存缓存）
+                 └─ HTML 本身 <span class="k">no-cache</span>，js/css 强缓存 7 天
+→ 加载 style.css / icon-map.js / app.js
+→ app.js 启动：GET /api/config → render() 渲染分组与卡片
+                 ├─ 逐卡异步探测内网可达性（结果缓存；混合内容场景直接放弃判定，不报错）
+                 ├─ 图标解析：本地 227 表命中 → 否则 CDN → 再失败降为字母方块
+                 └─ 状态板：GET /api/status，30 秒轮询；<strong>全部采不到就静默隐藏并停止轮询</strong>
+→ 拼音表在这一刻<strong>不加载</strong>，等用户真的开始搜索才注入 pinyin.js</pre>
+
+<h3>② 编辑并保存</h3>
+<pre>点「编辑」→ 进入编辑模式（卡片可拖拽、出现保存栏）
+→ 弹窗填字段 → 提交时前端收敛（去重 / 截断 / 空值不落库）
+→ PUT /api/config  →  <span class="g">validateConfig()</span> 全量校验（错误信息直接给用户看）
+                   →  <span class="g">saveConfigAtomic()</span> 临时文件 + rename
+                      └─ 跨挂载点报 EBUSY/EXDEV/EPERM/EACCES 时降级为直写并如实回报 mode</pre>
+
+<h3>③ 服务发现（本项目最复杂的一条）</h3>
+<pre>GET /api/discover → discovery.discover()
+   ├─ <span class="k">列容器</span>：Docker API（unix socket 或 TCP）→ 容器名 / 镜像 / 端口映射
+   │     └─ 拿不到 socket → 不报错，改为「扫本机监听端口」并如实标注 via
+   ├─ <span class="k">本机端口</span>：/proc/net/tcp（Linux）→ 失败则 netstat 兜底；带噪声进程过滤
+   ├─ <span class="k">指纹匹配</span>：33 类常见自建服务的预设（名字 / 端口 / 关键词）→ 推断图标
+   ├─ <span class="k">地址构造</span>：探测本机 IPv4 + LAN/WAN 基址 → 内外网地址各一份
+   └─ <span class="g">computeStale()</span>：只判「<strong>本次真的连上了</strong>的那些来源」
+         ├─ 已消失 → 标记 stale + staleAt，<strong>绝不自动删卡片</strong>
+         └─ 没连上的来源 → 记入 skipped，如实上报「本次没检查」
+→ 前端「加入选中项」时写入 source={type:"discover", via, id, syncedAt}
+→ 失效卡片在卡片上有角标、可「恢复」或显式「清理」（清理需二次确认）</pre>
+
+<h3>④ 备份与恢复</h3>
+<pre>GET /api/backup?format=zip → 打包含图片的备份
+   ├─ zip.js 手写 ZIP（store/deflate + CRC32），零依赖
+   └─ 逐项 SHA-256 → 恢复时校验，损坏能被明确指出来
+POST /api/backup/restore → 自动识别 ZIP / JSON → 校验 → 覆盖写回 → 还原图片</pre>
+
+<h3>⑤ 搜索（网格过滤与命令面板共用同一条路径）</h3>
+<pre>输入关键词 → <span class="g">matchRank(item, kw)</span>  ← 唯一匹配入口，返回「匹配等级」
+   等级：标题开头 &lt; 标题包含 &lt; 拼音首字母 &lt; 全拼 &lt; 全拼松散 &lt; <span class="k">标签</span> &lt; 描述 &lt; 网址
+   ├─ 中文走拼音时需要 pinyin.js（首次搜索才加载）
+   └─ 标签与标题<strong>共用同一套拼音判定</strong>（抽出的 pyHit()）
+→ 首页网格：过滤 + 按等级排序
+→ Ctrl+K 面板：同一份结果，额外显示「命中原因」与拼音徽章</pre>
+
+<h3>⑥ 静态资源与自定义上传目录</h3>
+<pre>GET /uploads/x.png
+   ├─ 若 NAVI_UPLOAD_DIR 与 public/uploads 不同（Docker 下为 /app/data/uploads）
+   │     → 先从上传目录取（只用 basename，天然阻断路径穿越）
+   └─ 未命中 → 回退 public/
+另：所有静态路径经 path.normalize 后必须仍以 ROOT 开头，否则 403</pre>
+
+<!-- ==================== 八 ==================== -->
+<h2>八、功能实现盘点</h2>
+<p>按改进批次分组。<strong>每条都写清「实现要点」与「哪一套断言在守它」</strong>——没有断言的功能在这个项目里视为没做完。</p>
+
+<table>
+  <tr><th style="width:20%">功能</th><th style="width:52%">实现要点</th><th>护栏</th></tr>
+  <tr>
+    <td colspan="3" style="background:#f8fafc"><strong>P0 · 检索与数据安全</strong></td>
+  </tr>
+  <tr>
+    <td><strong>拼音搜索</strong></td>
+    <td>离线拼音表（20924 字）+ <strong>音节边界对齐</strong>的首字母匹配，避免 <code>ty</code> 命中 <code>jtyy</code> 这类跨音节噪音；全拼支持从音节边界起的命中，长查询才启用「松散兜底」</td>
+    <td><code>ui.test.cjs</code> 103</td>
+  </tr>
+  <tr>
+    <td><strong><code>Ctrl/⌘+K</code> 命令面板</strong></td>
+    <td>与网格<strong>共用</strong> <code>matchRank</code>（两处判定不可能不一致）；↑↓ 选择、Enter 打开；面板内可把关键词直接交给搜索引擎（<code>%s</code> / <code>{q}</code> 占位）</td>
+    <td><code>ui.test.cjs</code> 103</td>
+  </tr>
+  <tr>
+    <td><strong>卡片级内外网 <code>netMode</code> + 异步探测</strong></td>
+    <td>每张卡片独立策略（auto/lan/wan）；内网可达性异步探测并缓存，<strong>不阻塞渲染</strong>；<code>crypto.subtle</code> 等浏览器能力缺失时<strong>降级跳过判定</strong>而不是误判为失败</td>
+    <td><code>ui.test.cjs</code> · <code>server.test.js</code> 50</td>
+  </tr>
+  <tr>
+    <td><strong>含图片的备份</strong></td>
+    <td>自己写 ZIP（不引依赖）；逐项 SHA-256；恢复自动识别 zip/json</td>
+    <td><code>zipbackup.test.js</code> 54 · <code>backup.test.js</code> 24</td>
+  </tr>
+  <tr>
+    <td colspan="3" style="background:#f8fafc"><strong>P1 · 可观测与可维护</strong></td>
+  </tr>
+  <tr>
+    <td><strong>首页状态板</strong></td>
+    <td>容器数 / CPU / 内存 / 磁盘；CPU 用两次采样差值；<strong>采不到给 <code>null</code> 不给 <code>0</code></strong>；从头到尾没成功过就静默隐藏并停止轮询；服务端 TTL 缓存避免多人轮询放大 Docker 压力</td>
+    <td><code>status.test.js</code> 90 · <code>ui-status.test.cjs</code> 32</td>
+  </tr>
+  <tr>
+    <td><strong>图标本地优先</strong></td>
+    <td>内置 227 个图标，构建期生成映射表；解析顺序「本地 → CDN」，<strong>断网 / 内网也能出图</strong>；加载失败降为字母方块</td>
+    <td><code>icons.test.js</code> 47</td>
+  </tr>
+  <tr>
+    <td><strong>发现来源追踪与失效标记</strong></td>
+    <td>只标记不删；<strong>未接入的来源不参与判定</strong>（把「检测不到」和「检测到坏了」严格分开）；恢复 / 清理两个显式动作，清理需二次确认</td>
+    <td><code>discover.test.js</code> 99 · <code>ui-discover.test.cjs</code> 58</td>
+  </tr>
+  <tr>
+    <td><strong>发布截图只有一个生产者</strong></td>
+    <td>对外截图统一由 <code>page-shots.cjs</code> 生成并<strong>显式指定主题</strong>；护栏扫描 <code>test/</code> 与 <code>scripts/</code> 里所有截图写者，防止别的套件顺手把发布图覆成另一个主题</td>
+    <td><code>imagecompose.test.cjs</code></td>
+  </tr>
+  <tr>
+    <td colspan="3" style="background:#f8fafc"><strong>P2 · 易用性（部分完成，见第十二节）</strong></td>
+  </tr>
+  <tr>
+    <td><strong>首次使用引导</strong></td>
+    <td>仅在「能写后端 + 从未跳过 + 一张卡片都没有」时出现；跳过状态落 <code>localStorage</code>；含 <code>NAVI_PASSWORD</code> 提醒</td>
+    <td><code>ui-firstrun.test.cjs</code> 33</td>
+  </tr>
+  <tr>
+    <td><strong>拖链接建卡</strong></td>
+    <td>把地址栏 / 书签 / 聊天里的链接拖到页面上即预填表单；仅编辑模式生效，不影响卡片拖拽排序；兼容 <code>text/uri-list</code> 与 <code>text/plain</code> 两种形态</td>
+    <td><code>ui-firstrun.test.cjs</code> 33</td>
+  </tr>
+  <tr>
+    <td><strong>卡片标签</strong></td>
+    <td>给「类别记得、名字忘了」的场景兜底；标签进匹配链并<strong>支持拼音</strong>；点标签即跨分组筛选；面板命中时标注命中原因</td>
+    <td><code>ui-tags.test.cjs</code> 40</td>
+  </tr>
+  <tr>
+    <td><strong><code>DOCKER_GID</code> 说明</strong></td>
+    <td>两个 compose 都给出 <code>group_add</code> 示例并<strong>默认注释掉</strong>：镜像本就以 root 运行，补组 0 会悄悄抵消用户降权运行的意图</td>
+    <td><code>imagecompose.test.cjs</code> · <code>check-compose.cjs</code></td>
+  </tr>
+</table>
+
+<!-- ==================== 九 ==================== -->
+<h2>九、技术要点与关键取舍</h2>
+<p>下面这些是踩过坑之后定下来的规则，几条「看起来多余」的代码基本都对应这里的一行。</p>
+
+<table>
+  <tr><th style="width:26%">要点</th><th>为什么这样做</th></tr>
+  <tr>
+    <td><strong>浏览器能力缺失 ≠ 失败</strong></td>
+    <td>局域网 HTTP 下没有 <code>crypto.subtle</code>。早期代码据此判定「备份被篡改」——把「无法判断」当成了「检测到问题」。现在的规则是：<strong>前端校验只是提前提示，后端才是权威；判不了就如实说判不了</strong>。</td>
+  </tr>
+  <tr>
+    <td><strong>「检测不到」与「检测到坏了」必须分开</strong></td>
+    <td>服务发现的失效判定只覆盖<strong>本次真的连上了</strong>的来源。否则「没挂 docker.sock」会被理解成「所有容器都没了」，一屏卡片全被标红。</td>
+  </tr>
+  <tr>
+    <td><strong>前端版本号由 mtime 自动推导</strong></td>
+    <td>js/css 走 7 天强缓存，缓存键是含 <code>?v=</code> 的 URL。手工维护版本号必然会忘，表现为「代码改了、镜像也重建了，页面还是老行为」。现在服务端下发 HTML 时按<strong>整个前端目录的最新 mtime</strong>统一改写。</td>
+  </tr>
+  <tr>
+    <td><strong>数据目录整目录挂载</strong></td>
+    <td>单文件 bind mount 下写配置会跨挂载点 rename，在部分 NAS 上直接 <code>EBUSY/EXDEV</code> 保存失败。挂 <code>./data:/app/data</code> 后 rename 发生在同一挂载点内，天然规避。</td>
+  </tr>
+  <tr>
+    <td><strong>UI 测试真的去点按钮</strong></td>
+    <td>卡片编辑弹窗加了一个字段后，弹窗超出视口，底部按钮<strong>在小屏笔记本上点不到</strong>——宽屏肉眼看不出，是 UI 套件真实点击时暴露的。同类：<code>waitForSelector</code> 默认等 <em>visible</em>，等一个本来就 hidden 的元素必然超时。</td>
+  </tr>
+  <tr>
+    <td><strong>测试必须真自包含</strong></td>
+    <td>卡片图标指向公共 CDN，而套件里带「全程无 JS 错误」断言——外部 CDN 抖一下就会被误判成代码有 Bug。<code>lib/hermetic.cjs</code> 把公网请求就地应答掉，但<strong>只放行 IP / localhost</strong>，因为内网地址正是被测功能本身。</td>
+  </tr>
+  <tr>
+    <td><strong>文档里的数字必须有断言</strong></td>
+    <td>曾经只有「总断言数」被守着，于是 <code>docker-guide.html</code> 里「各套件单独运行时的断言数」整批漂成了旧值而无人发现。规则：<strong>文档里出现的每个数字都要进 musts，旧数字要进 mustNots</strong>（否则防不住「把旧包发上线」）。</td>
+  </tr>
+  <tr>
+    <td><strong>报告完成度要回到方案原文点数</strong></td>
+    <td>曾经照着一行进度表的括号里列出的 5 项，就宣称「其余项全部落地」，而该阶段实际有 10 项。摘要本身就会漏项，<strong>统计口径必须来自原件</strong>。</td>
+  </tr>
+</table>
+
+<!-- ==================== 十 ==================== -->
+<h2>十、测试与发布体系</h2>
+
+<h3>测试：19 个套件 / 940 项断言</h3>
+<p><code class="inline">node test/run-all.cjs</code> 会先用<strong>临时 config + 临时 uploads</strong> 在 8633 端口拉起一个隔离实例，再按需把地址传给需要的套件——<strong>不会碰真实数据</strong>；也可以只跑某几套（按文件名过滤）。</p>
+
+<!-- guard:suites -->
+<table>
+  <tr><th style="width:26%">套件</th><th style="width:14%">类型</th><th class="num" style="width:9%">断言</th><th>覆盖重点</th></tr>
+  <tr><td><code>server.test.js</code></td><td>接口集成</td><td class="num">50</td><td>配置读写、静态托管、错误处理、健康检查、资源版本号自动推导、可选字段写入口校验与往返</td></tr>
+  <tr><td><code>ui.test.cjs</code></td><td>真实浏览器</td><td class="num">103</td><td>主界面：渲染 / 搜索 / 拼音 / 命令面板 / 编辑保存 / 主题 / 内外网切换</td></tr>
+  <tr><td><code>ui-theme.test.cjs</code></td><td>真实浏览器</td><td class="num">8</td><td>日 / 夜主题切换与持久化</td></tr>
+  <tr><td><code>ui-backup.test.cjs</code></td><td>真实浏览器</td><td class="num">32</td><td>备份 / 导入 UI 全流程（会真实点击按钮）</td></tr>
+  <tr><td><code>auth.test.js</code></td><td>自包含</td><td class="num">27</td><td>密码保护、会话、联合登录、限流</td></tr>
+  <tr><td><code>backup.test.js</code></td><td>自包含</td><td class="num">24</td><td>备份导出、校验和、恢复异常、失效字段随备份保留</td></tr>
+  <tr><td><code>zipbackup.test.js</code></td><td>自包含</td><td class="num">54</td><td>含图片的 zip 备份与还原</td></tr>
+  <tr><td><code>status.test.js</code></td><td>自包含</td><td class="num">90</td><td>状态板采集（伪造 Docker API）、各类降级路径</td></tr>
+  <tr><td><code>discover.test.js</code></td><td>自包含</td><td class="num">99</td><td>服务发现（伪造 Docker API）、纯函数判定、失效标记与不误判</td></tr>
+  <tr><td><code>library.test.js</code></td><td>自包含</td><td class="num">41</td><td>图床库：引用保护、批量上传、部分成功</td></tr>
+  <tr><td><code>icons.test.js</code></td><td>自包含</td><td class="num">47</td><td>本地图标库自洽、文件魔数真为图片、映射表与目录一致</td></tr>
+  <tr><td><code>ui-auth.test.cjs</code></td><td>真实浏览器</td><td class="num">8</td><td>登录页</td></tr>
+  <tr><td><code>ui-discover.test.cjs</code></td><td>真实浏览器</td><td class="num">58</td><td>服务发现 UI、失效角标、恢复 / 清理流程</td></tr>
+  <tr><td><code>ui-library.test.cjs</code></td><td>真实浏览器</td><td class="num">47</td><td>图床库 UI：两页签、批传、选用删除</td></tr>
+  <tr><td><code>ui-status.test.cjs</code></td><td>真实浏览器</td><td class="num">32</td><td>状态板渲染、Docker 不可用降级、手动刷新、接口缺失时静默退场</td></tr>
+  <tr><td><code>ui-firstrun.test.cjs</code></td><td>真实浏览器</td><td class="num">33</td><td>首次引导、拖链接建卡</td></tr>
+  <tr><td><code>ui-tags.test.cjs</code></td><td>真实浏览器</td><td class="num">40</td><td>卡片标签：回填、徽章、点击筛选、搜索命中、跨分组</td></tr>
+  <tr><td><code>checkdeploy.test.cjs</code></td><td>自包含</td><td class="num">22</td><td>「线上跑的是不是新代码」判定探针自检</td></tr>
+  <tr><td><code>imagecompose.test.cjs</code></td><td>自包含</td><td class="num">125</td><td>镜像契约：Dockerfile COPY 清单 ↔ 代码 require、compose 护栏、发布截图唯一生产者、<strong>概览文档与代码结构一致</strong></td></tr>
+  <tr><td colspan="2"><strong>合计 19 套</strong></td><td class="num"><strong>940</strong></td><td>全部通过 · 0 失败</td></tr>
+</table>
+<!-- /guard:suites -->
+
+<div class="tip">
+  <strong>断言只增不减：</strong>通过数记在 <code class="inline">test/_baseline.txt</code>，它同时是「这次改动有没有把测试改弱」的对照物。
+  另外 <code class="inline">verify-share-ui.cjs</code> 会给发布包做<strong>内容新鲜度</strong>断言：
+  文档里该出现的新数字必须出现，<strong>旧数字必须不出现</strong>——防的是「把上一版发布包发上线」。
+</div>
+
+<h3>发布链与 CI</h3>
+<pre><span class="c"># 本地：重建发布包（顺序不能反——build-share 会去 doc 目录取最新 PDF）</span>
+node test/make-pdf.cjs        <span class="c"># 生成 docs/*.pdf</span>
+node scripts/build-share.cjs  <span class="c"># 组装 share/：落地页 + 预览页 + 截图 + 指南 HTML/PDF</span>
+node scripts/verify-share-ui.cjs http://127.0.0.1:8640   <span class="c"># 本地验证内容新鲜度</span>
+
+<span class="c"># CI（push main / tag v* 触发，两个 job）</span>
+build → QEMU + Buildx 构建并推送 <span class="k">linux/amd64, linux/arm64</span> 到 GHCR
+smoke → 本地构建 amd64 镜像 → 校验镜像契约（端口 / 数据卷 / 架构）→ 启动容器请求 /api/health</pre>
+
+<!-- ==================== 十一 ==================== -->
+<h2>十一、部署形态与数据安全</h2>
+<table>
+  <tr><th style="width:26%">形态</th><th>入口与要点</th></tr>
+  <tr><td><strong>源码构建</strong>（默认）</td><td><code>docker compose up -d</code>（<code>docker-compose.yml</code>）。本机构建镜像，改完代码重建即生效。端口 <code>8080:80</code>，数据挂 <code>./data:/app/data</code>。</td></tr>
+  <tr><td><strong>拉取预构建镜像</strong></td><td><code>docker compose -f docker-compose.image.yml up -d</code>。用 <code>NAVI_IMAGE</code> / <code>NAVI_TAG</code> 指定镜像源与版本（国内直连 ghcr.io 常不通，可换镜像站）。</td></tr>
+  <tr><td><strong>裸 Node 运行</strong></td><td><code>node server.js</code>。读 <code>public/config.json</code> 与 <code>public/uploads</code>，适合本地开发与预览。</td></tr>
+</table>
+
+<div class="danger">
+  <strong>数据安全只有一条要点：镜像＝程序（随时可重建），<code class="inline">data/</code>＝唯一不可再生的数据。</strong>
+  路径挂载由 Docker 之外的生命周期管理，所以 <code class="inline">build</code> / <code class="inline">rm</code> / <code class="inline">--force-recreate</code> / GUI「清除项目」都<strong>不会</strong>动它。
+  真正会丢的只有三种情况：① 手动删除；② <code class="inline">docker compose down -v</code> 或 <code class="inline">volume rm</code>（仅具名卷）；③ 迁移时漏拷贝。
+  升级前的标准动作是 <code class="inline">tar czf backup.tar.gz -C &lt;项目&gt; data</code>。
+  另注意：<strong>只有 <code class="inline">GET /api/backup?format=zip</code> 才含图片</strong>，默认 JSON 备份只含配置。
+</div>
+
+<!-- ==================== 十二 ==================== -->
+<h2>十二、已知边界与未实施项</h2>
+<table>
+  <tr><th style="width:30%">项目</th><th>状态</th></tr>
+  <tr><td><strong>P0 / P1 全部功能</strong></td><td>✅ 已落地并有断言覆盖。</td></tr>
+  <tr><td><strong>P2 已完成 5 / 10</strong></td><td>✅ 首次引导、拖链接建卡、卡片标签、<code>DOCKER_GID</code> 说明、<code>CHANGELOG.md</code>。</td></tr>
+  <tr><td><strong>P2 未实施 5 项</strong></td><td>⏳ 拆前端单文件（纯重构、无行为收益，且 <code>app.js</code> 是浏览器 UI 套件共同依赖的单一文件，风险/收益不对称，明确搁置）、自定义壁纸、通用反代规则导入、Release Notes、版本节奏（仍只有 <code>v1.0.0</code> 一个标签）。</td></tr>
+  <tr><td><strong>已知不稳定</strong></td><td>✅ <code>ui-library.test.cjs</code> 曾长期「全量回归偶发 1 项失败、单独跑必过」——本轮定位并修复：打开图床库弹窗的一瞬间 <code>#libEmpty</code> 显示的是 loading 文案「正在读取图床库…」，而断言没有等它切到空状态就取值，机器稍忙就中招。已改为等状态切换完成（<code>waitForFunction</code>），失败信息也仍指向真实文案。同类教训：<strong>凡是有「先加载、后渲染」两步的元素，断言前都必须等状态落定</strong>。</td></tr>
+  <tr><td><strong>改动后的固定动作</strong></td><td>动了 <code>server.js</code> / <code>discovery.js</code> / <code>status.js</code> / <code>zip.js</code> / <code>public/**</code> 就要重建镜像；新增本地模块必须同时改 <code>Dockerfile</code> 的 COPY 清单（本地测试直读源码目录会全绿，而镜像里会 <code>MODULE_NOT_FOUND</code>）。</td></tr>
+</table>
+
+<h3>本文件如何维护</h3>
+<p>
+  本文档是<strong>运维/维护视角</strong>的概览，与 <code>docs/roadmap.html</code>（改进路线）一样<strong>刻意不进发布包</strong>。
+  为了不让它烂掉，其中两处关键内容受断言保护（在 <code>imagecompose.test.cjs</code> 内）：
+</p>
+<ul>
+  <li><strong>模块表</strong>（<code>guard:modules</code> 区块）必须与 <code>server.js</code> 里实际 <code>require</code> 的本地模块<strong>完全一致</strong>——新增后端模块而忘了写进本文档会被测出来。</li>
+  <li><strong>测试套件表</strong>（<code>guard:suites</code> 区块）必须与 <code>test/_baseline.txt</code> 里记录的<strong>套件名与断言数逐条一致</strong>，合计也要对得上。</li>
+</ul>
+
+<div class="footer-note">
+  Navi 个人导航站 · 项目概览 ｜ 依据工作区代码实测整理（2026-09-20）｜ 数字变动时请同步本文件，护栏会替你把关
+</div>
+
+</body>
+</html>

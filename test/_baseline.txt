@@ -11,6 +11,8 @@
 #           / P1-7 发现来源追踪与失效标记（只标记不删 / 未接入不误判）
 #           / P2 首次引导 / 拖链接建卡 / 卡片标签（跨分组检索）
 #           / 前端版本号 token 取「整个前端目录的最新 mtime」（含 css，反向守一条）
+#           / 项目概览文档（docs/overview.html）的模块表・套件表・路由表对着代码校验
+#           / ui-library 空状态断言的竞态已修（原先「全量偶发 1 项失败、单独跑必过」的真因）
 
   ✓ server.test.js          50 通过, 0 失败
   ✓ ui.test.cjs            103 通过, 0 失败
@@ -30,6 +32,6 @@
   ✓ ui-firstrun.test.cjs    33 通过, 0 失败
   ✓ ui-tags.test.cjs        40 通过, 0 失败
   ✓ checkdeploy.test.cjs    22 通过, 0 失败
-  ✓ imagecompose.test.cjs   99 通过, 0 失败
+  ✓ imagecompose.test.cjs  125 通过, 0 失败
 
-合计：914 通过, 0 失败 / 共 19 个套件
+合计：940 通过, 0 失败 / 共 19 个套件

@@ -330,7 +330,7 @@ git push origin v1.0.0
 > `https://github.com/users/<用户名>/packages/container/navi-homepage/settings` →
 > Danger Zone → Change package visibility 改成 Public，否则目标机器要先 `docker login ghcr.io`。
 >
-> 这条链路的不变量由 `test/imagecompose.test.cjs`（99 项）固化：多架构构建、`packages: write` 权限、
+> 这条链路的不变量由 `test/imagecompose.test.cjs`（125 项）固化：多架构构建、`packages: write` 权限、
 > `latest` 只在打 tag 时更新、纯拉取编排不得含 `build:`、两条部署路径的环境变量/端口/挂载不得漂移，
 > 并**反向验证** `scripts/check-compose.cjs` 确实能抓到「护栏被拆掉」（4 类畸形夹具必须判失败）。
 
@@ -476,7 +476,7 @@ git push origin v1.0.0
 - **纯静态、零依赖**：不启动 Node、不联网也能打开；不读写任何配置文件，所有交互都在浏览器本地完成。
 - **含交互式界面复刻**：主题变量、卡片样式、图标解析与内网识别规则均取自项目源码，演示数据与 `config.json` 一致。可直接体验：搜索（`/` 聚焦）、命令面板（`Ctrl/⌘+K`）、日/夜切换、内外网切换、编辑模式、服务发现弹窗、图床库 / 在线图标库。
 - **含真实截图画廊**：10 张截图全部来自 `test/` 下由 Playwright 在真实浏览器中自动生成的运行截图，点击可放大。其中 5 张（首页 / 夜间 / 日间 / 状态板夜间 / 状态板日间）由 `node test/page-shots.cjs` 一键重新生成 —— 该脚本是这几张图的**唯一生产者**，别的套件不得覆盖（否则主题与尺寸会串，`imagecompose.test.cjs` 有断言守着）。另有 4 张 `ui-library-*.png` 属历史产物、暂无生成脚本，已显式登记为已知缺口。
-- **含功能、测试与部署说明**：914 项断言的分套件结果、接口清单、数据结构与三种部署方式。
+- **含功能、测试与部署说明**：940 项断言的分套件结果、接口清单、数据结构与三种部署方式。
 
 > 该页面用于**展示与验收**，不具备后端能力（不写盘、不扫端口、不真实上传）。要体验完整功能请按下文启动服务或使用 Docker。
 
@@ -499,6 +499,7 @@ git push origin v1.0.0
 │   ├── fnos-deploy-guide.html  # ★ 飞牛 fnOS 部署指南（存储路径约定 / 图形界面 Compose 限制 / 文件属主权限 / 故障排查 / 检查清单）
 │   ├── image-deploy-guide.html # ★ 拉取镜像部署指南（包可见性 / 国内网络对策 / 架构匹配 / 升级回滚 / 排查表）
 │   ├── docker-guide.html       # 通用 Docker 部署指南（可用浏览器打印为 PDF）
+│   ├── overview.html           # ★ 项目概览（目录组织 / 模块职责与依赖 / 数据模型 / 接口清单 / 调用链 / 实现要点；其模块表・套件表・路由表由 imagecompose.test.cjs 对着代码校验）
 │   └── roadmap.html            # 内部改进路线图（对标同类项目的差距分析与 P0–P2 计划，刻意不进 share 发布体系）
 ├── scripts/
 │   ├── migrate-to-dir-mount.sh # 从旧版单文件挂载平滑升级到整目录挂载的一键脚本
@@ -589,7 +590,7 @@ node scripts/check-deploy.cjs http://NAS的IP:端口 你的密码
 
 ## 自动化测试
 
-**推荐：一条命令跑完全部 19 个套件（914 项断言）**
+**推荐：一条命令跑完全部 19 个套件（940 项断言）**
 
 ```bash
 NODE_PATH=<已装 playwright 的 node_modules> node test/run-all.cjs
@@ -649,8 +650,8 @@ node test/ui-library.test.cjs
 node test/checkdeploy.test.cjs
 
 # 12. 镜像发布契约自检（自包含：多架构构建 / GHCR 推送 / 纯拉取编排不得含 build: /
-#     两条部署路径不漂移 / 发布截图只有一个生产者；并反向验证 scripts/check-compose.cjs
-#     能抓到护栏被拆掉）
+#     两条部署路径不漂移 / 发布截图只有一个生产者 / 项目概览文档的模块表・套件表・
+#     路由表必须与代码事实一致；并反向验证 scripts/check-compose.cjs 能抓到护栏被拆掉）
 node test/imagecompose.test.cjs
 
 # 13. 本地图标库自检（自包含：目录自洽 / 文件魔数真为图片而非 HTML 报错页 /

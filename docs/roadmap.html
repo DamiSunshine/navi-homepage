@@ -170,7 +170,7 @@
   <h2 style="font-size:15pt;color:#0d9488;border-left:4px solid #0d9488;padding-left:10px;margin-bottom:14px">实施进度更新（2026-09-20）</h2>
   <p style="color:#6b7280;font-size:9.5pt;margin-bottom:14px">
     本页第 3、4 章里的「13 个套件 / 435 项断言」等数字是<strong>审计当时（2026-09-19）的快照</strong>，保留原样以维持对照价值。
-    实际实施进展记录如下（最新全量回归：<strong>19 个套件 / 914 项断言 / 0 失败</strong>）。
+    实际实施进展记录如下（最新全量回归：<strong>19 个套件 / 940 项断言 / 0 失败</strong>）。
   </p>
   <table style="width:100%;border-collapse:collapse;font-size:10pt">
     <thead>
@@ -237,7 +237,7 @@
           <code>ui-tags.test.cjs</code> 40 项断言守着。<br>
           <span style="color:#b45309;font-weight:700">仍未实施 5 项</span>（均已逐条核查为「代码中无对应实现」，不是估计）：
           <strong>① 拆前端单文件</strong>（刻意搁置：纯重构、无行为收益，且 <code>app.js</code> 是唯一被 5 个 UI 套件
-          直接依赖的文件，风险/收益不对称 —— 安全网 <strong>914 项断言 / 0 失败</strong> 已具备，要做应独立一轮）；
+          直接依赖的文件，风险/收益不对称 —— 安全网 <strong>940 项断言 / 0 失败</strong> 已具备，要做应独立一轮）；
           <strong>② 自定义壁纸</strong>（前端与样式表均无 wallpaper 分支）；
           <strong>③ 通用反代规则导入</strong>（无对应解析入口）；
           <strong>④ Release Notes</strong>（<code>docker-publish.yml</code> 未接入自动发版说明；<code>APP_VERSION</code> 仍为 <code>1.0.0</code>）；
