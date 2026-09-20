@@ -75,10 +75,10 @@ const bad = (m) => { fails.push(m); console.log('  ✗ ' + m); };
   // 只看 HTTP 200 抓不到「发了旧内容」，这里校验本次改动的关键标记。
   console.log('[4] 内容新鲜度');
   const markers = [
-    ['/', ['<b>17</b> 套', '771'], ['435', '427', '355', '348', '333', '325', '317', '701', '694', '704', '713']],
-    ['/preview.html', ['771', '非安全上下文', 'checkdeploy.test.cjs', 'icons.test.js', 'imagecompose.test.cjs', 'SSE4.2', 'ui-status.test.cjs', 'zipbackup.test.js', 'status.test.js', 'status-board-dark.png'], ['435', '427', '355', '348', '333', '325', '317', '701', '694', '704', '713']],
+    ['/', ['<b>17</b> 套', '825'], ['435', '427', '355', '348', '333', '325', '317', '701', '694', '704', '713', '771']],
+    ['/preview.html', ['825', '非安全上下文', 'checkdeploy.test.cjs', 'icons.test.js', 'imagecompose.test.cjs', 'SSE4.2', 'ui-status.test.cjs', 'zipbackup.test.js', 'status.test.js', 'status-board-dark.png'], ['435', '427', '355', '348', '333', '325', '317', '701', '694', '704', '713', '771']],
     ['/docs/fnos-deploy-guide.html', ['导入自己刚导出的备份', '重建容器时要不要清空这个目录', '确认新代码真的生效', 'ghcr.io'], []],
-    ['/docs/docker-guide.html', ['关于「完整性校验失败」', '771', 'check-deploy.cjs', 'docker-compose.image.yml', 'SSE4.2'], ['435', '427', '355', '348', '333', '325', '701', '694', '704', '713']],
+    ['/docs/docker-guide.html', ['关于「完整性校验失败」', '825', 'check-deploy.cjs', 'docker-compose.image.yml', 'SSE4.2'], ['435', '427', '355', '348', '333', '325', '701', '694', '704', '713', '771']],
     ['/docs/image-deploy-guide.html', ['docker-compose.image.yml', 'ghcr.io', 'linux/arm64', 'config.json', 'Change package visibility', 'SSE4.2', 'SELinux'], []],
   ];
   for (const [url, musts, mustNots] of markers) {

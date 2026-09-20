@@ -281,6 +281,29 @@ function validateConfig(cfg) {
           ["auto", "lan", "wan"].indexOf(it.netMode) < 0) {
         return "导航项「" + it.title + "」的 netMode 只能是 auto / lan / wan（当前：" + it.netMode + "）";
       }
+      // 来源追踪与失效标记（P1-7）：都是可选字段，但一旦写错就会让「失效判定」整体失效
+      // （例如 stale 写成字符串 "true" 会让前端判断分支静默走错），所以同样在入口拒绝。
+      if (it.stale !== undefined && typeof it.stale !== "boolean") {
+        return "导航项「" + it.title + "」的 stale 只能是 true / false（当前：" + typeof it.stale + "）";
+      }
+      if (it.staleAt !== undefined && (typeof it.staleAt !== "string" || !it.staleAt)) {
+        return "导航项「" + it.title + "」的 staleAt 必须是 ISO 时间字符串";
+      }
+      if (it.source !== undefined) {
+        const src = it.source;
+        if (!src || typeof src !== "object" || Array.isArray(src)) {
+          return "导航项「" + it.title + "」的 source 必须是对象（{type, id, via, syncedAt}）";
+        }
+        if (["discover", "manual", "import"].indexOf(src.type) < 0) {
+          return "导航项「" + it.title + "」的 source.type 只能是 discover / manual / import（当前：" +
+                 src.type + "）";
+        }
+        for (const k of ["id", "via", "syncedAt"]) {
+          if (src[k] !== undefined && typeof src[k] !== "string") {
+            return "导航项「" + it.title + "」的 source." + k + " 必须是字符串";
+          }
+        }
+      }
     }
   }
   return null;
@@ -796,6 +819,35 @@ async function handleDiscover(req, res, u) {
     it.selected = !it.ignored && !duplicated && !it.infra && it.running;
     return it;
   });
+
+  // ---- P1-7：源侧已消失的「发现卡片」只标记、不删除 ----
+  // 这里**只计算、不写配置**（本接口是只读的）。前端拿到 stale 列表后在自己手里的
+  // 草稿上打标记，落盘仍走既有的「保存」流程 —— 与 discovery.ignored 同一套机制，
+  // 因此不会新增写接口，也不会绕过既有校验。
+  var flatItems = [];
+  (cfg.groups || []).forEach(function (g) {
+    (g.items || []).forEach(function (it) { flatItems.push(it); });
+  });
+  var presentByVia = { docker: {}, local: {} };
+  result.items.forEach(function (it) {
+    var via = it.source === "docker" ? "docker" : "local";
+    if (it.id) presentByVia[via][String(it.id)] = true;
+  });
+  var availByVia = {
+    docker: !!(result.sources && result.sources.docker && result.sources.docker.available),
+    local: !!(result.sources && result.sources.local && result.sources.local.available)
+  };
+  var staleInfo = discovery.computeStale(flatItems, presentByVia, availByVia);
+  result.stale = {
+    // 判为「可能已失效」的条目（源侧已扫描不到）
+    items: staleInfo.items,
+    count: staleInfo.items.length,
+    marked: staleInfo.items.filter(function (s) { return s.marked; }).length,
+    // checked = 本次真做了判定的来源；skipped = 因未接入而**无法判定**的来源
+    //（未接入时绝不判失效，否则 Docker 没挂载会把所有发现卡片一次性冤枉成已失效）
+    checked: staleInfo.checked,
+    skipped: staleInfo.skipped
+  };
 
   result.ignored = settings.ignored;
   result.settings = { lanHost: lanHost, wanHost: wanHost };

@@ -138,6 +138,57 @@ async function req(path, opts) {
   check("非法写入后配置未被破坏",
     JSON.stringify(after.groups) === JSON.stringify(cfg.groups));
 
+  // P1-7：来源追踪（source）与失效标记（stale）的写入口校验。
+  // 与 netMode 同一套纪律：写错就在入口拒绝，而不是让它静默退化 ——
+  // 例如 stale 写成字符串 "true"，前端的判断分支会悄悄走错，而用户毫无察觉。
+  console.log("== 来源追踪 / 失效标记字段校验（P1-7） ==");
+  const badFieldCases = [
+    ["stale 非布尔", { title: "a", url: "https://a.example.com", stale: "true" }],
+    ["source 是字符串", { title: "a", url: "https://a.example.com", source: "discover" }],
+    ["source.type 非法", { title: "a", url: "https://a.example.com", source: { type: "guessed" } }],
+    ["source.id 非字符串", { title: "a", url: "https://a.example.com", source: { type: "discover", id: 5 } }],
+    ["staleAt 非字符串", { title: "a", url: "https://a.example.com", stale: true, staleAt: 123 }]
+  ];
+  for (const [name, item] of badFieldCases) {
+    const r = await req("/api/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groups: [{ name: "x", items: [item] }] })
+    });
+    const b = await r.json().catch(() => ({}));
+    check("PUT " + name + " -> 400 拒写", r.status === 400, String(r.status));
+    check("PUT " + name + " -> 返回可读 error",
+      typeof b.error === "string" && b.error.length > 0, JSON.stringify(b));
+  }
+
+  const okCfg = { groups: [{ name: "x", items: [
+    { title: "源侧已消失", url: "https://a.example.com", stale: true,
+      staleAt: "2026-09-20T00:00:00.000Z",
+      source: { type: "discover", via: "docker", id: "abc123", syncedAt: "2026-09-19T00:00:00.000Z" } },
+    { title: "手工", url: "https://b.example.com", source: { type: "manual" } }
+  ] }] };
+  const putOk2 = await req("/api/config", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(okCfg)
+  });
+  check("PUT 合法 source/stale -> {ok:true}",
+    putOk2.status === 200 && (await putOk2.json()).ok === true, String(putOk2.status));
+
+  const backItem = (await (await req("/api/config")).json()).groups[0].items[0];
+  check("source / stale / staleAt 原样往返（服务端不会抹掉这类元数据）",
+    backItem.stale === true && backItem.staleAt === "2026-09-20T00:00:00.000Z" &&
+    backItem.source && backItem.source.type === "discover" &&
+    backItem.source.via === "docker" && backItem.source.id === "abc123",
+    JSON.stringify(backItem));
+
+  // 还原配置，避免影响后续检查
+  await req("/api/config", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(cfg)
+  });
+
   const health = await (await req("/api/health")).json();
   check("GET /api/health -> ok:true", health.ok === true);
 

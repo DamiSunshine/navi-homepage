@@ -170,7 +170,7 @@
   <h2 style="font-size:15pt;color:#0d9488;border-left:4px solid #0d9488;padding-left:10px;margin-bottom:14px">实施进度更新（2026-09-20）</h2>
   <p style="color:#6b7280;font-size:9.5pt;margin-bottom:14px">
     本页第 3、4 章里的「13 个套件 / 435 项断言」等数字是<strong>审计当时（2026-09-19）的快照</strong>，保留原样以维持对照价值。
-    实际实施进展记录如下（最新全量回归：<strong>17 个套件 / 771 项断言 / 0 失败</strong>）。
+    实际实施进展记录如下（最新全量回归：<strong>17 个套件 / 825 项断言 / 0 失败</strong>）。
   </p>
   <table style="width:100%;border-collapse:collapse;font-size:10pt">
     <thead>
@@ -219,20 +219,19 @@
       <tr>
         <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P1-7</strong></td>
         <td style="border:1px solid #e5e7eb;padding:7px 9px">发现来源追踪与失效管理</td>
-        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— <code>source</code> / <code>stale</code> 字段的读写已在前端预留（保存时不丢），标记与「只标记不删可恢复」的 UI 尚未落地</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成</span> —— 卡片新增 <code>source:{type,via,id,syncedAt}</code>（加入时自动写入来源）；<code>/api/discover</code> 每次返回全量 diff，源侧消失的卡片<strong>只标记 <code>stale:true</code> + <code>staleAt</code>，绝不删除</strong>；前端两个显式动作：<strong>恢复全部</strong>（清标记）与<strong>清理失效项</strong>（二次确认）。<br><strong>正确性红线</strong>：只有「本次真的接入了的来源」才参与判定 —— Docker 未挂载 / 本机扫描关闭时扫描结果天然为空，若不加这个前提会把<em>所有</em>发现卡片一次性冤枉成已失效（与 P0-3 的混合内容误判同类）；未接入的来源记入 <code>skipped</code> 并如实告知。手工卡片永不参与判定；失效卡片在导出 / 备份中照常保留。写入口按 <code>netMode</code> 同一纪律校验字段合法性。新增 54 项断言（含「Docker 不可用时一条都不判」的端到端回归）</td>
       </tr>
       <tr>
         <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P2</strong></td>
         <td style="border:1px solid #e5e7eb;padding:7px 9px">拆前端单文件 / 首次引导 / 拖链接建卡 / <code>DOCKER_GID</code> / CHANGELOG</td>
-        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— 拆分的前提「全绿安全网」已具备（771 项断言 / 0 失败）</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— 拆分的前提「全绿安全网」已具备（825 项断言 / 0 失败）</td>
       </tr>
     </tbody>
   </table>
   <p style="margin-top:14px;font-size:9.5pt;color:#6b7280">
     ✅ 审计时的两处已确认短板均已消除：① 图标改为「本地内置优先」，内网 / 断网不再全白图；
     ② 图标预设由 33 条扩到 <strong>227 条</strong>并加入国内站点 favicon 抓取（均属 P1-6）。<br>
-    ⏳ 仍未实施：P1-7（发现来源追踪与失效管理）、P2（拆前端单文件 / 首次引导 / 拖链接建卡 /
-    <code>DOCKER_GID</code> / CHANGELOG）。
+    ⏳ 仍未实施：P2（拆前端单文件 / 首次引导 / 拖链接建卡 / <code>DOCKER_GID</code> / CHANGELOG）。
   </p>
 </div>
 

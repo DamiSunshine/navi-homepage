@@ -220,6 +220,11 @@
             <button type="button" class="btn btn-ghost" id="iconGalleryBtn" title="从在线图标库挑选">图标库</button>
           </div>
         </label>
+        <div class="item-stale" id="itemStaleNote" hidden>
+          <span class="item-stale-icon" aria-hidden="true">⚠</span>
+          <span class="item-stale-text" id="itemStaleText"></span>
+          <button type="button" class="btn btn-ghost" id="itemRestoreBtn">恢复（清除失效标记）</button>
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" data-close="itemModal">取消</button>
           <button type="submit" class="btn btn-primary">确定</button>
@@ -295,6 +300,15 @@
         <span class="discover-src" id="discoverSrc"></span>
       </h3>
       <p class="discover-hint" id="discoverHint">正在扫描容器与本机监听端口…</p>
+
+      <!-- P1-7：源侧已消失的发现卡片 —— 只标记、不自动删除 -->
+      <div class="stale-bar" id="staleBar" hidden>
+        <span class="stale-bar-text" id="staleBarText"></span>
+        <span class="stale-bar-actions">
+          <button type="button" class="btn btn-ghost" id="staleRestoreBtn">恢复全部</button>
+          <button type="button" class="btn btn-ghost danger" id="staleCleanBtn">清理失效项</button>
+        </span>
+      </div>
 
       <div class="discover-toolbar" id="discoverToolbar" hidden>
         <label class="discover-all">

@@ -547,6 +547,8 @@
                 ' data-gi="' + gi + '" data-ii="' + ii + '"' +
                 ' data-has-lan="' + (!!item.lanUrl) + '"' +
                 ' data-net="' + (picksLan(item) ? "lan" : "wan") + '"' +
+                ' data-source="' + escapeAttr((item.source && item.source.type) || "") + '"' +
+                (item.stale ? ' data-stale="1"' : "") +
                 (pinned ? ' data-net-pinned="' + escapeAttr(item.netMode) + '"' : "") +
                 (state.editMode ? ' draggable="true"' : "") +
                 ' style="animation-delay:' + delay + 'ms"' +
@@ -562,6 +564,12 @@
         html += '<span class="card-body">';
         html += '<span class="card-title">' + escapeHtml(item.title) + "</span>";
         if (item.desc) html += '<span class="card-desc">' + escapeHtml(item.desc) + "</span>";
+        // P1-7：来自服务发现、但源侧已消失的卡片 —— 只标记不删。
+        // 做成 body 内的行内角标（而非绝对定位），避免与右上角 LAN / 右下角 net-pin 重叠。
+        if (item.stale) {
+          html += '<span class="stale-pin" title="' + escapeAttr(staleHintText(item)) +
+                  '">⚠ 可能失效</span>';
+        }
         html += "</span>";
         html += '<span class="lan-flag">LAN</span>';
         // 钉住的卡片（显式指定 netMode）加一个角标：让用户一眼看出「这张是我手动指定的」，
@@ -620,7 +628,29 @@
     refreshCardUrls: function () { refreshCardUrls(); },
     // 状态板：只读快照 + 手动刷新（供自动化测试与排障使用）
     status: function () { return statusSnapshot(); },
-    refreshStatus: function (fresh) { return refreshStatus(!!fresh); }
+    refreshStatus: function (fresh) { return refreshStatus(!!fresh); },
+    // P1-7：失效卡片的只读快照 + 来源文案（供自动化测试与排障使用；不改变任何行为）
+    staleCards: function () {
+      return collectStaleCards().map(function (c) {
+        return {
+          gi: c.gi, ii: c.ii,
+          title: c.item.title || "",
+          id: (c.item.source && c.item.source.id) || "",
+          via: (c.item.source && c.item.source.via) || "",
+          staleAt: c.item.staleAt || ""
+        };
+      });
+    },
+    sourceLabel: function (it) { return sourceLabel(it); },
+    // 最近一次扫描的失效判定元数据（checked / skipped / count），只读
+    staleMeta: function () {
+      return {
+        count: discoverStale ? discoverStale.count : 0,
+        marked: discoverStale ? discoverStale.marked : 0,
+        checked: (discoverStale && discoverStale.checked) || [],
+        skipped: (discoverStale && discoverStale.skipped) || []
+      };
+    }
   };
 
   /* ---------- 内外网切换 ----------
@@ -1569,6 +1599,10 @@
   var itemModal = document.getElementById("itemModal");
   var itemForm = document.getElementById("itemForm");
   var itemModalTitle = document.getElementById("itemModalTitle");
+  // P1-7：卡片被标记为「可能已失效」时，在编辑弹窗里说明原因并给一个恢复入口
+  var itemStaleNote = document.getElementById("itemStaleNote");
+  var itemStaleText = document.getElementById("itemStaleText");
+  var itemRestoreBtn = document.getElementById("itemRestoreBtn");
   var groupModal = document.getElementById("groupModal");
   var groupForm = document.getElementById("groupForm");
   var groupModalTitle = document.getElementById("groupModalTitle");
@@ -1589,6 +1623,30 @@
     });
   });
 
+  /* ---------- P1-7：来源文案与失效说明 ---------- */
+  // 来源可读文案：「服务发现 · Docker 容器（a1b2c3d4）」/「手工添加」/「导入」。
+  // 旧配置里没有 source 的卡片返回空串（不显示来源行，也不当作手工卡片去猜）。
+  function sourceLabel(it) {
+    var src = it && it.source;
+    if (!src || typeof src !== "object" || !src.type) return "";
+    if (src.type === "discover") {
+      var via = src.via === "docker" ? "Docker 容器" : (src.via === "local" ? "本机端口" : "服务发现");
+      return "服务发现 · " + via + (src.id ? "（" + src.id + "）" : "");
+    }
+    if (src.type === "manual") return "手工添加";
+    if (src.type === "import") return "导入";
+    return "";
+  }
+
+  function staleHintText(it) {
+    var t = "此卡片来自服务发现，但最近一次扫描已找不到它的来源" +
+            "（容器被删除，或该端口已不再监听）。它不会因此被自动删除，" +
+            "链接照常可用 —— 确认不再需要时再自行删除。";
+    var at = it && it.staleAt ? new Date(it.staleAt) : null;
+    if (at && !isNaN(at.getTime())) t += "（标记于 " + at.toLocaleString() + "）";
+    return t;
+  }
+
   function openItemModal(gi, ii) {
     editingItem = { gi: gi, ii: ii };
     itemForm.reset();
@@ -1603,12 +1661,29 @@
       itemForm.icon.value = it.icon || "";
       setLogoValue(it.logo || "");
       itemModalTitle.textContent = "编辑导航项";
+      // 失效标记：说明原因 + 就地恢复入口（恢复只清标记，不动其它字段）
+      itemStaleNote.hidden = !it.stale;
+      itemStaleText.textContent = it.stale ? staleHintText(it) : "";
     } else {
       itemModalTitle.textContent = "添加导航项";
+      itemStaleNote.hidden = true;
+      itemStaleText.textContent = "";
     }
     openModal(itemModal);
     itemForm.title.focus();
   }
+
+  // 「恢复」：清除失效标记（不删除卡片、不改任何其它字段）
+  itemRestoreBtn.addEventListener("click", function () {
+    if (!editingItem || editingItem.ii < 0 || !state.draft) return;
+    var it = state.draft.groups[editingItem.gi].items[editingItem.ii];
+    if (!it) return;
+    delete it.stale;
+    delete it.staleAt;
+    itemStaleNote.hidden = true;
+    itemStaleText.textContent = "";
+    markDirty();
+  });
 
   /* ---------- Logo 本地上传 ---------- */
   function resetLogoField() {
@@ -2255,12 +2330,17 @@
     if (nm === "lan" || nm === "wan") item.netMode = nm;
     if (logoInput.value) item.logo = logoInput.value;
 
-    // 编辑已有卡片时保留表单不管理的字段（如服务发现的来源追踪 source），
+    // 编辑已有卡片时保留表单不管理的字段（如服务发现的来源追踪 source、失效标记 stale），
     // 否则「点开看一眼再保存」会把这类元数据悄悄抹掉。
     if (editingItem.ii >= 0) {
       var prev = state.draft.groups[gi].items[editingItem.ii] || {};
       if (prev.source !== undefined && item.source === undefined) item.source = prev.source;
       if (prev.stale !== undefined && item.stale === undefined) item.stale = prev.stale;
+      if (prev.staleAt !== undefined && item.staleAt === undefined) item.staleAt = prev.staleAt;
+    } else {
+      // 手工新建的卡片显式标为 manual：与发现卡片区分开 —— 手工卡片永不参与
+      // 「源侧消失 → 失效」的判定（否则用户自己填的链接会被扫描结果牵连）。
+      item.source = { type: "manual" };
     }
 
     if (editingItem.ii >= 0) {
@@ -2450,9 +2530,15 @@
   var discoverList = document.getElementById("discoverList");
   var discoverEmpty = document.getElementById("discoverEmpty");
   var discoverAddBtn = document.getElementById("discoverAddBtn");
+  // P1-7：失效项提示条（源侧已消失的发现卡片 —— 只标记、不自动删除）
+  var staleBar = document.getElementById("staleBar");
+  var staleBarText = document.getElementById("staleBarText");
+  var staleRestoreBtn = document.getElementById("staleRestoreBtn");
+  var staleCleanBtn = document.getElementById("staleCleanBtn");
 
   var discoverItems = [];   // 当前扫描结果（含用户就地编辑后的值）
   var discoverMeta = null;  // 后端返回的来源 / 能力信息
+  var discoverStale = null; // 后端返回的失效判定结果（{items,count,marked,checked,skipped}）
   var DISCOVER_GROUP = "Docker 服务";   // 灰区默认归入的分组名
 
   // 发现设置挂在草稿配置上（随既有保存流程一起落盘，无需新增接口）
@@ -2470,6 +2556,69 @@
       if (discoverItems[i].id === id) return discoverItems[i];
     }
     return null;
+  }
+
+  /* ---------- P1-7：失效卡片（只标记、不删除） ----------
+     判定在后端（`discovery.computeStale`）：只有 source.type === "discover" 的卡片
+     参与，且**来源本次必须真的接入了**才判 —— Docker 没挂载时扫描结果天然为空，
+     不加这个前提就会把所有发现卡片一次性冤枉成「已失效」。
+     前端这里只做三件事：把标记写进草稿、显示提示条、提供恢复/清理两个显式动作。 */
+  function collectStaleCards() {
+    var out = [];
+    if (!state.draft || !Array.isArray(state.draft.groups)) return out;
+    state.draft.groups.forEach(function (g, gi) {
+      (g.items || []).forEach(function (it, ii) {
+        if (it && it.stale === true) out.push({ gi: gi, ii: ii, item: it });
+      });
+    });
+    return out;
+  }
+
+  // 用 source.id + source.via 匹配（不用下标：用户可能刚改过草稿，下标会漂）
+  function applyStaleMarks(info) {
+    if (!info || !Array.isArray(info.items) ||
+        !state.draft || !Array.isArray(state.draft.groups)) return 0;
+    var now = new Date().toISOString();
+    var changed = 0;
+    info.items.forEach(function (s) {
+      state.draft.groups.forEach(function (g) {
+        (g.items || []).forEach(function (it) {
+          var src = it && it.source;
+          if (!src || typeof src !== "object" || src.type !== "discover") return;
+          if (String(src.id || "") !== String(s.id || "")) return;
+          if (String(src.via || "") !== String(s.via || "")) return;
+          if (it.stale === true) return;
+          it.stale = true;
+          it.staleAt = now;
+          changed++;
+        });
+      });
+    });
+    return changed;
+  }
+
+  function renderStaleBar() {
+    if (!staleBar) return;
+    var cards = collectStaleCards();
+    var info = discoverStale || {};
+    if (!cards.length) {
+      staleBar.hidden = true;
+      staleBarText.textContent = "";
+      return;
+    }
+    // 来源 id → 可读文案（提示条是给用户看的，不该直接吐 "docker"/"local" 这种内部值）
+    function viaLabel(v) {
+      return v === "docker" ? "Docker 容器" : (v === "local" ? "本机端口" : v);
+    }
+    staleBar.hidden = false;
+    var txt = "有 " + cards.length + " 张卡片已从源侧消失，可能已失效（已标记，未删除）。";
+    var checked = (info.checked || []).map(viaLabel);
+    if (checked.length) txt += "本次判定来源：" + checked.join(" / ") + "。";
+    var skipped = (info.skipped || []).map(viaLabel);
+    if (skipped.length) {
+      txt += " ⚠ " + skipped.join(" / ") + " 本次未接入，来自它的卡片未做失效判定（未接入 ≠ 失效）。";
+    }
+    staleBarText.textContent = txt;
   }
 
   // 来源摘要，如「Docker ×12 · 本机端口 ×3」
@@ -2570,6 +2719,7 @@
       discoverEmpty.hidden = false;
       discoverEmpty.textContent = "未识别到可访问的服务。请确认 Docker Socket 已挂载，或本机有正在监听的 Web 服务。";
       discoverToolbar.hidden = false;
+      renderStaleBar();
       return;
     }
 
@@ -2583,6 +2733,7 @@
     if (warns.length) hint += "（" + warns.join("；") + "）";
     discoverHint.className = "discover-hint";
     discoverHint.textContent = hint;
+    renderStaleBar();
   }
 
   function loadDiscovery() {
@@ -2609,6 +2760,7 @@
       })
       .then(function (data) {
         discoverMeta = data;
+        discoverStale = data.stale || null;
         var ignored = discoverySettings().ignored;
         discoverItems = (data.items || []).map(function (it) {
           // 以草稿中的忽略列表为准，避免保存前被服务端旧值回滚
@@ -2616,6 +2768,14 @@
           if (it.ignored) it.selected = false;
           return it;
         });
+        // P1-7：把本次「源侧已消失」的发现卡片在草稿上打标记（只标记，不删除）。
+        // 落盘仍由既有「保存」流程负责 —— 不新增写接口，也不静默改服务器上的数据。
+        var marked = applyStaleMarks(discoverStale);
+        if (marked) {
+          markDirty();
+          render();   // 主网格要立刻出现「可能失效」角标（markDirty 只负责保存条，不重渲染）
+          saveBarTip.textContent = "有 " + marked + " 张卡片已从源侧消失（已标记，未删除）—— 点「保存」生效";
+        }
         renderDiscovery();
       })
       .catch(function (err) {
@@ -2731,6 +2891,14 @@
       if (desc) item.desc = desc;
       if (lanUrl && /^https?:\/\//i.test(lanUrl)) item.lanUrl = lanUrl;
       if (it.icon) item.icon = it.icon;
+      // P1-7 来源追踪：记下「从哪来的哪一项」，之后重新扫描时才能判断它是否已从源侧消失。
+      // via/id 都取自本次扫描结果；syncedAt 是本次同步时间（只用于展示与排障）。
+      item.source = {
+        type: "discover",
+        via: it.source === "docker" ? "docker" : "local",
+        id: String(it.id || ""),
+        syncedAt: new Date().toISOString()
+      };
 
       group.items.push(item);
       it.added = true;
@@ -2748,6 +2916,43 @@
     } else if (added) {
       saveBarTip.textContent = "已加入 " + added + " 个服务，记得点「保存」写入服务器";
     }
+  });
+
+  /* ---------- P1-7：失效项的两个显式动作 ---------- */
+
+  // 「恢复全部」：只清掉失效标记，不删任何卡片、不动其它字段
+  staleRestoreBtn.addEventListener("click", function () {
+    var cards = collectStaleCards();
+    if (!cards.length) return;
+    cards.forEach(function (c) {
+      delete c.item.stale;
+      delete c.item.staleAt;
+    });
+    saveBarTip.textContent = "已恢复 " + cards.length + " 张卡片的失效标记，记得点「保存」写入服务器";
+    markDirty();
+    render();
+    renderDiscovery();
+  });
+
+  // 「清理失效项」：真的删除（唯一会动数据的地方，因此必须二次确认）
+  staleCleanBtn.addEventListener("click", function () {
+    var cards = collectStaleCards();
+    if (!cards.length) return;
+    if (!window.confirm(
+      "确定要删除这 " + cards.length + " 张已标记失效的卡片吗？\n\n" +
+      "· 它们来自服务发现，但最近一次扫描已找不到来源；\n" +
+      "· 删除后只能靠备份恢复（卡片里的地址、图标都会一并消失）；\n" +
+      "· 若只是暂时连不上，请选「取消」并改用「恢复全部」。"
+    )) {
+      return;
+    }
+    // 从后往前删，避免删除过程中下标位移
+    cards.slice().sort(function (a, b) { return (b.gi - a.gi) || (b.ii - a.ii); })
+      .forEach(function (c) { state.draft.groups[c.gi].items.splice(c.ii, 1); });
+    saveBarTip.textContent = "已清理 " + cards.length + " 张失效卡片，记得点「保存」写入服务器";
+    markDirty();
+    render();
+    renderDiscovery();
   });
 
   /* ---------- 启动：加载配置 ---------- */

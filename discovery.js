@@ -645,6 +645,64 @@ function buildLocalItem(port, procName) {
 }
 
 /* ============================================================
+   失效判定（P1-7）：源侧已消失的「发现卡片」只标记、不删除
+   ------------------------------------------------------------
+   输入：
+     items            配置里的扁平条目列表（含 title / url / source / stale）
+     presentIdsByVia  { docker: {id:true}, local: {id:true} } 本次扫描到的候选 id
+     availableByVia   { docker: bool, local: bool } 各来源本次是否真的接入了
+
+   输出：{ items, checked, skipped }
+     items    [{ index, id, via, title, url, marked }]  判为「可能已失效」的条目
+     checked  ['docker','local'] 本次真正做了判定的来源
+     skipped  ['docker']         本次无法判定的来源（未接入）
+
+   为什么必须区分 checked / skipped（**这一条是正确性红线**）：
+     Docker 没挂载时扫描结果天然为空。若不加区分地做 diff，会把**所有**
+     发现卡片一次性判成「已失效」—— 那是「测不到」被当成了「测出来是坏的」，
+     与 P0-3 里 HTTPS 页面探测 http 内网地址被误判为「不可达」是同一类错误。
+     所以：来源没接入 → 本次不判定，并如实告知前端「本次未做失效判定」。
+
+   判定范围只限 source.type === "discover"（且带 source.id）的卡片：
+     手工添加 / 导入的卡片永远不会被判失效，否则用户自己填的链接会被牵连。
+   ============================================================ */
+function computeStale(items, presentIdsByVia, availableByVia) {
+  var present = presentIdsByVia || {};
+  var avail = availableByVia || {};
+  var out = [];
+  var checked = {};
+  var skipped = {};
+
+  toArray(items).forEach(function (it, idx) {
+    var src = it && it.source;
+    if (!src || typeof src !== "object" || Array.isArray(src)) return;
+    if (src.type !== "discover") return;                       // 只管发现来的卡片
+    var id = src.id ? String(src.id) : "";
+    if (!id) return;                                           // 无 id 无法比对，不判
+    var via = src.via ? String(src.via) : "";
+    if (avail[via] !== true) { skipped[via || "unknown"] = true; return; }
+    checked[via] = true;
+    var set = present[via] || {};
+    if (set[id]) return;                                       // 源侧仍在 → 不是失效
+    out.push({
+      index: idx,
+      id: id,
+      via: via,
+      title: String(it.title || ""),
+      url: String(it.url || ""),
+      // 已经标过的也一并返回：前端要统计「N 项已标记」并支持一键恢复
+      marked: it.stale === true
+    });
+  });
+
+  return {
+    items: out,
+    checked: Object.keys(checked),
+    skipped: Object.keys(skipped)
+  };
+}
+
+/* ============================================================
    图标在线探测（可选）
    ------------------------------------------------------------
    按 Docker-Panel 的「图标匹配顺序」：预设命中 → 图标库探测 → 默认。
@@ -838,6 +896,7 @@ module.exports = {
   parseNetstat: parseNetstat,
   scanLocalPortsFallback: scanLocalPortsFallback,
   buildLocalItem: buildLocalItem,
+  computeStale: computeStale,
   listContainers: listContainers,
   extractPorts: extractPorts,
   containerName: containerName,

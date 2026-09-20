@@ -1,8 +1,8 @@
 /* Navi 导航站 · 服务发现专项测试
    覆盖两层：
-     A. discovery.js 纯函数（指纹匹配 / 地址拼装 / 端口解析 / 噪声过滤）
+     A. discovery.js 纯函数（指纹匹配 / 地址拼装 / 端口解析 / 噪声过滤 / 失效判定）
      B. /api/discover 端到端：启动独立实例 + 伪造 Docker API（TCP 回退路径）
-        验证容器发现、图标匹配、地址生成、added 去重、只读性、鉴权
+        验证容器发现、图标匹配、地址生成、added 去重、失效判定、只读性、鉴权
    全程使用临时 config 与临时目录，不触碰真实数据，也不联网（NAVI_ICON_PROBE=0）。
    用法：node test/discover.test.js */
 "use strict";
@@ -114,7 +114,21 @@ const BASE_CONFIG = {
   groups: [
     { name: "常用服务", items: [
       { title: "Jellyfin", desc: "影音媒体库", icon: "jellyfin",
-        url: "http://192.168.1.10:8096", lanUrl: "http://192.168.1.10:8096" }
+        url: "http://192.168.1.10:8096", lanUrl: "http://192.168.1.10:8096" },
+      // P1-7 用（1/3）：docker 来源但容器已消失 → 应判「可能已失效」
+      { title: "已消失的服务", url: "http://192.168.1.10:9999",
+        lanUrl: "http://192.168.1.10:9999",
+        source: { type: "discover", via: "docker", id: "deadbeef0000",
+                  syncedAt: "2026-09-01T00:00:00.000Z" } },
+      // P1-7 用（2/3）：docker 来源且容器仍在（Id=bbbb33334444 → 取前 12 位）→ 不应判失效
+      { title: "Portainer 备用入口", url: "https://pt.example.com",
+        source: { type: "discover", via: "docker", id: "bbbb33334444" } },
+      // P1-7 用（3/3）：手工添加 → 永不参与失效判定
+      { title: "手工卡片", url: "https://manual.example.com",
+        source: { type: "manual" } },
+      // P1-7 用（4/4）：本机端口来源 —— 本套件关掉了本机扫描，应记 skipped 而非判失效
+      { title: "本机端口服务", url: "http://192.168.1.10:8899",
+        source: { type: "discover", via: "local", id: "port-8899" } }
     ] }
   ]
 };
@@ -271,6 +285,53 @@ function cleanup() {
   check("依赖容器标记 infra",
     (conv.filter((c) => c.container === "searxng-redis")[0] || {}).infra === true);
 
+  console.log("== A10. 失效判定 computeStale（P1-7：只标记、不删除） ==");
+  const staleFixture = [
+    { title: "在的", url: "http://a", source: { type: "discover", via: "docker", id: "c1" } },
+    { title: "走了", url: "http://b", source: { type: "discover", via: "docker", id: "c2" } },
+    { title: "走了但已标记", url: "http://c", stale: true, staleAt: "2026-09-19T00:00:00.000Z",
+      source: { type: "discover", via: "docker", id: "c3" } },
+    { title: "手工", url: "http://d", source: { type: "manual" } },
+    { title: "无来源", url: "http://e" },
+    { title: "本机来源", url: "http://f", source: { type: "discover", via: "local", id: "port-9999" } }
+  ];
+  const st1 = D.computeStale(staleFixture, { docker: { c1: true } }, { docker: true, local: false });
+  check("只挑出「docker 来源且源侧已消失」的条目（c2 / c3）",
+    st1.items.map((s) => s.id).join(",") === "c2,c3", JSON.stringify(st1.items.map((s) => s.id)));
+  check("源侧仍在的条目不判失效", !st1.items.some((s) => s.id === "c1"));
+  check("已标记的条目也返回并带 marked（前端要统计 / 一键恢复）",
+    (st1.items.filter((s) => s.id === "c3")[0] || {}).marked === true);
+  check("手工来源 / 无来源 一律不参与判定（用户自己填的链接不能被牵连）",
+    !st1.items.some((s) => ["手工", "无来源"].indexOf(s.title) >= 0),
+    JSON.stringify(st1.items.map((s) => s.title)));
+  check("来源未接入 → 不判定，记入 skipped",
+    st1.skipped.join(",") === "local" && st1.items.every((s) => s.via !== "local"),
+    JSON.stringify(st1.skipped));
+  check("checked 只含真正做过判定的来源",
+    st1.checked.join(",") === "docker", JSON.stringify(st1.checked));
+  check("返回扁平下标与标题（便于提示与定位）",
+    st1.items[0].index === 1 && st1.items[0].title === "走了",
+    JSON.stringify({ i: st1.items[0].index, t: st1.items[0].title }));
+
+  // 这是 P1-7 的**正确性红线**：Docker 没挂载时扫描结果天然为空，
+  // 若不加「来源是否接入」这个前提，所有发现卡片会被一次性冤枉成「已失效」。
+  const st2 = D.computeStale(staleFixture, {}, { docker: false, local: false });
+  check("所有来源都没接入时一条都不判（Docker 没挂载 ≠ 卡片全失效）",
+    st2.items.length === 0 && st2.skipped.join(",") === "docker,local", JSON.stringify(st2));
+  check("缺 source.id 的发现卡片不判（无法比对，宁可不动）",
+    D.computeStale(
+      [{ title: "x", url: "http://x", source: { type: "discover", via: "docker" } }],
+      { docker: {} }, { docker: true }).items.length === 0);
+  check("source 是字符串 / 数组等畸形值时不抛异常",
+    D.computeStale(
+      [{ title: "x", url: "http://x", source: "discover" },
+       { title: "y", url: "http://y", source: [] },
+       { title: "z", url: "http://z", source: { type: "discover", via: "docker", id: "gone" } }],
+      { docker: {} }, { docker: true }).items.map((s) => s.title).join(",") === "z");
+  check("空输入 / undefined 安全",
+    D.computeStale(undefined, {}, {}).items.length === 0 &&
+    D.computeStale([], {}, {}).items.length === 0);
+
   /* ==================== B. 端到端 ==================== */
   console.log("== B1. /api/discover 端到端（伪造 Docker API） ==");
   fakeDocker = await startFakeDocker(FAKE_DOCKER_PORT);
@@ -335,6 +396,30 @@ function cleanup() {
     body.capabilities.iconProbe === false,
     JSON.stringify({ ig: body.ignored, s: body.settings, c: body.capabilities }));
 
+  console.log("== B1b. 端到端失效判定（P1-7） ==");
+  check("返回 stale 结构（items / count / marked / checked / skipped）",
+    !!body.stale && Array.isArray(body.stale.items) &&
+    typeof body.stale.count === "number" && typeof body.stale.marked === "number" &&
+    Array.isArray(body.stale.checked) && Array.isArray(body.stale.skipped),
+    JSON.stringify(body.stale));
+  check("Docker 本次接入 → checked 含 docker、且不算 skipped",
+    body.stale.checked.indexOf("docker") >= 0 && body.stale.skipped.indexOf("docker") < 0,
+    JSON.stringify({ c: body.stale.checked, s: body.stale.skipped }));
+  check("scanLocal 关闭 → local 记入 skipped（未接入 ≠ 失效）",
+    body.stale.skipped.indexOf("local") >= 0, JSON.stringify(body.stale.skipped));
+  check("配置里 docker 来源、容器已消失 → 判为可能已失效",
+    body.stale.items.some((s) => s.id === "deadbeef0000" && s.title === "已消失的服务"),
+    JSON.stringify(body.stale.items));
+  check("配置里 docker 来源、容器仍在 → 不判失效",
+    !body.stale.items.some((s) => s.id === "bbbb33334444"),
+    JSON.stringify(body.stale.items.map((s) => s.id)));
+  check("手工来源的卡片永不参与失效判定",
+    !body.stale.items.some((s) => s.title === "手工卡片"),
+    JSON.stringify(body.stale.items.map((s) => s.title)));
+  check("来源未接入的卡片不判失效（本机端口来源 + 本套件关了本机扫描）",
+    !body.stale.items.some((s) => s.id === "port-8899"),
+    JSON.stringify(body.stale.items.map((s) => s.id)));
+
   check("发现接口是只读的（config.json 未被改动）",
     fs.readFileSync(cfgPath, "utf-8") === configBefore);
 
@@ -364,6 +449,11 @@ function cleanup() {
       /docker\.sock|挂载/.test(b2.sources.docker.reason), b2.sources.docker.reason);
     check("warnings 汇总提示", Array.isArray(b2.warnings) && b2.warnings.length === 1, JSON.stringify(b2.warnings));
     check("无服务时 items 为空数组", Array.isArray(b2.items) && b2.items.length === 0);
+    // P1-7 正确性红线（端到端复现）：Docker 没挂载时扫描结果天然为空，
+    // 此时绝不能把配置里的发现卡片全判成「已失效」—— 只能记 skipped 并如实说明。
+    check("Docker 不可用时不判任何卡片失效（未接入 ≠ 失效）",
+      b2.stale.items.length === 0 && b2.stale.skipped.indexOf("docker") >= 0,
+      JSON.stringify(b2.stale));
   } finally { try { navi2.kill(); } catch (e) {} }
 
   console.log("== B3. 鉴权（服务发现同样受密码保护） ==");

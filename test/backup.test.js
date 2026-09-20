@@ -61,7 +61,15 @@ const BASE_CONFIG = {
   site: { title: "BackupTest", subtitle: "测试实例" },
   groups: [
     { name: "G1", items: [{ title: "Alpha", url: "https://alpha.example.com", desc: "首个站点" }] },
-    { name: "G2", items: [{ title: "Beta", url: "https://beta.example.com", lanUrl: "http://192.168.1.10:8080" }] }
+    { name: "G2", items: [
+      { title: "Beta", url: "https://beta.example.com", lanUrl: "http://192.168.1.10:8080" },
+      // P1-7：失效标记（stale）与来源追踪（source）都是普通配置字段，
+      // 备份 / 恢复必须原样带走 —— 不能因为「已失效」就被静默剔除，
+      // 那等于用户在自己的备份里不知情地丢了数据。
+      { title: "已消失的服务", url: "http://192.168.1.10:9999", stale: true,
+        staleAt: "2026-09-20T00:00:00.000Z",
+        source: { type: "discover", via: "docker", id: "gone0000" } }
+    ] }
   ]
 };
 
@@ -93,6 +101,9 @@ const PNG_1x1_B64 =
       backup.config && typeof backup.checksum === "string", JSON.stringify(backup && Object.keys(backup)));
     check("checksum 与 config 序列化一致", backup && backup.checksum === sha256(JSON.stringify(backup.config)),
       backup && backup.checksum);
+    check("备份导出内含失效卡片（只标记不删 → 备份同样不丢）",
+      backup && JSON.stringify(backup.config).indexOf("gone0000") !== -1,
+      JSON.stringify(backup && backup.config && backup.config.groups));
 
     console.log("== 恢复：正常往返 ==");
     // 先改配置，再恢复，验证可还原
@@ -113,6 +124,14 @@ const PNG_1x1_B64 =
 
     r = await request(PORT, "GET", "/api/config");
     check("恢复后数据还原（标题=BackupTest）", JSON.parse(r.body).site.title === "BackupTest");
+
+    const restoredStale = JSON.parse(r.body).groups
+      .reduce((a, g) => a.concat(g.items || []), []).filter((i) => i.stale === true);
+    check("失效标记与来源随恢复原样保留（不因「已失效」被剔除）",
+      restoredStale.length === 1 && restoredStale[0].title === "已消失的服务" &&
+      restoredStale[0].staleAt === "2026-09-20T00:00:00.000Z" &&
+      restoredStale[0].source && restoredStale[0].source.id === "gone0000",
+      JSON.stringify(restoredStale));
 
     console.log("== 恢复：异常处理 ==");
     r = await request(PORT, "POST", "/api/backup/restore", {

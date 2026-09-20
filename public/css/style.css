@@ -384,6 +384,19 @@ body.lan-mode .card[data-has-lan="true"] .lan-flag { opacity: 1; }
   border-color: rgba(79, 140, 255, 0.32);
 }
 
+/* P1-7：来自服务发现的卡片，源侧已扫描不到 → 只标记不删。
+   做成卡片正文里的行内角标（不绝对定位），因此不会与右上角 LAN / 右下角 net-pin 打架。 */
+.stale-pin {
+  display: inline-block; margin-top: 3px;
+  font-size: 9.5px; letter-spacing: 0.02em;
+  padding: 1px 6px; border-radius: 999px;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.13);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+/* 已标记失效的卡片加一条左侧提示边（不改变尺寸，避免网格重排） */
+.card[data-stale="1"] { border-color: rgba(251, 191, 36, 0.34); }
+
 /* ---------- 空结果 ---------- */
 .empty-tip {
   text-align: center; padding: 60px 0;
@@ -751,6 +764,31 @@ body.edit-mode .footer { padding-bottom: 70px; }
   line-height: 1.7;
 }
 .discover-hint.err { color: var(--danger); }
+
+/* P1-7：失效项提示条（源侧已消失的发现卡片 —— 只标记、不自动删除） */
+.stale-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 9px 12px; margin: 0 0 12px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  border-radius: 9px;
+}
+.stale-bar-text {
+  flex: 1; min-width: 200px;
+  font-size: 12.5px; color: #fbbf24; line-height: 1.65;
+}
+.stale-bar-actions { display: inline-flex; gap: 8px; flex: none; }
+
+/* 编辑弹窗内的失效说明（与提示条同色系，说明「已标记不删除」并给恢复入口） */
+.item-stale {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 4px; padding: 9px 11px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  border-radius: 9px;
+}
+.item-stale-icon { flex: none; font-size: 13px; color: #fbbf24; }
+.item-stale-text { flex: 1; min-width: 180px; font-size: 12px; color: #fbbf24; line-height: 1.65; }
 
 .discover-toolbar {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;

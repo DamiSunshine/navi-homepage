@@ -44,7 +44,16 @@ fs.writeFileSync(cfgPath, JSON.stringify({
   site: { title: "DiscoverUI", subtitle: "服务发现 UI 测试" },
   groups: [{ name: "常用服务", items: [
     { title: "Jellyfin", desc: "影音媒体库", icon: "jellyfin",
-      url: "http://192.168.1.10:8096", lanUrl: "http://192.168.1.10:8096" }
+      url: "http://192.168.1.10:8096", lanUrl: "http://192.168.1.10:8096" },
+    // P1-7 用：来自服务发现、但容器已不在伪造结果里（id 对不上）→ 应被「只标记不删」。
+    { title: "已消失的服务", desc: "容器已被删除", icon: "jellyfin",
+      url: "http://192.168.1.10:9999", lanUrl: "http://192.168.1.10:9999",
+      source: { type: "discover", via: "docker", id: "gone0000", syncedAt: "2026-09-01T00:00:00.000Z" } },
+    // P1-7 用：本机端口来源，而本套件关掉了本机扫描 → 属「未接入，无法判定」，
+    // 绝不能因为「扫描结果里没有它」就被判失效。
+    { title: "本机端口服务", desc: "本机监听", icon: "jellyfin",
+      url: "http://192.168.1.10:8899", lanUrl: "http://192.168.1.10:8899",
+      source: { type: "discover", via: "local", id: "port-8899" } }
   ] }]
 }, null, 2), "utf-8");
 
@@ -142,6 +151,39 @@ function cleanup() {
 
   const srcText = (await page.locator("#discoverSrc").textContent()).trim();
   check("来源摘要显示 Docker", srcText.indexOf("Docker") !== -1, srcText);
+
+  console.log("== P1-7 失效标记：源侧已消失 → 只标记、不删除 ==");
+  // 配置里 id=gone0000 的卡片来自 docker，但伪造容器列表里没有它 → 应被判为可能已失效
+  check("触发失效提示条", await page.locator("#staleBar:not([hidden])").count() === 1);
+  const staleBarTxt = (await page.locator("#staleBarText").textContent()) || "";
+  check("提示条写明「只标记、未删除」并交代判定来源",
+    /未删除/.test(staleBarTxt) && /Docker/.test(staleBarTxt), staleBarTxt);
+  check("对应的卡片挂上失效角标（data-stale）",
+    await page.locator('.card[data-stale="1"]').count() === 1);
+  check("角标文案可读",
+    ((await page.locator(".stale-pin").first().textContent()) || "").indexOf("可能失效") !== -1,
+    await page.locator(".stale-pin").first().textContent());
+  check("失效卡片的角标来自服务发现（data-source=discover）",
+    await page.locator('.card[data-stale="1"]').getAttribute("data-source") === "discover",
+    await page.locator('.card[data-stale="1"]').getAttribute("data-source"));
+  check("失效卡片仍可点击（href 未被清空）",
+    /^https?:\/\//.test(await page.locator('.card[data-stale="1"]').getAttribute("href") || ""),
+    await page.locator('.card[data-stale="1"]').getAttribute("href"));
+  check("卡片数不变（只标记，绝不自动删除）",
+    await page.locator(".card").count() === 3, String(await page.locator(".card").count()));
+  check("来源未接入的卡片不被误标（本机端口来源 + 本套件关了本机扫描）",
+    await page.locator('.card[data-source="discover"][data-stale="1"]').count() === 1 &&
+    !(await page.locator('.card[href="http://192.168.1.10:8899"]').getAttribute("data-stale")),
+    await page.locator('.card[href="http://192.168.1.10:8899"]').getAttribute("data-stale"));
+  const staleSnap = await page.evaluate(() => window.NaviApp.staleCards());
+  check("失效快照可读且带 source.id / via",
+    staleSnap.length === 1 && staleSnap[0].id === "gone0000" && staleSnap[0].via === "docker",
+    JSON.stringify(staleSnap));
+  const staleMeta = await page.evaluate(() => window.NaviApp.staleMeta());
+  check("stale 元数据可读：checked 含 docker、skipped 含 local（未接入 ≠ 失效）",
+    Array.isArray(staleMeta.checked) && staleMeta.checked.indexOf("docker") >= 0 &&
+    Array.isArray(staleMeta.skipped) && staleMeta.skipped.indexOf("local") >= 0,
+    JSON.stringify(staleMeta));
 
   console.log("== 图标自动匹配 ==");
   const iconImgs = await page.locator(".discover-row .discover-icon img").count();
@@ -257,6 +299,62 @@ function cleanup() {
     saved.discovery && Array.isArray(saved.discovery.ignored));
   check("原有导航项未被破坏",
     saved.groups.some((g) => g.items.some((i) => i.title === "Jellyfin")));
+
+  // P1-7：来源与失效标记必须真的落盘（否则「只标记不删」在重启后就丢了）
+  check("发现来源随卡片落盘（source.type/id/via）",
+    !!savedPt && !!savedPt.source && savedPt.source.type === "discover" &&
+    savedPt.source.id === "bbbb2222" && savedPt.source.via === "docker",
+    JSON.stringify(savedPt && savedPt.source));
+  const savedStale = (saved.groups || []).reduce((a, g) => a.concat(g.items || []), [])
+    .filter((i) => i.stale === true);
+  check("失效标记随保存落盘（stale:true + staleAt）",
+    savedStale.length === 1 && savedStale[0].title === "已消失的服务" && !!savedStale[0].staleAt,
+    JSON.stringify(savedStale));
+  check("手工新建/原有卡片不被误标失效",
+    !savedStale.some((i) => i.title === "Jellyfin") &&
+    (saved.groups || []).reduce((a, g) => a.concat(g.items || []), [])
+      .filter((i) => i.title === "Jellyfin").every((i) => i.stale === undefined));
+
+  console.log("== P1-7 恢复 / 清理（两个显式动作） ==");
+  // 保存后会退出编辑模式，重新进编辑模式再开发现弹窗
+  await page.click("#editToggle");
+  await page.waitForSelector("#saveBar:not([hidden])");
+  await page.click("#discoverBtn");
+  await page.waitForSelector("#discoverModal:not([hidden])");
+  await page.waitForSelector(".discover-row", { timeout: 15000 });
+  check("重新扫描后失效标记仍在（落盘的 stale 被读回）",
+    await page.locator('.card[data-stale="1"]').count() === 1);
+
+  await page.locator("#staleRestoreBtn").click();
+  check("「恢复全部」清除标记后提示条隐藏",
+    await page.locator("#staleBar[hidden]").count() === 1);
+  check("「恢复全部」不删除卡片",
+    await page.locator('.card[data-stale="1"]').count() === 0 &&
+    await page.locator(".card").count() === 5, String(await page.locator(".card").count()));
+  check("恢复后失效快照为空",
+    (await page.evaluate(() => window.NaviApp.staleCards())).length === 0);
+
+  // 重新扫描 → 再次判定失效（源侧依旧没有它），用「清理失效项」走删除路径
+  await page.locator("#discoverRescan").click();
+  await page.waitForFunction(
+    () => document.querySelectorAll('.card[data-stale="1"]').length === 1, null, { timeout: 15000 }
+  );
+  check("重新扫描重新判定失效（标记可重复建立）",
+    await page.locator("#staleBar:not([hidden])").count() === 1);
+
+  // 「清理失效项」是唯一会删数据的动作 → 必须二次确认
+  let dialogMsg = "";
+  page.on("dialog", (d) => { dialogMsg = d.message(); d.accept(); });
+  const cardsBeforeClean = await page.locator(".card").count();
+  await page.locator("#staleCleanBtn").click();
+  check("清理前弹出二次确认（说明可恢复路径）",
+    /确定要删除/.test(dialogMsg) && /恢复全部/.test(dialogMsg), dialogMsg);
+  check("确认清理后失效卡片被移除",
+    await page.locator(".card").count() === cardsBeforeClean - 1,
+    `${cardsBeforeClean} -> ${await page.locator(".card").count()}`);
+  check("清理后不再有失效卡片",
+    await page.locator('.card[data-stale="1"]').count() === 0 &&
+    await page.locator("#staleBar[hidden]").count() === 1);
 
   console.log("== 稳定性 ==");
   check("全程无 JS 错误", pageErrors.length === 0, pageErrors.slice(0, 3).join(" | "));
