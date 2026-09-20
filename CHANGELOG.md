@@ -7,10 +7,13 @@
 > （semver 会剥掉前缀 `v`，所以 `docker pull …:v1.2.3` 是不存在的标签）。
 > 本文件里的版本号与 `server.js` 的 `APP_VERSION` 保持一致。
 
-## [未发布]
+## [1.1.0] - 2026-09-20
 
 本轮为对标同类项目做的一轮系统性改进，全部以「不破坏既有行为」为前提，并配了回归断言
-（目前 **19 个套件 / 958 项断言 / 0 失败**）。
+（目前 **19 个套件 / 961 项断言 / 0 失败**）。
+
+> 打 `v1.1.0` 标签会推送 `1.1.0` / `1.1` / `latest` 三个镜像标签。
+> NAS 上若要升级到本版：`docker compose -f docker-compose.image.yml pull && … up -d`。
 
 ### 新增
 
@@ -99,5 +102,6 @@
 支持分组导航、编辑模式、图床库、访问密码保护、IPv4/IPv6 双栈、Docker 一键部署，
 并提供 `linux/amd64` 与 `linux/arm64` 多架构预构建镜像。
 
-[未发布]: https://github.com/mijunyi/navi-homepage/compare/v1.0.0...HEAD
+[未发布]: https://github.com/mijunyi/navi-homepage/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/mijunyi/navi-homepage/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/mijunyi/navi-homepage/releases/tag/v1.0.0

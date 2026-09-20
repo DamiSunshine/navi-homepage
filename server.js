@@ -52,7 +52,7 @@ const LIBRARY_MAX_LIST = 2000; // 列表接口单次最多返回的图片数（�
 const UPLOAD_DIR = process.env.NAVI_UPLOAD_DIR || path.join(ROOT, "uploads");
 const BACKUP_FORMAT = "navi-backup";
 const BACKUP_VERSION = 1;
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.1.0";
 
 /* ---------- 服务发现配置（环境变量驱动，均有合理默认） ----------
    Docker 接入二选一：

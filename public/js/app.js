@@ -14,7 +14,7 @@
   var STATIC_CONFIG_URL = "config.json";
   var BACKUP_FORMAT = "navi-backup";
   var BACKUP_VERSION = 1;
-  var APP_VERSION = "1.0.0";
+  var APP_VERSION = "1.1.0";
 
   /* ---------- 图标解析器 ---------- */
   // icon 字段支持五种写法：

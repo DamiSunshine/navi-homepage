@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Navi 导航站 · 近期改进成果预览：10 项新功能的前后对比、5 处真实缺陷修复、19 套件 / 958 断言的回归护栏。">
+<meta name="description" content="Navi 导航站 · 近期改进成果预览：10 项新功能的前后对比、5 处真实缺陷修复、19 套件 / 961 断言的回归护栏。">
 <title>Navi 导航站 · 迭代成果预览</title>
 <style>
 /* ============================================================
@@ -399,7 +399,7 @@ footer a{color:var(--tx2)}
   <div class="wrap">
     <div class="eyebrow">
       <span class="pill b">零 npm 依赖 · 零构建</span>
-      <span class="pill g">19 套件 / 958 断言 / 0 失败</span>
+      <span class="pill g">19 套件 / 961 断言 / 0 失败</span>
       <span class="pill">本轮 7 次提交</span>
       <span class="pill">整理于 2026-09-20</span>
     </div>
@@ -413,7 +413,7 @@ footer a{color:var(--tx2)}
 
     <div class="kpis">
       <div class="kpi"><div class="n" data-count="19">0</div><div class="l">测试套件（原 16）</div></div>
-      <div class="kpi"><div class="n" data-count="958">0</div><div class="l">通过断言（原 694）</div></div>
+      <div class="kpi"><div class="n" data-count="961">0</div><div class="l">通过断言（原 694）</div></div>
       <div class="kpi"><div class="n"><small>+</small><span data-count="251">0</span></div><div class="l">本轮新增断言</div></div>
       <div class="kpi"><div class="n" data-count="10">0</div><div class="l">新增 / 增强功能</div></div>
       <div class="kpi"><div class="n" data-count="0">0</div><div class="l">失败断言</div></div>
@@ -421,11 +421,11 @@ footer a{color:var(--tx2)}
 
     <div class="growth">
       <div class="gh">
-        <b>断言基线增长：694 → 958</b>
+        <b>断言基线增长：694 → 961</b>
         <span>断言只增不减 —— 任何改动「通过数」只能 ≥ 基线，失败必须为 0</span>
       </div>
       <div class="bar"><i id="growthBar"></i><span class="mk" style="left:23.5%"></span></div>
-      <div class="barlbl"><span>694 · 本轮起点</span><span>本次 958</span></div>
+      <div class="barlbl"><span>694 · 本轮起点</span><span>本次 961</span></div>
       <div class="srcnote">
         数据来源：<code>test/_baseline.txt</code> 的逐版记录（可 <code>git log -- test/_baseline.txt</code> 复核），
         本文所有数字均由 <code>test/imagecompose.test.cjs</code> 对着代码校验。
@@ -439,7 +439,7 @@ footer a{color:var(--tx2)}
   <div class="wrap">
     <div class="shead">
       <div class="kicker">Commit Timeline</div>
-      <h2>本轮 7 次提交，断言一步步长到 958</h2>
+      <h2>本轮 7 次提交，断言一步步长到 961</h2>
       <p>每个节点下方是那一次提交后的基线快照。可横向滑动查看。</p>
     </div>
     <div class="tl">
@@ -489,7 +489,7 @@ footer a{color:var(--tx2)}
         <div class="h"><span class="dot"></span><code>本次</code></div>
         <div class="t">预览站点 + 护栏</div>
         <div class="d">本页面本身，以及钉住本文数字的 3 条断言。</div>
-        <div class="b"><span>19 套件</span><span><b>958 断言</b></span></div>
+        <div class="b"><span>19 套件</span><span><b>961 断言</b></span></div>
       </div>
     </div>
   </div>
@@ -997,7 +997,7 @@ footer a{color:var(--tx2)}
       <div class="card">
         <h3>断言基线增长曲线</h3>
         <div class="cd">横轴为 8 个检查点，纵轴为通过断言数（含本次）。失败数全程为 0。</div>
-        <svg class="chart" viewBox="0 0 660 250" role="img" aria-label="断言基线增长曲线：694 到 958">
+        <svg class="chart" viewBox="0 0 660 250" role="img" aria-label="断言基线增长曲线：694 到 961">
           <defs>
             <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stop-color="#2563eb" stop-opacity=".28"/>
@@ -1019,7 +1019,7 @@ footer a{color:var(--tx2)}
             <text x="40" y="178" text-anchor="end">740</text>
             <text x="40" y="210" text-anchor="end">694</text>
           </g>
-          <!-- area + line: 694@206 713@196 771@163 825@129 858@111 914@79 940@64 958@62 -->
+          <!-- area + line: 694@206 713@196 771@163 825@129 858@111 914@79 940@64 961@62 -->
           <path d="M70,206 L150,196 L230,163 L310,129 L390,111 L470,79 L550,64 L620,62 L620,206 L70,206 Z" fill="url(#ag)"/>
           <polyline points="70,206 150,196 230,163 310,129 390,111 470,79 550,64 620,62"
                     fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
@@ -1029,7 +1029,7 @@ footer a{color:var(--tx2)}
             <circle cx="550" cy="64" r="3.6"/>
           </g>
           <circle cx="620" cy="62" r="5.5" fill="#0d9488"/>
-          <text x="620" y="46" text-anchor="middle" font-size="12" font-weight="bold" fill="#0d9488" font-family="monospace">958</text>
+          <text x="620" y="46" text-anchor="middle" font-size="12" font-weight="bold" fill="#0d9488" font-family="monospace">961</text>
           <text x="70" y="228" text-anchor="middle" font-size="11" fill="#8fa0b8" font-family="monospace">起点</text>
           <text x="230" y="228" text-anchor="middle" font-size="11" fill="#8fa0b8" font-family="monospace">P1-6</text>
           <text x="390" y="228" text-anchor="middle" font-size="11" fill="#8fa0b8" font-family="monospace">P2 引导</text>
@@ -1090,7 +1090,7 @@ footer a{color:var(--tx2)}
     </div>
 
     <div class="cmd">
-      <div class="ch"><span class="k">1</span>全量回归 —— 应输出「958 通过, 0 失败 / 共 19 个套件」</div>
+      <div class="ch"><span class="k">1</span>全量回归 —— 应输出「961 通过, 0 失败 / 共 19 个套件」</div>
       <pre><span class="c"># NODE_PATH 指向含 playwright 的 node_modules（开发期依赖，运行时不依赖）</span>
 NODE_PATH=&lt;含 playwright 的 node_modules&gt; node test/run-all.cjs
 
@@ -1134,7 +1134,7 @@ node scripts/check-github-net.cjs   <span class="c"># 区分「凭据问题」�
       镜像 <code>ghcr.io/mijunyi/navi-homepage</code>
     </div>
     <div style="text-align:right">
-      19 套件 / 958 断言 / 0 失败<br>
+      19 套件 / 961 断言 / 0 失败<br>
       <span style="color:var(--tx3)">整理于 2026-09-20 · 数据取自工作区实测</span>
     </div>
   </div>

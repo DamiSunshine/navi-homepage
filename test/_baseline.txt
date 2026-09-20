@@ -36,6 +36,6 @@
   ✓ ui-firstrun.test.cjs    33 通过, 0 失败
   ✓ ui-tags.test.cjs        40 通过, 0 失败
   ✓ checkdeploy.test.cjs    22 通过, 0 失败
-  ✓ imagecompose.test.cjs  143 通过, 0 失败
+  ✓ imagecompose.test.cjs  146 通过, 0 失败
 
-合计：958 通过, 0 失败 / 共 19 个套件
+合计：961 通过, 0 失败 / 共 19 个套件

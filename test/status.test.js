@@ -272,7 +272,7 @@ function startFakeDocker(port) {
       r1.json.navi.uploads && r1.json.navi.uploads.count === 2, JSON.stringify(r1.json.navi.uploads));
     check("navi.uploads 字节数正确",
       r1.json.navi.uploads.bytes === 1690, JSON.stringify(r1.json.navi.uploads));
-    check("navi.version 与 APP_VERSION 一致", r1.json.navi.version === "1.0.0", String(r1.json.navi.version));
+    check("navi.version 与 APP_VERSION 一致", r1.json.navi.version === "1.1.0", String(r1.json.navi.version));
 
     check("Docker 不可用时 available:false", r1.json.docker.available === false);
     check("Docker 不可用时 total 为 null（不给假 0）", r1.json.docker.total === null,

@@ -733,6 +733,22 @@ try {
 
     check(bs2.indexOf("site.html") < 0, "门户站点刻意不进发布包（含仓库内文档链接）");
   }
+
+  /* ---- ⑧ 版本号一致性 ----
+     版本号没有单一来源：server.js、public/js/app.js、status.test.js 的断言各写一份字面量，
+     CHANGELOG.md 还有一个「最新版本号」标题。发版时漏改任何一处都**不会报错**——
+     页面照常跑，只是各处版本悄悄不一致（/api/status 说 1.1.0 而前端关于页说 1.0.0）。 */
+  const vSrv = (readText(path.join(ROOT, "server.js")).match(/const APP_VERSION = "([^"]+)"/) || [])[1];
+  const vApp = (readText(path.join(ROOT, "public", "js", "app.js")).match(/var APP_VERSION = "([^"]+)"/) || [])[1];
+  const vTest = (readText(path.join(ROOT, "test", "status.test.js")).match(/navi\.version === "([^"]+)"/) || [])[1];
+  const vChg = (readText(path.join(ROOT, "CHANGELOG.md")).match(/^## \[(\d+\.\d+\.\d+)\]/m) || [])[1];
+  check(!!vSrv && !!vApp && !!vTest && !!vChg,
+    "四处版本号都能解析出来（护栏自身有效）", [vSrv, vApp, vTest, vChg].join(" / "));
+  check(vApp === vSrv && vTest === vSrv,
+    "前端 APP_VERSION 与 status.test.js 的断言都跟着 server.js 走",
+    "server=" + vSrv + " app=" + vApp + " test=" + vTest);
+  check(vChg === vSrv,
+    "CHANGELOG 最新版本号与 APP_VERSION 一致（发版漏改会红）", vChg + " vs " + vSrv);
 } catch (e) {
   bad("概览文档一致性检查异常", e && e.message ? e.message : String(e));
 }
