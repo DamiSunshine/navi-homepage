@@ -92,10 +92,12 @@ const BASE_CONFIG = {
     let lib = JSON.parse(r.body);
     check("空库 -> 200 且 ok=true", r.status === 200 && lib.ok === true, r.status + " " + r.body);
     check("非图片文件被忽略（notes.txt 不入库）", lib.count === 0, JSON.stringify(lib.images));
-    check("返回在线图标预设（复用服务指纹库，>=30 个）",
-      Array.isArray(lib.presets) && lib.presets.length >= 30, lib.presets && lib.presets.length);
+    check("返回内置本地图标库（>=200 个，离线可用）",
+      Array.isArray(lib.presets) && lib.presets.length >= 200, lib.presets && lib.presets.length);
     check("预设项含 name/icon 字段",
       lib.presets.every((p) => p.name && p.icon), JSON.stringify(lib.presets[0]));
+    check("预设项标记为本地图标（前端据此走本地优先）",
+      lib.presets.every((p) => p.local === true), JSON.stringify(lib.presets[0]));
     check("返回上传目录与限额信息",
       typeof lib.dir === "string" && lib.limits && lib.limits.maxFiles > 0 && lib.limits.maxSize > 0,
       JSON.stringify(lib.limits));

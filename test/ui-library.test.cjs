@@ -222,8 +222,24 @@ function cleanup() {
     await page.waitForSelector("#libraryModal:not([hidden])");
     await page.waitForFunction(() => document.querySelectorAll("#iconGrid .lib-cell").length > 0, null, { timeout: 10000 });
     const presetCount = await page.locator("#iconGrid .lib-cell").count();
-    check("在线图标库默认展示内置推荐（>=30 个）", presetCount >= 30, String(presetCount));
-    // 在线图标来自外部 CDN：要么真的加载成功，要么已由 onerror 回退为字母图标，不允许空白
+    check("在线图标库默认展示内置本地图标库（>=200 个）", presetCount >= 200, String(presetCount));
+    // 缩略图是 loading="lazy" 的：不滚出视口就不会发请求，naturalWidth 恒为 0。
+    // 内置库有 200+ 个（远超一屏），所以必须先把网格滚一遍再判定，
+    // 否则测的只是「首屏那几张」——那等于把这条断言测废。
+    await page.evaluate(async () => {
+      const grid = document.querySelector("#iconGrid");
+      let box = grid;
+      while (box && box.scrollHeight <= box.clientHeight + 4 && box.parentElement) box = box.parentElement;
+      if (!box) return;
+      const step = Math.max(200, box.clientHeight - 40);
+      for (let y = 0; y <= box.scrollHeight; y += step) {
+        box.scrollTop = y;
+        await new Promise((r) => setTimeout(r, 120));
+      }
+      box.scrollTop = 0;
+      await new Promise((r) => setTimeout(r, 200));
+    });
+    // 图标要么真的加载成功，要么已由 onerror 回退为字母图标，不允许空白
     const iconsResolved = await waitForTrue(() => {
       const thumbs = Array.from(document.querySelectorAll("#iconGrid .lib-cell-thumb"));
       return thumbs.length > 0 && thumbs.every((t) => {

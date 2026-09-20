@@ -1,0 +1,1827 @@
+{
+  "generatedAt": "2026-09-20",
+  "sources": [
+    "dashboard-icons",
+    "selfhst"
+  ],
+  "note": "由 scripts/build-icons.cjs 生成；本地优先，CDN 兜底。改动请改脚本里的 CURATED 清单。",
+  "count": 227,
+  "icons": [
+    {
+      "slug": "jellyfin",
+      "name": "Jellyfin",
+      "keywords": "影音 媒体 视频 nas 流媒体",
+      "file": "jellyfin.svg",
+      "bytes": 896,
+      "source": "cache"
+    },
+    {
+      "slug": "plex",
+      "name": "Plex",
+      "keywords": "影音 媒体 视频",
+      "file": "plex.svg",
+      "bytes": 191,
+      "source": "cache"
+    },
+    {
+      "slug": "emby",
+      "name": "Emby",
+      "keywords": "影音 媒体 视频",
+      "file": "emby.svg",
+      "bytes": 345,
+      "source": "cache"
+    },
+    {
+      "slug": "kodi",
+      "name": "Kodi",
+      "keywords": "影音 播放器 htpc",
+      "file": "kodi.svg",
+      "bytes": 1376,
+      "source": "cache"
+    },
+    {
+      "slug": "navidrome",
+      "name": "Navidrome",
+      "keywords": "音乐 流媒体 电台",
+      "file": "navidrome.svg",
+      "bytes": 1141,
+      "source": "cache"
+    },
+    {
+      "slug": "airsonic",
+      "name": "Airsonic",
+      "keywords": "音乐 流媒体",
+      "file": "airsonic.svg",
+      "bytes": 3105,
+      "source": "cache"
+    },
+    {
+      "slug": "audiobookshelf",
+      "name": "Audiobookshelf",
+      "keywords": "有声书 播客 音频",
+      "file": "audiobookshelf.svg",
+      "bytes": 1775,
+      "source": "cache"
+    },
+    {
+      "slug": "sonarr",
+      "name": "Sonarr",
+      "keywords": "剧集 追剧 自动下载",
+      "file": "sonarr.svg",
+      "bytes": 1978,
+      "source": "cache"
+    },
+    {
+      "slug": "radarr",
+      "name": "Radarr",
+      "keywords": "电影 自动下载",
+      "file": "radarr.svg",
+      "bytes": 778,
+      "source": "cache"
+    },
+    {
+      "slug": "lidarr",
+      "name": "Lidarr",
+      "keywords": "音乐 自动下载",
+      "file": "lidarr.svg",
+      "bytes": 43360,
+      "source": "cache"
+    },
+    {
+      "slug": "readarr",
+      "name": "Readarr",
+      "keywords": "电子书 自动下载",
+      "file": "readarr.svg",
+      "bytes": 1695,
+      "source": "cache"
+    },
+    {
+      "slug": "prowlarr",
+      "name": "Prowlarr",
+      "keywords": "索引器 bt",
+      "file": "prowlarr.svg",
+      "bytes": 11538,
+      "source": "cache"
+    },
+    {
+      "slug": "bazarr",
+      "name": "Bazarr",
+      "keywords": "字幕",
+      "file": "bazarr.svg",
+      "bytes": 1121,
+      "source": "cache"
+    },
+    {
+      "slug": "overseerr",
+      "name": "Overseerr",
+      "keywords": "求片 媒体请求",
+      "file": "overseerr.svg",
+      "bytes": 1486,
+      "source": "cache"
+    },
+    {
+      "slug": "jellyseerr",
+      "name": "Jellyseerr",
+      "keywords": "求片 媒体请求",
+      "file": "jellyseerr.svg",
+      "bytes": 5836,
+      "source": "cache"
+    },
+    {
+      "slug": "ombi",
+      "name": "Ombi",
+      "keywords": "求片 媒体请求",
+      "file": "ombi.svg",
+      "bytes": 6057,
+      "source": "cache"
+    },
+    {
+      "slug": "tautulli",
+      "name": "Tautulli",
+      "keywords": "统计 plex 监控",
+      "file": "tautulli.svg",
+      "bytes": 1050,
+      "source": "cache"
+    },
+    {
+      "slug": "jellystat",
+      "name": "Jellystat",
+      "keywords": "统计 jellyfin 监控",
+      "file": "jellystat.svg",
+      "bytes": 6994,
+      "source": "cache"
+    },
+    {
+      "slug": "immich",
+      "name": "Immich",
+      "keywords": "照片 相册 备份 图库",
+      "file": "immich.svg",
+      "bytes": 1172,
+      "source": "cache"
+    },
+    {
+      "slug": "photoprism",
+      "name": "PhotoPrism",
+      "keywords": "照片 相册 ai",
+      "file": "photoprism.svg",
+      "bytes": 773,
+      "source": "cache"
+    },
+    {
+      "slug": "piwigo",
+      "name": "Piwigo",
+      "keywords": "相册 图片",
+      "file": "piwigo.svg",
+      "bytes": 791,
+      "source": "cache"
+    },
+    {
+      "slug": "photoview",
+      "name": "PhotoView",
+      "keywords": "照片 相册",
+      "file": "photoview.svg",
+      "bytes": 906,
+      "source": "cache"
+    },
+    {
+      "slug": "mealie",
+      "name": "Mealie",
+      "keywords": "菜谱 食谱",
+      "file": "mealie.svg",
+      "bytes": 1238,
+      "source": "cache"
+    },
+    {
+      "slug": "tandoor",
+      "name": "Tandoor",
+      "keywords": "菜谱 食谱",
+      "file": "tandoor.svg",
+      "bytes": 4275,
+      "source": "cache"
+    },
+    {
+      "slug": "qbittorrent",
+      "name": "qBittorrent",
+      "keywords": "bt 下载 种子",
+      "file": "qbittorrent.svg",
+      "bytes": 1549,
+      "source": "cache"
+    },
+    {
+      "slug": "transmission",
+      "name": "Transmission",
+      "keywords": "bt 下载 种子",
+      "file": "transmission.svg",
+      "bytes": 7954,
+      "source": "cache"
+    },
+    {
+      "slug": "deluge",
+      "name": "Deluge",
+      "keywords": "bt 下载 种子",
+      "file": "deluge.svg",
+      "bytes": 795,
+      "source": "cache"
+    },
+    {
+      "slug": "aria2",
+      "name": "Aria2",
+      "keywords": "下载 离线 多线程",
+      "file": "aria2.svg",
+      "bytes": 939,
+      "source": "cache"
+    },
+    {
+      "slug": "sabnzbd",
+      "name": "SABnzbd",
+      "keywords": "usenet 下载",
+      "file": "sabnzbd.svg",
+      "bytes": 921,
+      "source": "cache"
+    },
+    {
+      "slug": "nzbget",
+      "name": "NZBGet",
+      "keywords": "usenet 下载",
+      "file": "nzbget.svg",
+      "bytes": 1775,
+      "source": "cache"
+    },
+    {
+      "slug": "jackett",
+      "name": "Jackett",
+      "keywords": "索引 bt 搜索",
+      "file": "jackett.svg",
+      "bytes": 727,
+      "source": "cache"
+    },
+    {
+      "slug": "syncthing",
+      "name": "Syncthing",
+      "keywords": "同步 文件 p2p",
+      "file": "syncthing.svg",
+      "bytes": 1187,
+      "source": "cache"
+    },
+    {
+      "slug": "rdtclient",
+      "name": "RDT-Client",
+      "keywords": "下载 离线 云",
+      "file": "rdtclient.svg",
+      "bytes": 4326,
+      "source": "cache"
+    },
+    {
+      "slug": "nextcloud",
+      "name": "Nextcloud",
+      "keywords": "网盘 云盘 同步 办公",
+      "file": "nextcloud.svg",
+      "bytes": 739,
+      "source": "cache"
+    },
+    {
+      "slug": "owncloud",
+      "name": "ownCloud",
+      "keywords": "网盘 云盘 同步",
+      "file": "owncloud.svg",
+      "bytes": 1610,
+      "source": "cache"
+    },
+    {
+      "slug": "seafile",
+      "name": "Seafile",
+      "keywords": "网盘 同步 文件",
+      "file": "seafile.svg",
+      "bytes": 1387,
+      "source": "cache"
+    },
+    {
+      "slug": "truenas",
+      "name": "TrueNAS",
+      "keywords": "nas 存储 zfs",
+      "file": "truenas.svg",
+      "bytes": 465,
+      "source": "cache"
+    },
+    {
+      "slug": "freenas",
+      "name": "FreeNAS",
+      "keywords": "nas 存储 zfs",
+      "file": "freenas.svg",
+      "bytes": 2320,
+      "source": "cache"
+    },
+    {
+      "slug": "openmediavault",
+      "name": "OpenMediaVault",
+      "keywords": "nas 存储",
+      "file": "openmediavault.svg",
+      "bytes": 1710,
+      "source": "cache"
+    },
+    {
+      "slug": "unraid",
+      "name": "Unraid",
+      "keywords": "nas 存储 阵列",
+      "file": "unraid.svg",
+      "bytes": 624,
+      "source": "cache"
+    },
+    {
+      "slug": "synology",
+      "name": "Synology",
+      "keywords": "群晖 nas 存储",
+      "file": "synology.svg",
+      "bytes": 4338,
+      "source": "cache"
+    },
+    {
+      "slug": "qnap",
+      "name": "QNAP",
+      "keywords": "nas 存储",
+      "file": "qnap.svg",
+      "bytes": 445,
+      "source": "cache"
+    },
+    {
+      "slug": "casaos",
+      "name": "CasaOS",
+      "keywords": "nas 面板",
+      "file": "casaos.svg",
+      "bytes": 611,
+      "source": "cache"
+    },
+    {
+      "slug": "umbrel",
+      "name": "Umbrel",
+      "keywords": "nas 面板",
+      "file": "umbrel.svg",
+      "bytes": 5055,
+      "source": "cache"
+    },
+    {
+      "slug": "proxmox",
+      "name": "Proxmox VE",
+      "keywords": "虚拟化 kvm lxc",
+      "file": "proxmox.svg",
+      "bytes": 1196,
+      "source": "cache"
+    },
+    {
+      "slug": "portainer",
+      "name": "Portainer",
+      "keywords": "docker 容器 管理",
+      "file": "portainer.svg",
+      "bytes": 675,
+      "source": "cache"
+    },
+    {
+      "slug": "docker",
+      "name": "Docker",
+      "keywords": "容器",
+      "file": "docker.svg",
+      "bytes": 608,
+      "source": "cache"
+    },
+    {
+      "slug": "kubernetes",
+      "name": "Kubernetes",
+      "keywords": "k8s 容器 编排",
+      "file": "kubernetes.svg",
+      "bytes": 6040,
+      "source": "cache"
+    },
+    {
+      "slug": "rancher",
+      "name": "Rancher",
+      "keywords": "k8s 容器 管理",
+      "file": "rancher.svg",
+      "bytes": 940,
+      "source": "cache"
+    },
+    {
+      "slug": "cockpit",
+      "name": "Cockpit",
+      "keywords": "linux 服务器 管理",
+      "file": "cockpit.svg",
+      "bytes": 610,
+      "source": "cache"
+    },
+    {
+      "slug": "virtualbox",
+      "name": "VirtualBox",
+      "keywords": "虚拟机",
+      "file": "virtualbox.svg",
+      "bytes": 767,
+      "source": "cache"
+    },
+    {
+      "slug": "vmware",
+      "name": "VMware",
+      "keywords": "虚拟机 虚拟化",
+      "file": "vmware.svg",
+      "bytes": 1082,
+      "source": "cache"
+    },
+    {
+      "slug": "qemu",
+      "name": "QEMU",
+      "keywords": "虚拟机 模拟器",
+      "file": "qemu.svg",
+      "bytes": 1471,
+      "source": "cache"
+    },
+    {
+      "slug": "home-assistant",
+      "name": "Home Assistant",
+      "keywords": "智能家居 米家 自动化",
+      "file": "home-assistant.svg",
+      "bytes": 879,
+      "source": "cache"
+    },
+    {
+      "slug": "esphome",
+      "name": "ESPHome",
+      "keywords": "智能家居 固件 esp",
+      "file": "esphome.svg",
+      "bytes": 2187,
+      "source": "cache"
+    },
+    {
+      "slug": "node-red",
+      "name": "Node-RED",
+      "keywords": "流程 自动化 编排",
+      "file": "node-red.svg",
+      "bytes": 1052,
+      "source": "cache"
+    },
+    {
+      "slug": "zigbee2mqtt",
+      "name": "Zigbee2MQTT",
+      "keywords": "智能家居 网关 zigbee",
+      "file": "zigbee2mqtt.svg",
+      "bytes": 9822,
+      "source": "cache"
+    },
+    {
+      "slug": "mosquitto",
+      "name": "Mosquitto",
+      "keywords": "mqtt 消息 物联网",
+      "file": "mosquitto.svg",
+      "bytes": 1510,
+      "source": "cache"
+    },
+    {
+      "slug": "openhab",
+      "name": "openHAB",
+      "keywords": "智能家居 自动化",
+      "file": "openhab.svg",
+      "bytes": 427,
+      "source": "cache"
+    },
+    {
+      "slug": "homebridge",
+      "name": "Homebridge",
+      "keywords": "智能家居 homekit 苹果",
+      "file": "homebridge.svg",
+      "bytes": 1952,
+      "source": "cache"
+    },
+    {
+      "slug": "tasmota",
+      "name": "Tasmota",
+      "keywords": "固件 智能家居",
+      "file": "tasmota.svg",
+      "bytes": 473,
+      "source": "cache"
+    },
+    {
+      "slug": "homebox",
+      "name": "HomeBox",
+      "keywords": "家庭 物品 库存 清单",
+      "file": "homebox.svg",
+      "bytes": 2756,
+      "source": "cache"
+    },
+    {
+      "slug": "openwrt",
+      "name": "OpenWrt",
+      "keywords": "路由器 固件 软路由",
+      "file": "openwrt.svg",
+      "bytes": 1288,
+      "source": "cache"
+    },
+    {
+      "slug": "pfsense",
+      "name": "pfSense",
+      "keywords": "防火墙 路由 软路由",
+      "file": "pfsense.svg",
+      "bytes": 1404,
+      "source": "cache"
+    },
+    {
+      "slug": "opnsense",
+      "name": "OPNsense",
+      "keywords": "防火墙 路由 软路由",
+      "file": "opnsense.svg",
+      "bytes": 2386,
+      "source": "cache"
+    },
+    {
+      "slug": "unifi",
+      "name": "UniFi",
+      "keywords": "优倍快 网络 ap",
+      "file": "unifi.svg",
+      "bytes": 1067,
+      "source": "cache"
+    },
+    {
+      "slug": "adguard-home",
+      "name": "AdGuard Home",
+      "keywords": "去广告 dns 广告拦截",
+      "file": "adguard-home.svg",
+      "bytes": 672,
+      "source": "cache"
+    },
+    {
+      "slug": "pi-hole",
+      "name": "Pi-hole",
+      "keywords": "去广告 dns 广告拦截",
+      "file": "pi-hole.svg",
+      "bytes": 1434,
+      "source": "cache"
+    },
+    {
+      "slug": "technitium",
+      "name": "Technitium DNS",
+      "keywords": "dns 服务器",
+      "file": "technitium.svg",
+      "bytes": 1404,
+      "source": "cache"
+    },
+    {
+      "slug": "wireguard",
+      "name": "WireGuard",
+      "keywords": "vpn 隧道",
+      "file": "wireguard.svg",
+      "bytes": 4328,
+      "source": "cache"
+    },
+    {
+      "slug": "tailscale",
+      "name": "Tailscale",
+      "keywords": "vpn 组网 内网穿透",
+      "file": "tailscale.svg",
+      "bytes": 1185,
+      "source": "cache"
+    },
+    {
+      "slug": "zerotier",
+      "name": "ZeroTier",
+      "keywords": "vpn 组网 内网穿透",
+      "file": "zerotier.svg",
+      "bytes": 471,
+      "source": "cache"
+    },
+    {
+      "slug": "nginx-proxy-manager",
+      "name": "Nginx Proxy Manager",
+      "keywords": "反向代理 证书",
+      "file": "nginx-proxy-manager.svg",
+      "bytes": 9130,
+      "source": "cache"
+    },
+    {
+      "slug": "traefik",
+      "name": "Traefik",
+      "keywords": "反向代理 负载均衡",
+      "file": "traefik.svg",
+      "bytes": 2188,
+      "source": "cache"
+    },
+    {
+      "slug": "caddy",
+      "name": "Caddy",
+      "keywords": "web 服务器 证书",
+      "file": "caddy.svg",
+      "bytes": 3363,
+      "source": "cache"
+    },
+    {
+      "slug": "haproxy",
+      "name": "HAProxy",
+      "keywords": "负载均衡 代理",
+      "file": "haproxy.svg",
+      "bytes": 6845,
+      "source": "cache"
+    },
+    {
+      "slug": "nginx",
+      "name": "Nginx",
+      "keywords": "web 服务器 代理",
+      "file": "nginx.svg",
+      "bytes": 877,
+      "source": "cache"
+    },
+    {
+      "slug": "apache",
+      "name": "Apache",
+      "keywords": "web 服务器",
+      "file": "apache.svg",
+      "bytes": 9302,
+      "source": "cache"
+    },
+    {
+      "slug": "cloudflare",
+      "name": "Cloudflare",
+      "keywords": "dns cdn 防护",
+      "file": "cloudflare.svg",
+      "bytes": 1216,
+      "source": "cache"
+    },
+    {
+      "slug": "cloudflared",
+      "name": "Cloudflare Tunnel",
+      "keywords": "内网穿透 隧道",
+      "file": "cloudflared.svg",
+      "bytes": 1193,
+      "source": "cache"
+    },
+    {
+      "slug": "frp",
+      "name": "frp",
+      "keywords": "内网穿透 端口转发",
+      "file": "frp.svg",
+      "bytes": 3283,
+      "source": "cache"
+    },
+    {
+      "slug": "grafana",
+      "name": "Grafana",
+      "keywords": "监控 面板 图表",
+      "file": "grafana.svg",
+      "bytes": 4233,
+      "source": "cache"
+    },
+    {
+      "slug": "prometheus",
+      "name": "Prometheus",
+      "keywords": "监控 指标",
+      "file": "prometheus.svg",
+      "bytes": 764,
+      "source": "cache"
+    },
+    {
+      "slug": "uptime-kuma",
+      "name": "Uptime Kuma",
+      "keywords": "监控 可用性 拨测",
+      "file": "uptime-kuma.svg",
+      "bytes": 630,
+      "source": "cache"
+    },
+    {
+      "slug": "netdata",
+      "name": "Netdata",
+      "keywords": "监控 性能",
+      "file": "netdata.svg",
+      "bytes": 253,
+      "source": "cache"
+    },
+    {
+      "slug": "zabbix",
+      "name": "Zabbix",
+      "keywords": "监控 告警",
+      "file": "zabbix.svg",
+      "bytes": 363,
+      "source": "cache"
+    },
+    {
+      "slug": "influxdb",
+      "name": "InfluxDB",
+      "keywords": "时序数据库 监控",
+      "file": "influxdb.svg",
+      "bytes": 1257,
+      "source": "cache"
+    },
+    {
+      "slug": "victoriametrics",
+      "name": "VictoriaMetrics",
+      "keywords": "监控 时序数据库",
+      "file": "victoriametrics.svg",
+      "bytes": 516,
+      "source": "cache"
+    },
+    {
+      "slug": "loki",
+      "name": "Loki",
+      "keywords": "日志 聚合",
+      "file": "loki.svg",
+      "bytes": 4994,
+      "source": "cache"
+    },
+    {
+      "slug": "glances",
+      "name": "Glances",
+      "keywords": "监控 系统",
+      "file": "glances.svg",
+      "bytes": 2756,
+      "source": "cache"
+    },
+    {
+      "slug": "speedtest-tracker",
+      "name": "Speedtest Tracker",
+      "keywords": "测速 带宽 监控",
+      "file": "speedtest-tracker.svg",
+      "bytes": 4569,
+      "source": "cache"
+    },
+    {
+      "slug": "changedetection",
+      "name": "Changedetection.io",
+      "keywords": "网页监控 变更提醒",
+      "file": "changedetection.svg",
+      "bytes": 2750,
+      "source": "cache"
+    },
+    {
+      "slug": "ntfy",
+      "name": "ntfy",
+      "keywords": "推送 通知",
+      "file": "ntfy.svg",
+      "bytes": 1505,
+      "source": "cache"
+    },
+    {
+      "slug": "gotify",
+      "name": "Gotify",
+      "keywords": "推送 通知",
+      "file": "gotify.svg",
+      "bytes": 7434,
+      "source": "cache"
+    },
+    {
+      "slug": "mysql",
+      "name": "MySQL",
+      "keywords": "数据库",
+      "file": "mysql.svg",
+      "bytes": 5566,
+      "source": "cache"
+    },
+    {
+      "slug": "mariadb",
+      "name": "MariaDB",
+      "keywords": "数据库",
+      "file": "mariadb.svg",
+      "bytes": 2387,
+      "source": "cache"
+    },
+    {
+      "slug": "postgresql",
+      "name": "PostgreSQL",
+      "keywords": "数据库 pg",
+      "file": "postgresql.svg",
+      "bytes": 2888,
+      "source": "cache"
+    },
+    {
+      "slug": "mongodb",
+      "name": "MongoDB",
+      "keywords": "数据库 文档",
+      "file": "mongodb.svg",
+      "bytes": 710,
+      "source": "cache"
+    },
+    {
+      "slug": "redis",
+      "name": "Redis",
+      "keywords": "缓存 数据库",
+      "file": "redis.svg",
+      "bytes": 2682,
+      "source": "cache"
+    },
+    {
+      "slug": "sqlite",
+      "name": "SQLite",
+      "keywords": "数据库 嵌入式",
+      "file": "sqlite.svg",
+      "bytes": 9886,
+      "source": "cache"
+    },
+    {
+      "slug": "elasticsearch",
+      "name": "Elasticsearch",
+      "keywords": "搜索 索引 数据库",
+      "file": "elasticsearch.svg",
+      "bytes": 1749,
+      "source": "cache"
+    },
+    {
+      "slug": "clickhouse",
+      "name": "ClickHouse",
+      "keywords": "数据库 olap",
+      "file": "clickhouse.svg",
+      "bytes": 301,
+      "source": "cache"
+    },
+    {
+      "slug": "cassandra",
+      "name": "Cassandra",
+      "keywords": "数据库 分布式",
+      "file": "cassandra.svg",
+      "bytes": 11353,
+      "source": "cache"
+    },
+    {
+      "slug": "neo4j",
+      "name": "Neo4j",
+      "keywords": "图数据库",
+      "file": "neo4j.svg",
+      "bytes": 2680,
+      "source": "cache"
+    },
+    {
+      "slug": "phpmyadmin",
+      "name": "phpMyAdmin",
+      "keywords": "数据库 管理 mysql",
+      "file": "phpmyadmin.svg",
+      "bytes": 13298,
+      "source": "cache"
+    },
+    {
+      "slug": "adminer",
+      "name": "Adminer",
+      "keywords": "数据库 管理",
+      "file": "adminer.svg",
+      "bytes": 2143,
+      "source": "cache"
+    },
+    {
+      "slug": "github",
+      "name": "GitHub",
+      "keywords": "代码 托管 仓库",
+      "file": "github.svg",
+      "bytes": 822,
+      "source": "cache"
+    },
+    {
+      "slug": "gitlab",
+      "name": "GitLab",
+      "keywords": "代码 托管 ci",
+      "file": "gitlab.svg",
+      "bytes": 1020,
+      "source": "cache"
+    },
+    {
+      "slug": "gitea",
+      "name": "Gitea",
+      "keywords": "代码 托管 仓库",
+      "file": "gitea.svg",
+      "bytes": 2174,
+      "source": "cache"
+    },
+    {
+      "slug": "forgejo",
+      "name": "Forgejo",
+      "keywords": "代码 托管 仓库",
+      "file": "forgejo.svg",
+      "bytes": 585,
+      "source": "cache"
+    },
+    {
+      "slug": "jenkins",
+      "name": "Jenkins",
+      "keywords": "ci 持续集成",
+      "file": "jenkins.svg",
+      "bytes": 16163,
+      "source": "cache"
+    },
+    {
+      "slug": "argo-cd",
+      "name": "Argo CD",
+      "keywords": "gitops 持续部署",
+      "file": "argo-cd.svg",
+      "bytes": 4069,
+      "source": "cache"
+    },
+    {
+      "slug": "sonarqube",
+      "name": "SonarQube",
+      "keywords": "代码质量 静态扫描",
+      "file": "sonarqube.svg",
+      "bytes": 362,
+      "source": "cache"
+    },
+    {
+      "slug": "jupyter",
+      "name": "Jupyter",
+      "keywords": "notebook 数据分析",
+      "file": "jupyter.svg",
+      "bytes": 5598,
+      "source": "cache"
+    },
+    {
+      "slug": "vscode",
+      "name": "VS Code",
+      "keywords": "编辑器 开发",
+      "file": "vscode.svg",
+      "bytes": 3275,
+      "source": "cache"
+    },
+    {
+      "slug": "npm",
+      "name": "npm",
+      "keywords": "包管理 node",
+      "file": "npm.svg",
+      "bytes": 455,
+      "source": "cache"
+    },
+    {
+      "slug": "nodejs",
+      "name": "Node.js",
+      "keywords": "运行时 javascript",
+      "file": "nodejs.svg",
+      "bytes": 1697,
+      "source": "cache"
+    },
+    {
+      "slug": "python",
+      "name": "Python",
+      "keywords": "语言 编程",
+      "file": "python.svg",
+      "bytes": 1469,
+      "source": "cache"
+    },
+    {
+      "slug": "golang",
+      "name": "Go",
+      "keywords": "语言 编程 golang",
+      "file": "golang.svg",
+      "bytes": 1651,
+      "source": "cache"
+    },
+    {
+      "slug": "rust",
+      "name": "Rust",
+      "keywords": "语言 编程",
+      "file": "rust.svg",
+      "bytes": 5534,
+      "source": "cache"
+    },
+    {
+      "slug": "java",
+      "name": "Java",
+      "keywords": "语言 编程",
+      "file": "java.svg",
+      "bytes": 3164,
+      "source": "cache"
+    },
+    {
+      "slug": "php",
+      "name": "PHP",
+      "keywords": "语言 编程",
+      "file": "php.svg",
+      "bytes": 5948,
+      "source": "cache"
+    },
+    {
+      "slug": "typescript",
+      "name": "TypeScript",
+      "keywords": "语言 编程 ts",
+      "file": "typescript.svg",
+      "bytes": 1418,
+      "source": "cache"
+    },
+    {
+      "slug": "svelte",
+      "name": "Svelte",
+      "keywords": "前端 框架",
+      "file": "svelte.svg",
+      "bytes": 1658,
+      "source": "cache"
+    },
+    {
+      "slug": "postman",
+      "name": "Postman",
+      "keywords": "接口 测试 api",
+      "file": "postman.svg",
+      "bytes": 1383,
+      "source": "cache"
+    },
+    {
+      "slug": "swagger",
+      "name": "Swagger",
+      "keywords": "api 文档",
+      "file": "swagger.svg",
+      "bytes": 2326,
+      "source": "cache"
+    },
+    {
+      "slug": "ansible",
+      "name": "Ansible",
+      "keywords": "运维 自动化 配置",
+      "file": "ansible.svg",
+      "bytes": 445,
+      "source": "cache"
+    },
+    {
+      "slug": "terraform",
+      "name": "Terraform",
+      "keywords": "基础设施 编排",
+      "file": "terraform.svg",
+      "bytes": 299,
+      "source": "cache"
+    },
+    {
+      "slug": "arduino",
+      "name": "Arduino",
+      "keywords": "硬件 单片机",
+      "file": "arduino.svg",
+      "bytes": 1671,
+      "source": "cache"
+    },
+    {
+      "slug": "raspberry-pi",
+      "name": "Raspberry Pi",
+      "keywords": "树莓派 硬件",
+      "file": "raspberry-pi.svg",
+      "bytes": 4552,
+      "source": "cache"
+    },
+    {
+      "slug": "joplin",
+      "name": "Joplin",
+      "keywords": "笔记 知识库",
+      "file": "joplin.svg",
+      "bytes": 2881,
+      "source": "cache"
+    },
+    {
+      "slug": "trilium",
+      "name": "Trilium Notes",
+      "keywords": "笔记 知识库",
+      "file": "trilium.svg",
+      "bytes": 2311,
+      "source": "cache"
+    },
+    {
+      "slug": "obsidian",
+      "name": "Obsidian",
+      "keywords": "笔记 markdown",
+      "file": "obsidian.svg",
+      "bytes": 4806,
+      "source": "cache"
+    },
+    {
+      "slug": "notion",
+      "name": "Notion",
+      "keywords": "笔记 协作",
+      "file": "notion.svg",
+      "bytes": 1141,
+      "source": "cache"
+    },
+    {
+      "slug": "outline",
+      "name": "Outline",
+      "keywords": "知识库 wiki",
+      "file": "outline.svg",
+      "bytes": 845,
+      "source": "cache"
+    },
+    {
+      "slug": "bookstack",
+      "name": "BookStack",
+      "keywords": "文档 wiki",
+      "file": "bookstack.svg",
+      "bytes": 794,
+      "source": "cache"
+    },
+    {
+      "slug": "wikijs",
+      "name": "Wiki.js",
+      "keywords": "文档 wiki",
+      "file": "wikijs.svg",
+      "bytes": 31010,
+      "source": "cache"
+    },
+    {
+      "slug": "dokuwiki",
+      "name": "DokuWiki",
+      "keywords": "文档 wiki",
+      "file": "dokuwiki.svg",
+      "bytes": 8443,
+      "source": "cache"
+    },
+    {
+      "slug": "mediawiki",
+      "name": "MediaWiki",
+      "keywords": "文档 wiki",
+      "file": "mediawiki.svg",
+      "bytes": 10487,
+      "source": "cache"
+    },
+    {
+      "slug": "confluence",
+      "name": "Confluence",
+      "keywords": "文档 协作",
+      "file": "confluence.svg",
+      "bytes": 1324,
+      "source": "cache"
+    },
+    {
+      "slug": "appflowy",
+      "name": "AppFlowy",
+      "keywords": "笔记 知识库",
+      "file": "appflowy.svg",
+      "bytes": 1915,
+      "source": "cache"
+    },
+    {
+      "slug": "affine",
+      "name": "AFFiNE",
+      "keywords": "知识库 笔记",
+      "file": "affine.svg",
+      "bytes": 1309,
+      "source": "cache"
+    },
+    {
+      "slug": "onlyoffice",
+      "name": "ONLYOFFICE",
+      "keywords": "办公 文档 表格",
+      "file": "onlyoffice.svg",
+      "bytes": 1476,
+      "source": "cache"
+    },
+    {
+      "slug": "collabora",
+      "name": "Collabora Online",
+      "keywords": "办公 文档",
+      "file": "collabora.svg",
+      "bytes": 5387,
+      "source": "cache"
+    },
+    {
+      "slug": "paperless-ngx",
+      "name": "Paperless-ngx",
+      "keywords": "文档 扫描 归档",
+      "file": "paperless-ngx.svg",
+      "bytes": 629,
+      "source": "cache"
+    },
+    {
+      "slug": "stirling-pdf",
+      "name": "Stirling PDF",
+      "keywords": "pdf 工具 处理",
+      "file": "stirling-pdf.svg",
+      "bytes": 1029,
+      "source": "cache"
+    },
+    {
+      "slug": "calibre-web",
+      "name": "Calibre-Web",
+      "keywords": "电子书 阅读 书库",
+      "file": "calibre-web.svg",
+      "bytes": 1047,
+      "source": "cache"
+    },
+    {
+      "slug": "kavita",
+      "name": "Kavita",
+      "keywords": "漫画 阅读",
+      "file": "kavita.svg",
+      "bytes": 1996,
+      "source": "cache"
+    },
+    {
+      "slug": "komga",
+      "name": "Komga",
+      "keywords": "漫画 阅读",
+      "file": "komga.svg",
+      "bytes": 2019,
+      "source": "cache"
+    },
+    {
+      "slug": "wallabag",
+      "name": "Wallabag",
+      "keywords": "稍后读 收藏",
+      "file": "wallabag.svg",
+      "bytes": 2434,
+      "source": "cache"
+    },
+    {
+      "slug": "freshrss",
+      "name": "FreshRSS",
+      "keywords": "rss 阅读 订阅",
+      "file": "freshrss.svg",
+      "bytes": 550,
+      "source": "cache"
+    },
+    {
+      "slug": "miniflux",
+      "name": "Miniflux",
+      "keywords": "rss 阅读 订阅",
+      "file": "miniflux.svg",
+      "bytes": 902,
+      "source": "cache"
+    },
+    {
+      "slug": "linkwarden",
+      "name": "Linkwarden",
+      "keywords": "书签 收藏",
+      "file": "linkwarden.svg",
+      "bytes": 973,
+      "source": "cache"
+    },
+    {
+      "slug": "apprise",
+      "name": "Apprise",
+      "keywords": "通知 推送",
+      "file": "apprise.svg",
+      "bytes": 4306,
+      "source": "cache"
+    },
+    {
+      "slug": "mattermost",
+      "name": "Mattermost",
+      "keywords": "聊天 团队 im",
+      "file": "mattermost.svg",
+      "bytes": 819,
+      "source": "cache"
+    },
+    {
+      "slug": "rocket-chat",
+      "name": "Rocket.Chat",
+      "keywords": "聊天 团队 im",
+      "file": "rocket-chat.svg",
+      "bytes": 1308,
+      "source": "cache"
+    },
+    {
+      "slug": "element",
+      "name": "Element",
+      "keywords": "聊天 matrix im",
+      "file": "element.svg",
+      "bytes": 842,
+      "source": "cache"
+    },
+    {
+      "slug": "matrix",
+      "name": "Matrix",
+      "keywords": "聊天 协议 im",
+      "file": "matrix.svg",
+      "bytes": 924,
+      "source": "cache"
+    },
+    {
+      "slug": "discord",
+      "name": "Discord",
+      "keywords": "聊天 语音",
+      "file": "discord.svg",
+      "bytes": 779,
+      "source": "cache"
+    },
+    {
+      "slug": "slack",
+      "name": "Slack",
+      "keywords": "聊天 团队",
+      "file": "slack.svg",
+      "bytes": 968,
+      "source": "cache"
+    },
+    {
+      "slug": "telegram",
+      "name": "Telegram",
+      "keywords": "聊天 im",
+      "file": "telegram.svg",
+      "bytes": 1007,
+      "source": "cache"
+    },
+    {
+      "slug": "signal",
+      "name": "Signal",
+      "keywords": "聊天 加密",
+      "file": "signal.svg",
+      "bytes": 1671,
+      "source": "cache"
+    },
+    {
+      "slug": "whatsapp",
+      "name": "WhatsApp",
+      "keywords": "聊天 im",
+      "file": "whatsapp.svg",
+      "bytes": 2061,
+      "source": "cache"
+    },
+    {
+      "slug": "zoom",
+      "name": "Zoom",
+      "keywords": "会议 视频",
+      "file": "zoom.svg",
+      "bytes": 393,
+      "source": "cache"
+    },
+    {
+      "slug": "jitsi",
+      "name": "Jitsi",
+      "keywords": "会议 视频 开源",
+      "file": "jitsi.svg",
+      "bytes": 17605,
+      "source": "cache"
+    },
+    {
+      "slug": "mastodon",
+      "name": "Mastodon",
+      "keywords": "社交 微博 长毛象",
+      "file": "mastodon.svg",
+      "bytes": 1421,
+      "source": "cache"
+    },
+    {
+      "slug": "misskey",
+      "name": "Misskey",
+      "keywords": "社交",
+      "file": "misskey.svg",
+      "bytes": 1603,
+      "source": "cache"
+    },
+    {
+      "slug": "mailcow",
+      "name": "Mailcow",
+      "keywords": "邮件 服务器",
+      "file": "mailcow.svg",
+      "bytes": 6732,
+      "source": "cache"
+    },
+    {
+      "slug": "roundcube",
+      "name": "Roundcube",
+      "keywords": "邮件 webmail",
+      "file": "roundcube.svg",
+      "bytes": 785,
+      "source": "cache"
+    },
+    {
+      "slug": "dovecot",
+      "name": "Dovecot",
+      "keywords": "邮件 服务器",
+      "file": "dovecot.svg",
+      "bytes": 577,
+      "source": "cache"
+    },
+    {
+      "slug": "thunderbird",
+      "name": "Thunderbird",
+      "keywords": "邮件 客户端",
+      "file": "thunderbird.svg",
+      "bytes": 6141,
+      "source": "cache"
+    },
+    {
+      "slug": "vaultwarden",
+      "name": "Vaultwarden",
+      "keywords": "密码 管理 bitwarden",
+      "file": "vaultwarden.svg",
+      "bytes": 5364,
+      "source": "cache"
+    },
+    {
+      "slug": "bitwarden",
+      "name": "Bitwarden",
+      "keywords": "密码 管理",
+      "file": "bitwarden.svg",
+      "bytes": 397,
+      "source": "cache"
+    },
+    {
+      "slug": "keepass",
+      "name": "KeePass",
+      "keywords": "密码 管理",
+      "file": "keepass.svg",
+      "bytes": 1085,
+      "source": "cache"
+    },
+    {
+      "slug": "passbolt",
+      "name": "Passbolt",
+      "keywords": "密码 管理 团队",
+      "file": "passbolt.svg",
+      "bytes": 707,
+      "source": "cache"
+    },
+    {
+      "slug": "authentik",
+      "name": "Authentik",
+      "keywords": "认证 sso 单点登录",
+      "file": "authentik.svg",
+      "bytes": 2005,
+      "source": "cache"
+    },
+    {
+      "slug": "authelia",
+      "name": "Authelia",
+      "keywords": "认证 sso 单点登录",
+      "file": "authelia.svg",
+      "bytes": 3524,
+      "source": "cache"
+    },
+    {
+      "slug": "keycloak",
+      "name": "Keycloak",
+      "keywords": "认证 sso 单点登录",
+      "file": "keycloak.svg",
+      "bytes": 10394,
+      "source": "cache"
+    },
+    {
+      "slug": "crowdsec",
+      "name": "CrowdSec",
+      "keywords": "安全 防护 入侵",
+      "file": "crowdsec.svg",
+      "bytes": 7625,
+      "source": "cache"
+    },
+    {
+      "slug": "wazuh",
+      "name": "Wazuh",
+      "keywords": "安全 siem",
+      "file": "wazuh.svg",
+      "bytes": 439,
+      "source": "cache"
+    },
+    {
+      "slug": "firefly-iii",
+      "name": "Firefly III",
+      "keywords": "记账 财务 预算",
+      "file": "firefly-iii.svg",
+      "bytes": 1859,
+      "source": "cache"
+    },
+    {
+      "slug": "actual-budget",
+      "name": "Actual Budget",
+      "keywords": "记账 财务 预算",
+      "file": "actual-budget.svg",
+      "bytes": 773,
+      "source": "cache"
+    },
+    {
+      "slug": "grocy",
+      "name": "Grocy",
+      "keywords": "家庭 库存 采购",
+      "file": "grocy.svg",
+      "bytes": 888,
+      "source": "cache"
+    },
+    {
+      "slug": "homepage",
+      "name": "Homepage",
+      "keywords": "导航 面板 起始页",
+      "file": "homepage.svg",
+      "bytes": 907,
+      "source": "cache"
+    },
+    {
+      "slug": "homer",
+      "name": "Homer",
+      "keywords": "导航 面板 起始页",
+      "file": "homer.svg",
+      "bytes": 4151,
+      "source": "cache"
+    },
+    {
+      "slug": "heimdall",
+      "name": "Heimdall",
+      "keywords": "导航 面板 起始页",
+      "file": "heimdall.svg",
+      "bytes": 1334,
+      "source": "cache"
+    },
+    {
+      "slug": "searxng",
+      "name": "SearXNG",
+      "keywords": "搜索 聚合 元搜索",
+      "file": "searxng.svg",
+      "bytes": 469,
+      "source": "cache"
+    },
+    {
+      "slug": "google",
+      "name": "Google",
+      "keywords": "搜索 谷歌",
+      "file": "google.svg",
+      "bytes": 817,
+      "source": "cache"
+    },
+    {
+      "slug": "baidu",
+      "name": "百度",
+      "keywords": "搜索 中文",
+      "file": "baidu.svg",
+      "bytes": 1406,
+      "source": "cache"
+    },
+    {
+      "slug": "bing",
+      "name": "Bing",
+      "keywords": "搜索 微软",
+      "file": "bing.svg",
+      "bytes": 5367,
+      "source": "cache"
+    },
+    {
+      "slug": "bilibili",
+      "name": "哔哩哔哩",
+      "keywords": "b站 视频 弹幕",
+      "file": "bilibili.svg",
+      "bytes": 3875,
+      "source": "cache"
+    },
+    {
+      "slug": "youtube",
+      "name": "YouTube",
+      "keywords": "视频 油管",
+      "file": "youtube.svg",
+      "bytes": 479,
+      "source": "cache"
+    },
+    {
+      "slug": "netflix",
+      "name": "Netflix",
+      "keywords": "流媒体 影视",
+      "file": "netflix.svg",
+      "bytes": 3354,
+      "source": "cache"
+    },
+    {
+      "slug": "spotify",
+      "name": "Spotify",
+      "keywords": "音乐 流媒体",
+      "file": "spotify.svg",
+      "bytes": 1231,
+      "source": "cache"
+    },
+    {
+      "slug": "twitch",
+      "name": "Twitch",
+      "keywords": "直播 游戏",
+      "file": "twitch.svg",
+      "bytes": 599,
+      "source": "cache"
+    },
+    {
+      "slug": "reddit",
+      "name": "Reddit",
+      "keywords": "社区 论坛",
+      "file": "reddit.svg",
+      "bytes": 973,
+      "source": "cache"
+    },
+    {
+      "slug": "twitter",
+      "name": "X / Twitter",
+      "keywords": "社交 微博客",
+      "file": "twitter.svg",
+      "bytes": 610,
+      "source": "cache"
+    },
+    {
+      "slug": "wikipedia",
+      "name": "Wikipedia",
+      "keywords": "维基 百科",
+      "file": "wikipedia.svg",
+      "bytes": 820,
+      "source": "cache"
+    },
+    {
+      "slug": "weibo",
+      "name": "微博",
+      "keywords": "社交 中文",
+      "file": "weibo.svg",
+      "bytes": 2877,
+      "source": "cache"
+    },
+    {
+      "slug": "aliyun",
+      "name": "阿里云",
+      "keywords": "云服务 云主机",
+      "file": "aliyun.svg",
+      "bytes": 630,
+      "source": "cache"
+    },
+    {
+      "slug": "openai",
+      "name": "OpenAI",
+      "keywords": "ai 大模型 gpt",
+      "file": "openai.svg",
+      "bytes": 1279,
+      "source": "cache"
+    },
+    {
+      "slug": "chatgpt",
+      "name": "ChatGPT",
+      "keywords": "ai 对话 大模型",
+      "file": "chatgpt.svg",
+      "bytes": 972,
+      "source": "cache"
+    },
+    {
+      "slug": "claude",
+      "name": "Claude",
+      "keywords": "ai 对话 大模型",
+      "file": "claude.svg",
+      "bytes": 1469,
+      "source": "cache"
+    },
+    {
+      "slug": "huggingface",
+      "name": "Hugging Face",
+      "keywords": "ai 模型 开源",
+      "file": "huggingface.svg",
+      "bytes": 18681,
+      "source": "cache"
+    },
+    {
+      "slug": "figma",
+      "name": "Figma",
+      "keywords": "设计 ui 协作",
+      "file": "figma.svg",
+      "bytes": 759,
+      "source": "cache"
+    },
+    {
+      "slug": "gitee",
+      "name": "Gitee",
+      "keywords": "代码 托管 中文 码云",
+      "file": "gitee.svg",
+      "bytes": 696,
+      "source": "cache"
+    },
+    {
+      "slug": "linux",
+      "name": "Linux",
+      "keywords": "系统 操作系统",
+      "file": "linux.svg",
+      "bytes": 72354,
+      "source": "cache"
+    },
+    {
+      "slug": "ubuntu",
+      "name": "Ubuntu",
+      "keywords": "系统 linux 发行版",
+      "file": "ubuntu.svg",
+      "bytes": 865,
+      "source": "cache"
+    },
+    {
+      "slug": "debian",
+      "name": "Debian",
+      "keywords": "系统 linux 发行版",
+      "file": "debian.svg",
+      "bytes": 2985,
+      "source": "cache"
+    },
+    {
+      "slug": "centos",
+      "name": "CentOS",
+      "keywords": "系统 linux 发行版",
+      "file": "centos.svg",
+      "bytes": 1479,
+      "source": "cache"
+    },
+    {
+      "slug": "fedora",
+      "name": "Fedora",
+      "keywords": "系统 linux 发行版",
+      "file": "fedora.svg",
+      "bytes": 2579,
+      "source": "cache"
+    },
+    {
+      "slug": "arch-linux",
+      "name": "Arch Linux",
+      "keywords": "系统 linux 发行版",
+      "file": "arch-linux.svg",
+      "bytes": 498,
+      "source": "cache"
+    },
+    {
+      "slug": "alpine-linux",
+      "name": "Alpine Linux",
+      "keywords": "系统 linux 发行版 容器",
+      "file": "alpine-linux.svg",
+      "bytes": 981,
+      "source": "cache"
+    },
+    {
+      "slug": "opensuse",
+      "name": "openSUSE",
+      "keywords": "系统 linux 发行版",
+      "file": "opensuse.svg",
+      "bytes": 1709,
+      "source": "cache"
+    },
+    {
+      "slug": "freebsd",
+      "name": "FreeBSD",
+      "keywords": "系统 unix",
+      "file": "freebsd.svg",
+      "bytes": 700,
+      "source": "cache"
+    },
+    {
+      "slug": "apple",
+      "name": "Apple",
+      "keywords": "系统 macos ios 苹果",
+      "file": "apple.svg",
+      "bytes": 610,
+      "source": "cache"
+    },
+    {
+      "slug": "android",
+      "name": "Android",
+      "keywords": "系统 安卓",
+      "file": "android.svg",
+      "bytes": 640,
+      "source": "cache"
+    },
+    {
+      "slug": "zhihu",
+      "name": "知乎",
+      "keywords": "问答 中文",
+      "file": "zhihu.ico",
+      "bytes": 4286,
+      "source": "favicon:www.zhihu.com"
+    },
+    {
+      "slug": "taobao",
+      "name": "淘宝",
+      "keywords": "购物 电商",
+      "file": "taobao.ico",
+      "bytes": 16958,
+      "source": "favicon:www.taobao.com"
+    },
+    {
+      "slug": "jd",
+      "name": "京东",
+      "keywords": "购物 电商",
+      "file": "jd.ico",
+      "bytes": 25214,
+      "source": "favicon:www.jd.com"
+    },
+    {
+      "slug": "netease-music",
+      "name": "网易云音乐",
+      "keywords": "音乐 中文",
+      "file": "netease-music.ico",
+      "bytes": 4286,
+      "source": "favicon:music.163.com"
+    },
+    {
+      "slug": "qq-music",
+      "name": "QQ音乐",
+      "keywords": "音乐 中文",
+      "file": "qq-music.ico",
+      "bytes": 4286,
+      "source": "favicon:y.qq.com"
+    },
+    {
+      "slug": "csdn",
+      "name": "CSDN",
+      "keywords": "技术 博客 中文",
+      "file": "csdn.ico",
+      "bytes": 4286,
+      "source": "favicon:www.csdn.net"
+    },
+    {
+      "slug": "douyin",
+      "name": "抖音",
+      "keywords": "短视频 中文",
+      "file": "douyin.ico",
+      "bytes": 4286,
+      "source": "favicon:www.douyin.com"
+    },
+    {
+      "slug": "xiaohongshu",
+      "name": "小红书",
+      "keywords": "社区 中文",
+      "file": "xiaohongshu.ico",
+      "bytes": 4286,
+      "source": "favicon:www.xiaohongshu.com"
+    },
+    {
+      "slug": "tencent-cloud",
+      "name": "腾讯云",
+      "keywords": "云服务 云主机",
+      "file": "tencent-cloud.ico",
+      "bytes": 949,
+      "source": "favicon:cloud.tencent.com"
+    },
+    {
+      "slug": "dashy",
+      "name": "Dashy",
+      "keywords": "导航 面板 起始页",
+      "file": "dashy.ico",
+      "bytes": 15406,
+      "source": "favicon:dashy.to"
+    }
+  ]
+}

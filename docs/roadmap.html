@@ -170,7 +170,7 @@
   <h2 style="font-size:15pt;color:#0d9488;border-left:4px solid #0d9488;padding-left:10px;margin-bottom:14px">实施进度更新（2026-09-20）</h2>
   <p style="color:#6b7280;font-size:9.5pt;margin-bottom:14px">
     本页第 3、4 章里的「13 个套件 / 435 项断言」等数字是<strong>审计当时（2026-09-19）的快照</strong>，保留原样以维持对照价值。
-    实际实施进展记录如下（最新全量回归：<strong>16 个套件 / 713 项断言 / 0 失败</strong>）。
+    实际实施进展记录如下（最新全量回归：<strong>17 个套件 / 771 项断言 / 0 失败</strong>）。
   </p>
   <table style="width:100%;border-collapse:collapse;font-size:10pt">
     <thead>
@@ -214,7 +214,7 @@
       <tr>
         <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P1-6</strong></td>
         <td style="border:1px solid #e5e7eb;padding:7px 9px">图标库扩容 + 本地内置优先</td>
-        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— 现状仍是「公共 CDN 优先」，内网/断网环境图标全部加载不出来（第 3 章列为已确认短板）</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成</span> —— <code>scripts/build-icons.cjs</code> 从 Dashboard Icons / self.hst 上游生成 <strong>227 个本地图标</strong>（含 10 个国内站点 favicon：知乎 / 淘宝 / 京东 / 网易云音乐 / QQ音乐 / CSDN / 抖音 / 小红书 / 腾讯云 / Dashy），产物 <code>public/icons/</code> + <code>icon-map.js</code> 随仓库与镜像分发。前端解析改为「<strong>本地 → 公共 CDN → 首字母回退</strong>」，内网 / 断网不再是一排空框；<code>/api/library</code> 图标预设由 33 → <strong>227</strong>，图标搜索在断网时仍可用。favicon 兜底带质量闸门（拒绝 &lt;24×24 / 非 32bpp / 不透明占比 &lt;40% / &lt;3 色），已如实剔除 juejin、code-server 等不合格源。新增 <code>icons.test.js</code> 47 项断言守着（含「文件魔数真为图片、不是 HTML 报错页」）</td>
       </tr>
       <tr>
         <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P1-7</strong></td>
@@ -224,13 +224,15 @@
       <tr>
         <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P2</strong></td>
         <td style="border:1px solid #e5e7eb;padding:7px 9px">拆前端单文件 / 首次引导 / 拖链接建卡 / <code>DOCKER_GID</code> / CHANGELOG</td>
-        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— 拆分的前提「全绿安全网」已具备（713 项断言 / 0 失败）</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— 拆分的前提「全绿安全网」已具备（771 项断言 / 0 失败）</td>
       </tr>
     </tbody>
   </table>
   <p style="margin-top:14px;font-size:9.5pt;color:#6b7280">
-    ⚠️ 两处已确认短板仍然存在，实施时不要重复踩：① 图标走公共 CDN，内网环境全白图；
-    ② 内置服务指纹库仅 33 条、无 favicon 抓取。
+    ✅ 审计时的两处已确认短板均已消除：① 图标改为「本地内置优先」，内网 / 断网不再全白图；
+    ② 图标预设由 33 条扩到 <strong>227 条</strong>并加入国内站点 favicon 抓取（均属 P1-6）。<br>
+    ⏳ 仍未实施：P1-7（发现来源追踪与失效管理）、P2（拆前端单文件 / 首次引导 / 拖链接建卡 /
+    <code>DOCKER_GID</code> / CHANGELOG）。
   </p>
 </div>
 

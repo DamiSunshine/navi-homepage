@@ -16,13 +16,35 @@
   var BACKUP_VERSION = 1;
   var APP_VERSION = "1.0.0";
 
-  /* ---------- 在线图标库解析器 ---------- */
-  // icon 字段支持四种写法：
-  //   1. "https://...png"           直接外链图片
-  //   2. "iconify:simple-icons:github"  Iconify 在线图标库（api.iconify.design）
-  //   3. "selfhst:portainer"        selfh.st 图标库（cdn.jsdelivr.net/gh/selfhst/icons）
-  //   4. "jellyfin"                 Dashboard Icons（cdn.jsdelivr.net/gh/walkxcode/dashboard-icons）
-  //   5. 留空                       自动按名称尝试 Dashboard Icons，失败回退字母图标
+  /* ---------- 图标解析器 ---------- */
+  // icon 字段支持五种写法：
+  //   1. "https://...png"                直接外链图片
+  //   2. "iconify:simple-icons:github"   明确指定 Iconify 在线图标（api.iconify.design）
+  //   3. "selfhst:portainer"             self.hst 图标库短名
+  //   4. "jellyfin"                      Dashboard Icons 风格短名
+  //   5. 留空                             按名称自动推断（同 4）
+  //
+  // 「本地优先」是 P1-6 的核心：public/icons/ 里内置了 200+ 常用图标（含国内站点），
+  // 由 scripts/build-icons.cjs 生成，映射表是 public/js/icon-map.js（需先于本文件加载）。
+  // 原因：用户实访是局域网 HTTP，内网/断网时公共 CDN 一律拉不到，
+  // 本地文件才是那条能出图的路；CDN 补充「本地没有这个图标」的情况，而不是主路。
+  //
+  // 注意 2 不做本地替换：那是用户**明确指定**的在线图标，替他换成别的图标更糟。
+  var localIconMap = window.NAVI_LOCAL_ICONS || null;
+
+  function iconSlug(s) {
+    return String(s || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function localIcon(slug) {
+    if (!slug || !localIconMap) return null;
+    var f = localIconMap[slug];
+    return f ? "/" + f : null;
+  }
+
   function resolveIcon(icon, name) {
     if (icon && /^https?:\/\//i.test(icon)) return icon;
     if (icon && icon.indexOf("iconify:") === 0) {
@@ -32,14 +54,12 @@
       }
     }
     if (icon && icon.indexOf("selfhst:") === 0) {
-      return "https://cdn.jsdelivr.net/gh/selfhst/icons/png/" + icon.slice(8) + ".png";
+      var raw = icon.slice(8);
+      return localIcon(iconSlug(raw)) || ("https://cdn.jsdelivr.net/gh/selfhst/icons/png/" + raw + ".png");
     }
-    var slug = (icon || name || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+    var slug = iconSlug(icon || name || "");
     if (!slug) return null;
-    return "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/" + slug + ".png";
+    return localIcon(slug) || ("https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/" + slug + ".png");
   }
 
   // 优先使用本地上传的 logo（/uploads/* 或任意图片直链），否则回退到 icon 解析逻辑
@@ -582,6 +602,10 @@
     },
     // 暴露内外网判定与探测状态，供自动化测试与排障使用（只读，不改变行为）
     netMode: function () { return state.mode; },
+    // 图标解析结果（本地优先 / CDN 兜底）也暴露出来：断网时最常被怀疑的就是图标链路，
+    // 让测试能直接问「这个 slug 会解析成什么」，而不是靠截图猜。
+    resolveIcon: function (icon, name) { return resolveIcon(icon, name); },
+    localIconCount: function () { return localIconMap ? Object.keys(localIconMap).length : 0; },
     pickUrl: function (item) { return pickUrl(item); },
     probeState: function () {
       return {
@@ -1914,13 +1938,13 @@
     var cur = (itemForm.icon.value || "").trim();
 
     if (libraryState.onlineError) {
-      iconOnlineHint.textContent = libraryState.onlineError + "——下方为内置推荐图标，离线也能用。";
+      iconOnlineHint.textContent = libraryState.onlineError;
     } else if (results) {
       iconOnlineHint.textContent = results.length
-        ? ("Iconify 搜索到 " + results.length + " 个图标，点选即写入「在线图标」")
-        : "Iconify 未找到匹配图标，换个关键词试试（如 github / nas / docker / music）";
+        ? ("找到 " + results.length + " 个图标（内置图标库优先，联网时追加 Iconify 结果），点选即写入「在线图标」")
+        : "没找到匹配图标，换个关键词试试（如 github / nas / docker / 影音 / 淘宝）";
     } else {
-      iconOnlineHint.textContent = "「推荐」来自内置服务指纹库，离线可用；搜索走 Iconify 公开 API，需要联网。";
+      iconOnlineHint.textContent = "「推荐」是内置本地图标库（200+，含国内站点），断网也能用；搜索会先查本地，再补充 Iconify 在线结果。";
     }
 
     if (!items.length) {
@@ -1950,6 +1974,9 @@
     iconGrid.innerHTML = html;
   }
 
+  /* 搜索：先查本地内置库，再（联网时）追加 Iconify 结果。
+     合并而非替换的原因：局域网/断网时 Iconify 一定失败，如果直接回退成「内置推荐」，
+     用户输的关键词就等于白输了。本地命中排前面 —— 它们离线也能显示，是更可靠的选择。 */
   function searchOnlineIcons() {
     var q = iconSearch.value.trim();
     libraryState.onlineError = "";
@@ -1958,23 +1985,34 @@
       renderOnlineIcons();
       return;
     }
+
+    var ql = q.toLowerCase();
+    var localHits = (libraryState.presets || []).filter(function (it) {
+      return (it.name || "").toLowerCase().indexOf(ql) !== -1
+        || (it.icon || "").toLowerCase().indexOf(ql) !== -1
+        || (it.desc || "").toLowerCase().indexOf(ql) !== -1;
+    });
+
     iconSearchBtn.disabled = true;
-    iconOnlineHint.textContent = "正在向 Iconify 搜索「" + q + "」…";
+    iconOnlineHint.textContent = "正在搜索「" + q + "」（先本地，再联网）…";
     iconGrid.innerHTML = "";
     iconEmpty.hidden = true;
     fetch("https://api.iconify.design/search?limit=60&query=" + encodeURIComponent(q))
       .then(function (res) { return res.json(); })
       .then(function (data) {
         var icons = (data && data.icons) || [];
-        libraryState.onlineResults = icons.map(function (full) {
+        var online = icons.map(function (full) {
           var parts = String(full).split(":");
           return { name: parts[1] || parts[0], icon: "iconify:" + full, desc: parts[0] };
         });
+        libraryState.onlineResults = localHits.concat(online);
       })
       .catch(function () {
-        // 离线 / 跨域被拦截时不留空白：回退到内置推荐图标
-        libraryState.onlineResults = null;
-        libraryState.onlineError = "在线搜索失败（可能离线或网络受限）";
+        // 离线 / 跨域被拦截时不留空白：本地库的结果照常给出
+        libraryState.onlineError = localHits.length
+          ? "在线搜索失败（离线或网络受限）；下面 " + localHits.length + " 个来自内置图标库"
+          : "在线搜索失败（可能离线或网络受限），内置图标库里也没有匹配项";
+        libraryState.onlineResults = localHits.length ? localHits : null;
       })
       .then(function () {
         iconSearchBtn.disabled = false;

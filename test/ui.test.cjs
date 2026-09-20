@@ -56,6 +56,64 @@ function check(name, cond, extra) {
   const iconCount = await page.locator(".card-icon img, .card-icon .icon-fallback").count();
   check("图标均已解析（图片或字母回退）", iconCount === initialCount, String(iconCount));
 
+  console.log("== 图标本地优先（P1-6：内网/断网也能出图） ==");
+  // 等本地图标全部就绪，否则会把「还没加载完」误判成「裂图」
+  await page.waitForFunction(
+    () => Array.from(document.querySelectorAll(".card-icon img"))
+      .filter((i) => (i.getAttribute("src") || "").indexOf("/icons/") === 0)
+      .every((i) => i.complete),
+    null, { timeout: 10000 }
+  ).catch(() => {});
+  const iconStats = await page.evaluate((cfg) => {
+    const map = window.NAVI_LOCAL_ICONS || {};
+    const slug = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const imgs = Array.from(document.querySelectorAll(".card-icon img"));
+    const srcs = imgs.map((i) => i.getAttribute("src") || "");
+    const localImgs = imgs.filter((i) => (i.getAttribute("src") || "").indexOf("/icons/") === 0);
+    let mappable = 0;
+    (cfg.groups || []).forEach((g) => {
+      (g.items || []).forEach((it) => {
+        if (!it.logo && it.icon && map[slug(it.icon)]) mappable++;
+      });
+    });
+    return {
+      mapSize: Object.keys(map).length,
+      total: srcs.length,
+      local: localImgs.length,
+      remote: srcs.filter((s) => /^https?:\/\//.test(s)).length,
+      broken: localImgs.filter((i) => !(i.complete && i.naturalWidth > 0)).map((i) => i.getAttribute("src")),
+      mappable: mappable
+    };
+  }, apiCfg);
+  check("内置图标映射表已加载且规模 >= 200（P1-6 的 200+ 目标）",
+    iconStats.mapSize >= 200, String(iconStats.mapSize));
+  check("配置里能本地命中的图标全部走了本地 /icons/（不是仍去打 CDN）",
+    iconStats.local >= iconStats.mappable,
+    "本地命中 " + iconStats.local + " 个 / 期望至少 " + iconStats.mappable + " 个");
+  check("本地图标在浏览器里全部加载成功（无裂图）",
+    iconStats.broken.length === 0, iconStats.broken.join(", "));
+
+  // 解析契约：本地优先 ≠ 只能用本地。四条分支都要有人守着，
+  // 否则「P1-6 把图标全改成本地」这种过度修正不会有任何测试报警。
+  const rLocal = await page.evaluate(() => window.NaviApp.resolveIcon("jellyfin", ""));
+  check("本地库收录的 slug 解析为本地路径（离线可用）", rLocal === "/icons/jellyfin.svg", rLocal);
+  const rMiss = await page.evaluate(() => window.NaviApp.resolveIcon("not-in-local-library-xyz", ""));
+  check("本地库没有的 slug 仍回退到 CDN（本地优先不是只能用本地）",
+    /^https:\/\/cdn\.jsdelivr\.net\/gh\/walkxcode\/dashboard-icons\/png\/not-in-local-library-xyz\.png$/.test(rMiss),
+    rMiss);
+  const rSelf = await page.evaluate(() => window.NaviApp.resolveIcon("selfhst:portainer", ""));
+  check("selfhst: 短名同样本地优先", rSelf === "/icons/portainer.svg", rSelf);
+  const rSelfMiss = await page.evaluate(() => window.NaviApp.resolveIcon("selfhst:no-such-thing-xyz", ""));
+  check("selfhst: 未收录时回退 self.hst CDN",
+    /^https:\/\/cdn\.jsdelivr\.net\/gh\/selfhst\/icons\/png\/no-such-thing-xyz\.png$/.test(rSelfMiss),
+    rSelfMiss);
+  const rIconify = await page.evaluate(() => window.NaviApp.resolveIcon("iconify:simple-icons:github", ""));
+  check("iconify: 明确指定的在线图标不被本地替换",
+    /^https:\/\/api\.iconify\.design\/simple-icons\/github\.svg/.test(rIconify), rIconify);
+  const rDirect = await page.evaluate(() => window.NaviApp.resolveIcon("https://cdn.example.com/a.png", ""));
+  check("图片直链原样返回（不劫持用户自己的地址）",
+    rDirect === "https://cdn.example.com/a.png", rDirect);
+
   console.log("== 内外网切换（P0-3 三态：自动 / 内网 / 外网） ==");
   check("默认自动模式", (await page.locator("#netLabel").textContent()).trim() === "自动",
     await page.locator("#netLabel").textContent());

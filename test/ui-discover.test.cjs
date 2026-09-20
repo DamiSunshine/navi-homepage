@@ -150,11 +150,17 @@ function cleanup() {
 
   const jfRow = page.locator('.discover-row[data-id="aaaa1111"]');
   const jfSrc = await jfRow.locator(".discover-icon img").getAttribute("src");
-  check("Jellyfin 命中 Dashboard Icons", /dashboard-icons\/png\/jellyfin\.png/.test(jfSrc), jfSrc);
+  // P1-6 起图标本地优先：jellyfin 在内置库里，所以解析成 /icons/ 而不是外链。
+  // 断网/局域网场景下这条才是能出图的那条路（CDN 只在本地没收录时才兜底）。
+  check("Jellyfin 命中内置本地图标库（离线可用）", jfSrc === "/icons/jellyfin.svg", jfSrc);
 
   const ptRow = page.locator('.discover-row[data-id="bbbb2222"]');
   const ptSrc = await ptRow.locator(".discover-icon img").getAttribute("src");
-  check("Portainer 命中 selfh.st 图标源", /selfhst\/icons\/png\/portainer\.png/.test(ptSrc), ptSrc);
+  check("Portainer 命中内置本地图标库（selfhst 短名也走本地）", ptSrc === "/icons/portainer.svg", ptSrc);
+  // 本地命中不算本事，本地没有时还能回退 CDN 才算链路完整
+  const fbSrc = await page.evaluate(() => window.NaviApp.resolveIcon("no-such-icon-slug-zzz", ""));
+  check("本地库未收录的图标仍回退公共 CDN（本地优先 ≠ 只能用本地）",
+    /^https:\/\/cdn\.jsdelivr\.net\//.test(fbSrc), fbSrc);
 
   console.log("== 地址自动生成 ==");
   check("Jellyfin 内网地址自动拼接",

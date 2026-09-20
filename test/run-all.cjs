@@ -1,8 +1,8 @@
 /*
  * 一条命令跑完全部测试套件。
  *
- * 为什么需要它：13 个套件里有 4 个（server / ui / ui-theme / ui-backup）需要先有一个
- * 运行中的实例，且该实例必须用【隔离的临时 config + 临时 uploads】启动——直接用仓库里的
+ * 为什么需要它：17 个套件里有 5 个（server / ui / ui-theme / ui-backup / ui-status）
+ * 需要先有一个运行中的实例，且该实例必须用【隔离的临时 config + 临时 uploads】启动——直接用仓库里的
  * public/config.json 会把真实导航数据改掉。手工拼环境变量很容易漏，所以固化在这里。
  *
  * 用法：
@@ -34,6 +34,7 @@ const SUITES = [
   ["status.test.js", false],
   ["discover.test.js", false],
   ["library.test.js", false],
+  ["icons.test.js", false],
   ["ui-auth.test.cjs", false],
   ["ui-discover.test.cjs", false],
   ["ui-library.test.cjs", false],

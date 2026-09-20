@@ -431,9 +431,36 @@ function listLibrary(cfg) {
   return { ok: true, dir: UPLOAD_DIR, count: images.length, totalBytes: totalBytes, truncated: truncated, images: images };
 }
 
-// 「在线图标库」标签页的推荐列表：复用服务发现的内置服务指纹库（33 个常见自托管服务），
-// 完全本地、离线可用；真正的在线搜索由前端直连 Iconify 搜索 API 完成。
+// 「在线图标库」标签页的内置列表：读 public/icons/catalog.json（由 scripts/build-icons.cjs 生成）。
+// 历史：早先这里只有发现指纹库里的 33 个服务，且图标全靠公共 CDN 现拉 ——
+// 局域网/断网时那一排全是空框（项目已确认的第二大短板）。
+// 现在改成内置 200+ 个本地图标（含国内常用站点），前端本地优先、CDN 兜底。
+// 读取带 mtime 缓存：目录文件不大，但每次请求都 parse 一次没必要。
+let iconCatalogCache = { mtime: 0, list: null };
 function libraryIconPresets() {
+  const file = path.join(ROOT, "icons", "catalog.json");
+  let st = null;
+  try { st = fs.statSync(file); } catch (e) { st = null; }
+
+  if (st && iconCatalogCache.list && iconCatalogCache.mtime === st.mtimeMs) {
+    return iconCatalogCache.list;
+  }
+  if (st) {
+    try {
+      const data = JSON.parse(fs.readFileSync(file, "utf-8"));
+      const list = (data.icons || []).map((it) => ({
+        name: it.name || it.slug,
+        icon: it.slug,
+        desc: it.keywords || "",
+        local: true
+      }));
+      if (list.length) {
+        iconCatalogCache = { mtime: st.mtimeMs, list: list };
+        return list;
+      }
+    } catch (e) { /* 目录坏了就退回下面的指纹库，不让图床库整个打不开 */ }
+  }
+  // 兜底：catalog.json 缺失时仍用服务指纹库（老行为），保证功能不至于完全不可用
   return (discovery.SERVICE_PRESETS || []).map((p) => ({
     name: p.name, icon: p.icon, desc: p.desc || "", infra: !!p.infra
   }));

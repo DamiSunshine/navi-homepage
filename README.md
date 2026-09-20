@@ -35,17 +35,22 @@
   - 探测结论按 `sessionStorage` 缓存（带 TTL），多张卡片并发探测、互不排队；无内网地址的卡片不参与探测
   - ⚠️ **HTTPS 页面无法探测 `http://内网IP`**（浏览器混合内容限制）：这类卡片**显式跳过探测**并在徽标里如实说明，不做假结论（本项目典型部署是局域网 HTTP，不受此影响）
 - **IPv4 / IPv6 双栈**：服务绑定 `::`，同时接受 IPv4 与 IPv6 连接
-- **在线图标库接入**：内置 4 种图标来源，无需本地存图：
-  | 写法 | 来源 |
+- **图标本地优先（内网 / 断网也能出图）**：`public/icons/` 内置 **227 个常用图标**（含国内站点），
+  由 `scripts/build-icons.cjs` 生成、随仓库与镜像一起分发。解析顺序是「**本地 → 公共 CDN → 首字母回退**」，
+  所以局域网或断网环境下卡片图标不会变成一排空框（这正是原先的第二大短板）。
+  | 写法 | 解析顺序 |
   | --- | --- |
-  | `"icon": "jellyfin"` | [Dashboard Icons](https://github.com/walkxcode/dashboard-icons)（按名称自动匹配） |
-  | `"icon": "selfhst:portainer"` | [selfh.st Icons](https://selfh.st/icons) |
-  | `"icon": "iconify:simple-icons:github"` | [Iconify](https://icon-sets.iconify.design/) 全量图标库 |
-  | `"icon": "https://…/logo.png"` | 任意图片直链 |
-  | 留空 | 按标题首字母生成回退图标 |
+  | `"icon": "jellyfin"` | 本地 `/icons/jellyfin.svg` → 否则 Dashboard Icons CDN |
+  | `"icon": "selfhst:portainer"` | 本地 `/icons/portainer.svg` → 否则 self.hst CDN |
+  | `"icon": "iconify:simple-icons:github"` | **明确指定的在线图标，不本地替换** → Iconify |
+  | `"icon": "https://…/logo.png"` | 原样使用（不劫持你自己的地址） |
+  | 留空 | 按标题推断 → 同样本地优先 |
+  | 全部失败 | 前端 `iconFallback` 退化为首字母方块，绝不留白 |
+- **在线图标库（可搜索、可离线）**：弹窗内先搜**内置本地库**（名称 / 中文关键词 / slug），
+  再追加 Iconify 在线搜索结果；断网时本地结果照常给出，不会因为联网失败就一片空白。
 - **服务发现（Docker-Panel 同思路）**：自动识别 Docker 容器与本机监听端口，按服务类型自动匹配图标，一键生成导航卡片——
   - **端口自动识别**：读取容器端口映射（Docker Engine API），以及本机监听端口（Linux 解析 `/proc/net/tcp*` 并反查进程名；Windows / macOS 降级为 `netstat` / `lsof`）；自动过滤系统进程与 `udp` 端口
-  - **图标自动匹配**：按「镜像名 → 容器名 → 进程名 → 端口」匹配内置服务指纹库（30+ 常见服务，含 qBittorrent / Jellyfin / Portainer / Alist 等），未命中时自动探测 Dashboard Icons 与 selfh.st 图标库，最终回退字母图标
+  - **图标自动匹配**：按「镜像名 → 容器名 → 进程名 → 端口」匹配内置服务指纹库（30+ 常见服务，含 qBittorrent / Jellyfin / Portainer / Alist 等），命中后**优先用本地内置图标**，本地未收录时才探测 Dashboard Icons 与 self.hst 图标库，最终回退字母图标
   - **地址自动拼装**：内网 `http://<内网IP>:<宿主机映射端口>`；外网为域名时走 `https://` 且不追加端口，为公网 IP 时走 `http://` 并追加端口
   - **卡片动态生成**：编辑模式点「服务发现」→ 勾选 → 加入选中项 → 保存，即写入 `config.json`；已在导航中的服务自动标记并跳过，依赖容器（数据库 / 缓存）与已停止容器默认不勾选，也可逐项「忽略」
 - **访问密码保护**：环境变量一键启用，登录页 + HMAC 会话 Cookie + 全站强制校验 + 登录限流 + 服务端登出吊销（详见下文）
@@ -367,7 +372,7 @@ git push origin v1.0.0
 
 1. 编辑模式下新增 / 编辑卡片，弹窗内的「Logo（本地图床库）」与「在线图标」两行即为两种来源。
 2. 点「从图床库选择」→ 弹窗以**选择模式**打开（标题为「选择图标」，标签页可用），缩略图网格点选即回填 `logo`，弹窗自动关闭，预览立即更新。
-3. 点「图标库」→ 直接打开**在线图标库**标签页，默认展示内置推荐（复用服务发现的 33 个常见服务指纹，离线可用）；输入关键词回车即向 Iconify 公开 API 搜索（需联网），点选写入 `icon` 字段。
+3. 点「图标库」→ 直接打开**在线图标库**标签页，默认展示**内置本地图标库（227 个，离线可用，含国内站点）**；输入关键词回车会**先搜本地、再追加 Iconify 公开 API 的在线结果**（需联网），点选写入 `icon` 字段。
 4. 「上传图片」也支持一次选多张：全部入库，本卡片直接选用第一张成功的，其余留在图床库供其它卡片复用。
 5. 若同时配置了本地 Logo 与在线图标，界面会提示「本地 Logo 优先级更高」，点「清除」即可回退到在线图标。
 6. 提交卡片 → 保存草稿 → 点「保存」随既有流程写入 `config.json`（不绕过既有校验，也不新增写盘入口）。
@@ -451,7 +456,7 @@ git push origin v1.0.0
 - **纯静态、零依赖**：不启动 Node、不联网也能打开；不读写任何配置文件，所有交互都在浏览器本地完成。
 - **含交互式界面复刻**：主题变量、卡片样式、图标解析与内网识别规则均取自项目源码，演示数据与 `config.json` 一致。可直接体验：搜索（`/` 聚焦）、命令面板（`Ctrl/⌘+K`）、日/夜切换、内外网切换、编辑模式、服务发现弹窗、图床库 / 在线图标库。
 - **含真实截图画廊**：10 张截图全部来自 `test/` 下由 Playwright 在真实浏览器中自动生成的运行截图，点击可放大。其中 5 张（首页 / 夜间 / 日间 / 状态板夜间 / 状态板日间）由 `node test/page-shots.cjs` 一键重新生成 —— 该脚本是这几张图的**唯一生产者**，别的套件不得覆盖（否则主题与尺寸会串，`imagecompose.test.cjs` 有断言守着）。另有 4 张 `ui-library-*.png` 属历史产物、暂无生成脚本，已显式登记为已知缺口。
-- **含功能、测试与部署说明**：713 项断言的分套件结果、接口清单、数据结构与三种部署方式。
+- **含功能、测试与部署说明**：771 项断言的分套件结果、接口清单、数据结构与三种部署方式。
 
 > 该页面用于**展示与验收**，不具备后端能力（不写盘、不扫端口、不真实上传）。要体验完整功能请按下文启动服务或使用 Docker。
 
@@ -481,12 +486,13 @@ git push origin v1.0.0
 │   ├── check-github-net.cjs    # GitHub 连通性诊断：区分「网络不通」与「令牌无权限」
 │   ├── publish-github.cjs      # 预检 → 提交 → 建仓 → 推送（凭据从环境变量或 .env 读，不进 argv）
 │   ├── build-pinyin.cjs        # 从 mozillazg/pinyin-data 生成前端拼音表（产物 public/js/pinyin.js 入库）
+│   ├── build-icons.cjs         # ★ 生成内置本地图标库（242 条精选 + 国内站点 favicon 兜底 → public/icons/ + icon-map.js 入库）
 │   ├── build-share.cjs         # 构建线上预览包 share/（落地页 + preview.html + 截图 + 指南 HTML/PDF）
 │   ├── verify-share.cjs        # 校验 share/ 构建产物完整性
 │   ├── verify-share-ui.cjs     # ★ 用真实浏览器查「线上」预览站：内容新鲜度 + 截图能否解码
 │   └── share-index.html        # share/ 落地页源文件（改落地页改这里，不要改 share/index.html）
 ├── test/
-│   ├── run-all.cjs             # 一键跑完全部 16 个套件（自动拉起隔离实例，用临时 config/uploads）
+│   ├── run-all.cjs             # 一键跑完全部 17 个套件（自动拉起隔离实例，用临时 config/uploads）
 │   ├── lib/hermetic.cjs        # 让 UI 套件真正自包含：公网图标请求就地应答（***只限公网***，内网探测必须走真实网络）
 │   ├── server.test.js          # 服务端集成测试（静态资源 / API / 校验 / 防护 / IPv6）
 │   ├── auth.test.js            # 密码保护专项测试（拦截/登录/会话/伪造/过期/登出/限流/联合登录）
@@ -494,7 +500,8 @@ git push origin v1.0.0
 │   ├── zipbackup.test.js       # 含图片的 zip 备份专项测试（手写 ZIP 往返 / 逐项 SHA-256 / Zip Slip / 与 Windows 压缩工具交叉验证）
 │   ├── status.test.js          # 状态板专项测试（纯函数 + 伪造 Docker API 端到端 + 降级给 null 不给 0 + 缓存 + 开关/鉴权）
 │   ├── discover.test.js        # 服务发现专项测试（纯函数 + 伪造 Docker API 端到端 + 图标探测协议/并发 + 鉴权）
-│   ├── library.test.js         # 图床库专项测试（列表/批量上传部分成功/魔数校验/引用保护/删除防护/鉴权）
+│   ├── library.test.js         # 图床库专项测试（列表/批量上传部分成功/魔数校验/内置本地图标库 ≥200 且离线可用/引用保护/删除防护/鉴权）
+│   ├── icons.test.js           # ★ 本地图标库自检（目录自洽/文件魔数真为图片/国内站点 favicon 已落地/icon-map 一致/前端本地优先接线/静态托管）
 │   ├── ui.test.cjs             # 浏览器端 UI 测试（渲染/切换/拼音搜索/Ctrl+K 命令面板/卡片级内外网策略/编辑增删改/保存）
 │   ├── ui-auth.test.cjs        # 登录页 UI 测试（用户名字段/错误提示/联合登录）
 │   ├── ui-backup.test.cjs      # 备份/导入/Logo 上传 UI 测试（含备份格式选择、zip 导入、非安全上下文导入回归）
@@ -512,6 +519,8 @@ git push origin v1.0.0
 │   ├── css/style.css           # 科技感暗色主题 + 编辑模式 / 图床库 / 命令面板 / 状态板样式
 │   ├── js/app.js               # 渲染 / 切换 / 拼音搜索 / 命令面板 / 可达性探测 / 编辑 / 备份导入 / 图床库 / 状态板
 │   ├── js/pinyin.js            # 拼音表（由 scripts/build-pinyin.cjs 生成，按需懒加载）
+│   ├── js/icon-map.js          # 内置图标索引（由 scripts/build-icons.cjs 生成，slug → /icons/xxx 相对路径，入库）
+│   ├── icons/                  # ★ 内置本地图标库（227 个，由 scripts/build-icons.cjs 生成，入库）；含 catalog.json 与 README.md（来源/许可）
 │   ├── config.json             # 本机导航数据（编辑保存写回这里；已被 .gitignore 排除，勿提交）
 │   ├── config.example.json     # 开源示例配置（可直接作为初始化配置，可提交仓库）
 │   ├── uploads/                # 本地图床库（Logo 图片实体，已被 .gitignore 排除，勿提交）
@@ -557,14 +566,14 @@ node scripts/check-deploy.cjs http://NAS的IP:端口 你的密码
 
 ## 自动化测试
 
-**推荐：一条命令跑完全部 16 个套件（713 项断言）**
+**推荐：一条命令跑完全部 17 个套件（771 项断言）**
 
 ```bash
 NODE_PATH=<已装 playwright 的 node_modules> node test/run-all.cjs
 ```
 
 `run-all.cjs` 会自动用「临时 config + 临时 uploads」在 8633 端口拉起隔离实例，
-跑完 5 个需要实例的套件后再依次跑 11 个自包含套件，最后汇总通过/失败数——**不会碰真实数据**。
+跑完 5 个需要实例的套件后再依次跑 12 个自包含套件，最后汇总通过/失败数——**不会碰真实数据**。
 
 排查单个功能时可按文件名过滤，只跑关心的套件（如 `ui-backup`、`discover`）：
 
@@ -620,6 +629,10 @@ node test/checkdeploy.test.cjs
 #     两条部署路径不漂移 / 发布截图只有一个生产者；并反向验证 scripts/check-compose.cjs
 #     能抓到护栏被拆掉）
 node test/imagecompose.test.cjs
+
+# 13. 本地图标库自检（自包含：目录自洽 / 文件魔数真为图片而非 HTML 报错页 /
+#     国内站点 favicon 已落地 / icon-map 与目录一致 / 前端「本地优先」接线 / /icons/* 静态托管）
+node test/icons.test.js
 ```
 
 重新生成对外发布的 5 张截图（首页 / 夜 / 日 / 状态板夜 / 状态板日；自带隔离实例，不碰真实数据）：
