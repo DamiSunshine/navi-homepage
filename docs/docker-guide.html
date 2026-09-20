@@ -361,7 +361,7 @@ docker run -d --name navi <span class="c"># …与初次启动相同的参数</s
 <div class="step"><span class="no">2</span><span class="t">页面访问</span></div>
 <p>浏览器打开 <code class="inline">http://服务器IP:8080</code> → 应跳转登录页 → 输入用户名 / 密码 → 看到导航卡片。</p>
 <div class="step"><span class="no">3</span><span class="t">自动化测试（可选）</span></div>
-<p>项目内置 <strong>940 项断言 / 19 个套件</strong>。最省事的方式是一条命令全跑（它会自动用「临时 config + 临时 uploads」在 8633 端口拉起隔离实例，不碰真实数据）：</p>
+<p>项目内置 <strong>958 项断言 / 19 个套件</strong>。最省事的方式是一条命令全跑（它会自动用「临时 config + 临时 uploads」在 8633 端口拉起隔离实例，不碰真实数据）：</p>
 <pre>NODE_PATH=&lt;已装 playwright 的 node_modules&gt; node test/run-all.cjs
 
 <span class="c"># 排查单个功能时按文件名过滤，只跑关心的套件</span>
@@ -381,7 +381,7 @@ node test/ui-library.test.cjs     <span class="c"># 图床库 UI                
 node test/ui-firstrun.test.cjs    <span class="c"># 首次引导 / 拖链接建卡 UI    33 项</span>
 node test/ui-tags.test.cjs        <span class="c"># 卡片标签 / 跨分组检索 UI    40 项</span>
 node test/checkdeploy.test.cjs    <span class="c"># 部署判定探针自检            22 项</span>
-node test/imagecompose.test.cjs   <span class="c"># 镜像发布契约自检           125 项</span>
+node test/imagecompose.test.cjs   <span class="c"># 镜像发布契约自检           143 项</span>
 
 <span class="c"># ② 需要先有一个运行中的实例（下面五条都要传 baseUrl）</span>
 node test/server.test.js http://127.0.0.1:8080       <span class="c"># 服务端集成  50 项</span>

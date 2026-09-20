@@ -16,6 +16,8 @@
  *   E. 文档入口与镜像契约（Dockerfile COPY 清单 ↔ 代码 require、发布截图唯一生产者）
  *   F. 指南文档结构（目录锚点必须真实存在）
  *   G. 项目概览与代码结构一致（docs/overview.html 的模块表 / 套件表 / 路由表）
+ *      以及迭代成果预览站点（docs/showcase.html）的数字 / 模块清单 / 零外部依赖
+ *      与项目门户站点（docs/site.html）的数字 / 站内链接可达性 / 截图存在性
  *
  * 自包含：不联网、不起服务、不碰真实数据。
  */
@@ -574,6 +576,18 @@ try {
   }
   check(baseMap.size >= 15, "从 _baseline.txt 解析出足够多的套件（护栏自身有效）", baseMap.size + " 个");
 
+  /* 合计行必须等于逐行之和：上一版基线这里差了 2（只改了合计行、没改套件行），
+     而原本的护栏只比对「文档 ↔ 基线」两边，两边一起错就谁也发现不了。 */
+  const sumOfRows = Array.from(baseMap.values()).reduce((a, c) => a + c, 0);
+  const baseSum = base.match(/合计：(\d+)\s*通过/);
+  check(!!baseSum && Number(baseSum[1]) === sumOfRows,
+    "_baseline.txt 的合计行 = 逐行之和（改了套件行忘改合计行会红）",
+    (baseSum ? "合计 " + baseSum[1] : "合计行缺失") + " ／ 逐行和 " + sumOfRows);
+  const baseSuitesN = base.match(/共\s*(\d+)\s*个套件/);
+  check(!!baseSuitesN && Number(baseSuitesN[1]) === baseMap.size,
+    "_baseline.txt 的套件数 = 逐行条目数",
+    (baseSuitesN ? "声明 " + baseSuitesN[1] : "缺失") + " ／ 逐行 " + baseMap.size);
+
   const suiteBlock = blockOf("suites");
   check(!!suiteBlock, "概览文档里有 guard:suites 区块（护栏自身有效）");
   const docSuites = new Map();
@@ -650,6 +664,75 @@ try {
   const bs2 = readText(path.join(ROOT, "scripts", "build-share.cjs"));
   check(bs2.indexOf("overview.html") < 0 && bs2.indexOf("roadmap.html") < 0,
     "概览与 roadmap 刻意不进发布包（维护视角文档，不面向访客）");
+
+  /* ---- ⑥ 迭代成果预览站点（docs/showcase.html）也受同一套纪律约束 ----
+     站点是「给人看」的，最容易写完就烂：数字被改、模块被删、偷偷引一个外链 CDN 都不会有人发现。
+     这里把三件必须成立的事钉住：数字对齐基线、模块清单齐全、零外部依赖。 */
+  const scPath = path.join(ROOT, "docs", "showcase.html");
+  check(fs.existsSync(scPath), "存在 docs/showcase.html（迭代成果预览站点）");
+  if (fs.existsSync(scPath)) {
+    const sc = readText(scPath);
+    const scTotal = sc.match(/(\d+)\s*套件\s*\/\s*(\d+)\s*断言/);
+    check(!!scTotal, "能从预览站点里解析出「N 套件 / M 断言」");
+    check(!!scTotal && Number(scTotal[1]) === bT.suites && Number(scTotal[2]) === bT.pass,
+      "预览站点声明的套件数 / 断言数与 _baseline.txt 完全一致",
+      (scTotal ? "站点 " + scTotal[1] + " 套 / " + scTotal[2] + " 断言" : "未解析到")
+        + "  ／  基线 " + bT.suites + " 套 / " + bT.pass + " 断言");
+    const localMods = Array.from(new Set(Array.from(
+      srvAll.matchAll(/require\(\s*["']\.\/([A-Za-z0-9_./-]+?)(?:\.js)?["']\s*\)/g)
+    ).map((m) => m[1].replace(/\.js$/, "")))).sort();
+    const scMissingMod = localMods.filter((n) => sc.indexOf(n + ".js") < 0);
+    check(localMods.length >= 2 && scMissingMod.length === 0,
+      "预览站点列出了全部后端模块（模块改名 / 新增后忘更新会红）",
+      localMods.length < 2 ? "未能从 server.js 解析出本地模块（护栏自身失效）" : scMissingMod.join(", "));
+    check(!/<script[^>]*\ssrc\s*=/i.test(sc) && !/<link[^>]+stylesheet/i.test(sc),
+      "预览站点零外部依赖（不引外链 js / css，与主站同一纪律）");
+  }
+
+  /* ---- ⑦ 项目门户站点（docs/site.html）----
+     它的角色是「把所有页面串起来的入口」，所以最大的腐烂风险不是措辞而是
+     **链接指向一个已经不存在的文件**：页面改名、PDF 重出、截图重截之后，没人会去点一遍。
+     这里把四件事钉住：数字对齐基线、每个站内链接可达、每张截图存在、零外部资源依赖。 */
+  const sitePath = path.join(ROOT, "docs", "site.html");
+  check(fs.existsSync(sitePath), "存在 docs/site.html（项目门户站点）");
+  if (fs.existsSync(sitePath)) {
+    const site = readText(sitePath);
+    check(/<\/html>\s*$/.test(site), "门户站点 HTML 正常闭合");
+
+    const siteSuites = Array.from(new Set(Array.from(site.matchAll(/(\d+)\s*套件/g)).map((m) => m[1])));
+    const siteAsserts = Array.from(new Set(Array.from(site.matchAll(/(\d+)\s*(?:项)?断言/g)).map((m) => m[1])));
+    check(siteSuites.length > 0 && siteSuites.every((n) => Number(n) === bT.suites),
+      "门户站点里每一处「N 套件」都等于基线 " + bT.suites, siteSuites.join(", "));
+    check(siteAsserts.length > 0 && siteAsserts.every((n) => Number(n) === bT.pass),
+      "门户站点里每一处「M 断言」都等于基线 " + bT.pass, siteAsserts.join(", "));
+
+    const linkHrefs = Array.from(new Set(Array.from(site.matchAll(/<a[^>]+href="([^"]+)"/g))
+      .map((m) => m[1]))).filter((h) => !/^(#|https?:|mailto:|data:)/.test(h));
+    const missingLinks = linkHrefs.filter(
+      (h) => !fs.existsSync(path.resolve(path.join(ROOT, "docs"), decodeURIComponent(h))));
+    check(linkHrefs.length >= 8, "门户站点含站内链接（护栏自身有效）", linkHrefs.length + " 条");
+    check(missingLinks.length === 0, "门户站点的每个站内链接都指向真实文件（页面改名后忘改会红）",
+      missingLinks.join(", "));
+
+    const siteImgs = Array.from(new Set(
+      Array.from(site.matchAll(/(?:src|href)="(\.\.\/test\/[^"]+)"/g)).map((m) => m[1])
+        .concat(Array.from(site.matchAll(/f:"([^"]+\.png)"/g)).map((m) => m[1]))
+    ));
+    const missingImgs = siteImgs.filter((h) => !fs.existsSync(h.indexOf("../") === 0
+      ? path.resolve(path.join(ROOT, "docs"), h) : path.resolve(ROOT, "test", h)));
+    check(siteImgs.length >= 6, "门户站点展示真实运行截图（护栏自身有效）", siteImgs.length + " 张");
+    check(missingImgs.length === 0, "门户站点引用的截图全部存在（重截改名后忘改会红）", missingImgs.join(", "));
+
+    const siteLocalMods = Array.from(new Set(Array.from(
+      srvAll.matchAll(/require\(\s*["']\.\/([A-Za-z0-9_./-]+?)(?:\.js)?["']\s*\)/g)
+    ).map((m) => m[1].replace(/\.js$/, "")))).sort();
+    const siteMissingMod = siteLocalMods.filter((n) => site.indexOf(n + ".js") < 0);
+    check(siteMissingMod.length === 0, "门户站点列出了全部后端模块", siteMissingMod.join(", "));
+    check(!/<script[^>]*\ssrc\s*=/i.test(site) && !/<link[^>]+stylesheet/i.test(site),
+      "门户站点零外部资源依赖（与主站同一纪律）");
+
+    check(bs2.indexOf("site.html") < 0, "门户站点刻意不进发布包（含仓库内文档链接）");
+  }
 } catch (e) {
   bad("概览文档一致性检查异常", e && e.message ? e.message : String(e));
 }

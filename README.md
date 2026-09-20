@@ -330,7 +330,7 @@ git push origin v1.0.0
 > `https://github.com/users/<用户名>/packages/container/navi-homepage/settings` →
 > Danger Zone → Change package visibility 改成 Public，否则目标机器要先 `docker login ghcr.io`。
 >
-> 这条链路的不变量由 `test/imagecompose.test.cjs`（125 项）固化：多架构构建、`packages: write` 权限、
+> 这条链路的不变量由 `test/imagecompose.test.cjs`（143 项）固化：多架构构建、`packages: write` 权限、
 > `latest` 只在打 tag 时更新、纯拉取编排不得含 `build:`、两条部署路径的环境变量/端口/挂载不得漂移，
 > 并**反向验证** `scripts/check-compose.cjs` 确实能抓到「护栏被拆掉」（4 类畸形夹具必须判失败）。
 
@@ -476,7 +476,7 @@ git push origin v1.0.0
 - **纯静态、零依赖**：不启动 Node、不联网也能打开；不读写任何配置文件，所有交互都在浏览器本地完成。
 - **含交互式界面复刻**：主题变量、卡片样式、图标解析与内网识别规则均取自项目源码，演示数据与 `config.json` 一致。可直接体验：搜索（`/` 聚焦）、命令面板（`Ctrl/⌘+K`）、日/夜切换、内外网切换、编辑模式、服务发现弹窗、图床库 / 在线图标库。
 - **含真实截图画廊**：10 张截图全部来自 `test/` 下由 Playwright 在真实浏览器中自动生成的运行截图，点击可放大。其中 5 张（首页 / 夜间 / 日间 / 状态板夜间 / 状态板日间）由 `node test/page-shots.cjs` 一键重新生成 —— 该脚本是这几张图的**唯一生产者**，别的套件不得覆盖（否则主题与尺寸会串，`imagecompose.test.cjs` 有断言守着）。另有 4 张 `ui-library-*.png` 属历史产物、暂无生成脚本，已显式登记为已知缺口。
-- **含功能、测试与部署说明**：940 项断言的分套件结果、接口清单、数据结构与三种部署方式。
+- **含功能、测试与部署说明**：958 项断言的分套件结果、接口清单、数据结构与三种部署方式。
 
 > 该页面用于**展示与验收**，不具备后端能力（不写盘、不扫端口、不真实上传）。要体验完整功能请按下文启动服务或使用 Docker。
 
@@ -500,7 +500,9 @@ git push origin v1.0.0
 │   ├── image-deploy-guide.html # ★ 拉取镜像部署指南（包可见性 / 国内网络对策 / 架构匹配 / 升级回滚 / 排查表）
 │   ├── docker-guide.html       # 通用 Docker 部署指南（可用浏览器打印为 PDF）
 │   ├── overview.html           # ★ 项目概览（目录组织 / 模块职责与依赖 / 数据模型 / 接口清单 / 调用链 / 实现要点；其模块表・套件表・路由表由 imagecompose.test.cjs 对着代码校验）
-│   └── roadmap.html            # 内部改进路线图（对标同类项目的差距分析与 P0–P2 计划，刻意不进 share 发布体系）
+│   ├── roadmap.html            # 内部改进路线图（对标同类项目的差距分析与 P0–P2 计划，刻意不进 share 发布体系）
+│   ├── showcase.html           # ★ 迭代成果预览站点（10 项改动的「修改前 / 修改后」对照 + 可交互演示；数字与模块清单由 imagecompose.test.cjs 校验，同样不进 share）
+│   └── site.html               # ★ 项目门户站点（唯一总入口：真实截图画廊 + 核心能力 + 架构 + 文档导航 + 部署三形态 + 质量红线；其数字・站内链接・截图由 imagecompose.test.cjs 校验，同样不进 share）
 ├── scripts/
 │   ├── migrate-to-dir-mount.sh # 从旧版单文件挂载平滑升级到整目录挂载的一键脚本
 │   ├── check-compose.cjs       # ★ compose 自检：缩进折叠 / 密码护栏 / 纯拉取编排不得含 build: / 整目录挂载
@@ -590,7 +592,7 @@ node scripts/check-deploy.cjs http://NAS的IP:端口 你的密码
 
 ## 自动化测试
 
-**推荐：一条命令跑完全部 19 个套件（940 项断言）**
+**推荐：一条命令跑完全部 19 个套件（958 项断言）**
 
 ```bash
 NODE_PATH=<已装 playwright 的 node_modules> node test/run-all.cjs

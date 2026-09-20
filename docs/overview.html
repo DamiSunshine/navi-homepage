@@ -112,7 +112,7 @@
   <div>
     <span class="badge">4 个后端模块</span>
     <span class="badge">零 package.json</span>
-    <span class="badge">19 个测试套件 / 940 项断言</span>
+    <span class="badge">19 个测试套件 / 958 项断言</span>
     <span class="badge">amd64 + arm64 镜像</span>
   </div>
 </div>
@@ -550,7 +550,7 @@ POST /api/backup/restore → 自动识别 ZIP / JSON → 校验 → 覆盖写回
 <!-- ==================== 十 ==================== -->
 <h2>十、测试与发布体系</h2>
 
-<h3>测试：19 个套件 / 940 项断言</h3>
+<h3>测试：19 个套件 / 958 项断言</h3>
 <p><code class="inline">node test/run-all.cjs</code> 会先用<strong>临时 config + 临时 uploads</strong> 在 8633 端口拉起一个隔离实例，再按需把地址传给需要的套件——<strong>不会碰真实数据</strong>；也可以只跑某几套（按文件名过滤）。</p>
 
 <!-- guard:suites -->
@@ -574,8 +574,8 @@ POST /api/backup/restore → 自动识别 ZIP / JSON → 校验 → 覆盖写回
   <tr><td><code>ui-firstrun.test.cjs</code></td><td>真实浏览器</td><td class="num">33</td><td>首次引导、拖链接建卡</td></tr>
   <tr><td><code>ui-tags.test.cjs</code></td><td>真实浏览器</td><td class="num">40</td><td>卡片标签：回填、徽章、点击筛选、搜索命中、跨分组</td></tr>
   <tr><td><code>checkdeploy.test.cjs</code></td><td>自包含</td><td class="num">22</td><td>「线上跑的是不是新代码」判定探针自检</td></tr>
-  <tr><td><code>imagecompose.test.cjs</code></td><td>自包含</td><td class="num">125</td><td>镜像契约：Dockerfile COPY 清单 ↔ 代码 require、compose 护栏、发布截图唯一生产者、<strong>概览文档与代码结构一致</strong></td></tr>
-  <tr><td colspan="2"><strong>合计 19 套</strong></td><td class="num"><strong>940</strong></td><td>全部通过 · 0 失败</td></tr>
+  <tr><td><code>imagecompose.test.cjs</code></td><td>自包含</td><td class="num">143</td><td>镜像契约：Dockerfile COPY 清单 ↔ 代码 require、compose 护栏、发布截图唯一生产者、<strong>概览文档与代码结构一致</strong></td></tr>
+  <tr><td colspan="2"><strong>合计 19 套</strong></td><td class="num"><strong>958</strong></td><td>全部通过 · 0 失败</td></tr>
 </table>
 <!-- /guard:suites -->
 
