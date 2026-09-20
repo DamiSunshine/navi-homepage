@@ -650,6 +650,12 @@
         checked: (discoverStale && discoverStale.checked) || [],
         skipped: (discoverStale && discoverStale.skipped) || []
       };
+    },
+    // 拖入链接的解析规则（纯函数，单独暴露便于测试各种粘贴/拖拽形态）
+    parseDroppedLink: function (t) { return parseDroppedLink(t); },
+    // 首次引导是否应该出现（只读判断，便于测试；不触发任何 UI）
+    shouldShowFirstRun: function () {
+      return !!state.apiAvailable && !firstRunDismissed() && configItemCount(state.config) === 0;
     }
   };
 
@@ -1623,6 +1629,56 @@
     });
   });
 
+  /* ---------- 首次使用引导 ----------
+     只在「有后端（能保存）、且配置里一张卡片都没有、且没被跳过过」时出现。
+     三个判断缺一不可：
+       · 无后端（静态托管预览）→ 用户改不了任何东西，弹向导只会碍事；
+       · 已有卡片 → 老用户不需要它；
+       · 跳过过 → 尊重用户选择，不再打扰（localStorage 记住）。 */
+  var firstRun = document.getElementById("firstRun");
+  var frStart = document.getElementById("frStart");
+  var frDiscover = document.getElementById("frDiscover");
+  var frDismiss = document.getElementById("frDismiss");
+  var FIRST_RUN_KEY = "navi-firstrun-done";
+
+  function configItemCount(cfg) {
+    if (!cfg || !Array.isArray(cfg.groups)) return 0;
+    var n = 0;
+    cfg.groups.forEach(function (g) { n += ((g && g.items) || []).length; });
+    return n;
+  }
+
+  function firstRunDismissed() {
+    try { return localStorage.getItem(FIRST_RUN_KEY) === "1"; } catch (e) { return true; }
+  }
+
+  function dismissFirstRun() {
+    try { localStorage.setItem(FIRST_RUN_KEY, "1"); } catch (e) {}
+    closeModal(firstRun);
+  }
+
+  function maybeShowFirstRun() {
+    if (!state.apiAvailable) return;          // 无后端：改了也存不下来
+    if (firstRunDismissed()) return;
+    if (configItemCount(state.config) > 0) return;
+    openModal(firstRun);
+  }
+
+  frDismiss.addEventListener("click", dismissFirstRun);
+
+  frStart.addEventListener("click", function () {
+    dismissFirstRun();
+    if (!state.editMode) editToggle.click();
+    openGroupModal(-1);                        // 空配置下第一步就是建分组
+  });
+
+  frDiscover.addEventListener("click", function () {
+    dismissFirstRun();
+    if (!state.editMode) editToggle.click();
+    var btn = document.getElementById("discoverBtn");
+    if (btn) btn.click();                      // 复用既有入口，不另写一套加载逻辑
+  });
+
   /* ---------- P1-7：来源文案与失效说明 ---------- */
   // 来源可读文案：「服务发现 · Docker 容器（a1b2c3d4）」/「手工添加」/「导入」。
   // 旧配置里没有 source 的卡片返回空串（不显示来源行，也不当作手工卡片去猜）。
@@ -2488,6 +2544,80 @@
     render();
   });
 
+  /* ---------- 从外部拖入链接建卡（仅编辑模式） ----------
+     把浏览器地址栏 / 书签 / 聊天窗口里的链接直接拖到页面上，预填「添加导航项」弹窗。
+     与本页的卡片拖拽排序互不干扰：排序进行中 dragEl 非空，这里一律放行不处理。
+     解析成链接才弹窗；拖进来一段普通文字不打扰用户。 */
+  function externalDragHasLink(e) {
+    if (!e.dataTransfer) return false;
+    var types = Array.prototype.slice.call(e.dataTransfer.types || []);
+    return types.indexOf("text/uri-list") >= 0 || types.indexOf("text/plain") >= 0;
+  }
+
+  // 浏览器给的形态不统一：Chrome 常见 "标题\r\nhttps://…"，Firefox 还是单行 uri-list。
+  // 所以「URL 取第一个含链接的行、标题优先取同行的剩余文本，其次取不含链接的那一行」。
+  function parseDroppedLink(text) {
+    if (!text) return null;
+    var lines = String(text).split(/\r?\n/)
+      .map(function (s) { return s.trim(); })
+      .filter(function (s) { return s && s.charAt(0) !== "#"; });   // uri-list 用 # 作注释
+    var url = "", title = "";
+    lines.forEach(function (line) {
+      var m = line.match(/https?:\/\/\S+/i);
+      if (m && !url) {
+        url = m[0];
+        // 只在还没有标题时，才用「URL 同一行的剩余文字」当标题
+        // （否则会把上一行已提取的标题覆盖成空 —— 典型的「标题在上」形态）
+        var rest = line.replace(m[0], "").trim();
+        if (!title && rest) title = rest;
+      } else if (!title && !/https?:\/\//i.test(line)) {
+        title = line;
+      }
+    });
+    if (!url) return null;
+    return { url: url, title: title.slice(0, 40) };
+  }
+
+  function openItemModalForNew(url, title) {
+    if (!state.draft) return;
+    if (!Array.isArray(state.draft.groups) || !state.draft.groups.length) {
+      state.draft.groups = [{ name: "默认分组", items: [] }];
+      markDirty();
+      render();
+    }
+    openItemModal(0, -1);
+    itemForm.url.value = url || "";
+    if (title) {
+      itemForm.title.value = title;
+    } else {
+      try { itemForm.title.value = new URL(url).hostname; } catch (e) {}
+    }
+    itemForm.title.focus();
+  }
+
+  navRoot.addEventListener("dragover", function (e) {
+    if (!state.editMode || dragEl) return;          // 排序中的拖拽交给上面的处理器
+    if (!externalDragHasLink(e)) return;
+    e.preventDefault();                             // 不 preventDefault 就不会触发 drop
+    e.dataTransfer.dropEffect = "copy";
+  });
+
+  navRoot.addEventListener("drop", function (e) {
+    if (!state.editMode || dragEl) return;
+    if (!externalDragHasLink(e)) return;
+    var uri = "", plain = "";
+    try { uri = e.dataTransfer.getData("text/uri-list") || ""; } catch (err) {}
+    try { plain = e.dataTransfer.getData("text/plain") || ""; } catch (err) {}
+    // uri-list 常常只有裸 URL，标题其实在 text/plain 里 → 优先取「带标题」的那个
+    var fromUri = parseDroppedLink(uri), fromPlain = parseDroppedLink(plain);
+    var picked = (fromUri && fromUri.title) ? fromUri
+              : (fromPlain && fromPlain.title) ? fromPlain
+              : (fromUri || fromPlain);
+    if (!picked) return;                            // 不是链接 → 什么都不做
+    e.preventDefault();
+    openItemModalForNew(picked.url, picked.title);
+  });
+
   /* ---------- 站点信息 ---------- */
   function applySiteInfo(site) {
     if (!site) return;
@@ -2977,6 +3107,8 @@
     applySiteInfo(state.config.site);
     applyModeUI();
     render();
+    // 空配置的新用户：给一个可跳过的三步向导（有卡片 / 无后端 / 跳过过 → 不出现）
+    maybeShowFirstRun();
     // 探测在首帧渲染之后才启动：卡片链接在渲染时已用启发式兜底，
     // 所以就算探测要 2 秒，用户此刻点卡片也是通的 —— 探测只负责「越往后越准」。
     startLanProbes();

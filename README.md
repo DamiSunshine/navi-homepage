@@ -9,10 +9,12 @@
 
 - **前端可视化编辑（类 sun-panel）**：点击右上角「编辑」进入编辑模式——
   - 卡片**拖拽排序**，支持跨分组拖动
+  - **拖链接建卡**：把地址栏 / 书签 / 聊天窗口里的链接**直接拖到页面上**，即弹出「添加导航项」并自动预填地址与标题（仅编辑模式生效，避免浏览时误触改数据）；只认链接，拖进来一段普通文字不会打扰你
   - 添加 / 修改 / 删除导航项（弹窗表单：名称、描述、外网地址、内网地址、在线图标、本地图床 Logo）
   - 分组添加 / 重命名 / 删除
   - 「保存」通过 API 直接写回服务器 `config.json`；「备份」下载结构化备份文件；「导入」校验后一键恢复
   - 纯静态托管（无后端）时自动降级：修改保存在浏览器本地并提示导出
+- **首次使用引导**：配置里一张卡片都没有时，给一个可跳过的新手向导（三步：进编辑模式 → 加卡片（手动 / 拖链接 / 服务发现）→ 记得备份含图片的完整 zip），并在末尾提醒**公网部署务必设 `NAVI_PASSWORD`**。「以后再说」会被记住，之后不再打扰；已有卡片的老用户、以及纯静态托管（改不了东西）时都不出现
 - **数据备份与恢复（可选含图片）**：一键导出含 SHA-256 校验和的结构化备份，两种形态——
   - **`.json`（仅配置）**：体积小、可直接打开查看或手工编辑，与历史版本逐字节兼容
   - **`.zip`（完整备份，推荐搬家）**：配置 + 图床库全部图片，包内**逐项 SHA-256 + 长度校验**；导入时按**文件头**判定格式（不看扩展名），四道校验（格式 / 版本 / 校验和 / 结构）全过才落盘
@@ -161,9 +163,25 @@ docker compose up -d
 | `NAVI_STATUS_TTL` | 状态板数据的服务端缓存时长（毫秒）；前端 30s 轮询，多人打开时会放大 Docker 压力 | `5000` |
 | `NAVI_IMAGE` | **仅 compose 读取**：换用 GHCR 镜像站 / 自建代理（国内直连 ghcr.io 常不通） | `ghcr.io/mijunyi/navi-homepage` |
 | `NAVI_TAG` | **仅 compose 读取**：固定镜像版本，避免 `latest` 漂移（可填 `1.2.3` / `1.2` / `edge`） | `latest` |
+| `DOCKER_GID` | **仅 compose 读取**：以非 root（`user:`）运行时的 docker 组 GID，用于 `group_add` | 未启用 |
 
-> `NAVI_IMAGE` / `NAVI_TAG` 是 **compose 插值变量**，不是容器内的环境变量 ——
+> `NAVI_IMAGE` / `NAVI_TAG` / `DOCKER_GID` 是 **compose 插值变量**，不是容器内的环境变量 ——
 > 它们只在解析编排文件时生效，不会被注入容器。其余变量才是在容器里被 `server.js` 读取的。
+
+**关于 `DOCKER_GID`（何时才需要）**：镜像**默认以 root 运行**，读写 `/var/run/docker.sock` 不需要任何额外配置，
+所以 compose 里的 `group_add` 是**注释掉的、默认不启用**——只有当你**显式**给服务加了 `user:` 故意降权运行时才需要：
+
+```bash
+# ① 宿主机查 docker 组 GID（常见 998 / 989 / 999）
+stat -c '%g' /var/run/docker.sock
+# ② 写进 .env
+echo 'DOCKER_GID=989' >> .env
+# ③ 取消 docker-compose.yml 里 group_add 两行的注释
+```
+
+不配的话表现是「服务发现报 Docker 未接入」（容器内读 socket 得到 `EACCES`）。
+之所以**默认注释掉**而不是默认补组 `0`：补 root 组会把你降权运行的意图悄悄抵消掉，
+属于「为了省事而绕过自己的安全设置」，所以改成显式选择。
 
 ## 访问密码保护
 
@@ -267,7 +285,7 @@ sudo bash scripts/migrate-to-dir-mount.sh --no-compose
 本项目源码可安全开源，私有数据请**不要**提交仓库。仓库已内置 `.gitignore` 完成默认排除，发布前请复核：
 
 1. **已排除**：`public/config.json`（你的真实导航链接/内网地址）、`public/uploads/`（你的 Logo 图片）、`data/`（挂载的数据目录）、`.env`（真实密码）、`.workbuddy/`、`.wbapp_*.genie`、`preview-launcher.js`、`*.tmp`、`node_modules` 等。
-2. **保留提交**：`public/config.example.json`、`.env.example`、`server.js`、`discovery.js`、`Dockerfile`、`docker-compose.yml`、`docker-compose.image.yml`、`.github/workflows/`（镜像发布工作流）、前端文件、`test/`、`README.md`、`LICENSE`。
+2. **保留提交**：`public/config.example.json`、`.env.example`、`server.js`、`discovery.js`、`Dockerfile`、`docker-compose.yml`、`docker-compose.image.yml`、`.github/workflows/`（镜像发布工作流）、前端文件、`test/`、`README.md`、`CHANGELOG.md`、`LICENSE`。
 3. **密码只走 `.env`**：`docker-compose.yml` 中为 `NAVI_PASSWORD=${NAVI_PASSWORD:?...}`，真实密码写在项目根目录的 `.env`（已被 gitignore / dockerignore 排除）。首次部署：
 
    ```bash
@@ -457,7 +475,7 @@ git push origin v1.0.0
 - **纯静态、零依赖**：不启动 Node、不联网也能打开；不读写任何配置文件，所有交互都在浏览器本地完成。
 - **含交互式界面复刻**：主题变量、卡片样式、图标解析与内网识别规则均取自项目源码，演示数据与 `config.json` 一致。可直接体验：搜索（`/` 聚焦）、命令面板（`Ctrl/⌘+K`）、日/夜切换、内外网切换、编辑模式、服务发现弹窗、图床库 / 在线图标库。
 - **含真实截图画廊**：10 张截图全部来自 `test/` 下由 Playwright 在真实浏览器中自动生成的运行截图，点击可放大。其中 5 张（首页 / 夜间 / 日间 / 状态板夜间 / 状态板日间）由 `node test/page-shots.cjs` 一键重新生成 —— 该脚本是这几张图的**唯一生产者**，别的套件不得覆盖（否则主题与尺寸会串，`imagecompose.test.cjs` 有断言守着）。另有 4 张 `ui-library-*.png` 属历史产物、暂无生成脚本，已显式登记为已知缺口。
-- **含功能、测试与部署说明**：771 项断言的分套件结果、接口清单、数据结构与三种部署方式。
+- **含功能、测试与部署说明**：858 项断言的分套件结果、接口清单、数据结构与三种部署方式。
 
 > 该页面用于**展示与验收**，不具备后端能力（不写盘、不扫端口、不真实上传）。要体验完整功能请按下文启动服务或使用 Docker。
 
@@ -475,6 +493,7 @@ git push origin v1.0.0
 ├── status.js                   # 状态板模块：CPU 差值 / cgroup·meminfo·os 三级内存 / statfs 磁盘 / 容器计数 / TTL 缓存（全部可降级）
 ├── zip.js                      # 手写 ZIP 读写（零依赖）：store/deflate 自动选择、UTF-8 名、逐项 CRC-32 校验、拒绝 ZIP64/截断
 ├── preview.html                # 静态效果预览页（界面复刻 + 真实截图画廊 + 功能/测试说明，浏览器直接打开）
+├── CHANGELOG.md                # 更新日志（Keep a Changelog 格式，版本号与 server.js 的 APP_VERSION 对齐）
 ├── docs/
 │   ├── fnos-deploy-guide.html  # ★ 飞牛 fnOS 部署指南（存储路径约定 / 图形界面 Compose 限制 / 文件属主权限 / 故障排查 / 检查清单）
 │   ├── image-deploy-guide.html # ★ 拉取镜像部署指南（包可见性 / 国内网络对策 / 架构匹配 / 升级回滚 / 排查表）
@@ -493,7 +512,7 @@ git push origin v1.0.0
 │   ├── verify-share-ui.cjs     # ★ 用真实浏览器查「线上」预览站：内容新鲜度 + 截图能否解码
 │   └── share-index.html        # share/ 落地页源文件（改落地页改这里，不要改 share/index.html）
 ├── test/
-│   ├── run-all.cjs             # 一键跑完全部 17 个套件（自动拉起隔离实例，用临时 config/uploads）
+│   ├── run-all.cjs             # 一键跑完全部 18 个套件（自动拉起隔离实例，用临时 config/uploads）
 │   ├── lib/hermetic.cjs        # 让 UI 套件真正自包含：公网图标请求就地应答（***只限公网***，内网探测必须走真实网络）
 │   ├── server.test.js          # 服务端集成测试（静态资源 / API / 校验 / 防护 / IPv6）
 │   ├── auth.test.js            # 密码保护专项测试（拦截/登录/会话/伪造/过期/登出/限流/联合登录）
@@ -509,6 +528,7 @@ git push origin v1.0.0
 │   ├── ui-discover.test.cjs    # 服务发现 UI 测试（自启动伪造 Docker API，覆盖勾选/忽略/加入/保存）
 │   ├── ui-library.test.cjs     # 图床库 UI 测试（批量上传/搜索/点选回填/在线图标/批量删除/引用保护）
 │   ├── ui-status.test.cjs      # 状态板 UI 测试（渲染/降级/手动刷新/后台暂停轮询/接口缺失时静默退场）
+│   ├── ui-firstrun.test.cjs    # ★ 首次引导 + 拖链接建卡 UI 测试（空配置才出现/跳过可持久化/多种粘贴形态解析/仅编辑模式生效）
 │   ├── checkdeploy.test.cjs    # 部署判定探针自检（正反双向验证 scripts/check-deploy.cjs）
 │   ├── imagecompose.test.cjs   # ★ 镜像发布契约自检（多架构/权限/无 build:/两条路径不漂移 / 发布截图唯一生产者 + 反向验证自检脚本）
 │   ├── ui-theme.test.cjs       # 日/夜模式切换 UI 测试
@@ -567,14 +587,14 @@ node scripts/check-deploy.cjs http://NAS的IP:端口 你的密码
 
 ## 自动化测试
 
-**推荐：一条命令跑完全部 17 个套件（825 项断言）**
+**推荐：一条命令跑完全部 18 个套件（858 项断言）**
 
 ```bash
 NODE_PATH=<已装 playwright 的 node_modules> node test/run-all.cjs
 ```
 
 `run-all.cjs` 会自动用「临时 config + 临时 uploads」在 8633 端口拉起隔离实例，
-跑完 5 个需要实例的套件后再依次跑 12 个自包含套件，最后汇总通过/失败数——**不会碰真实数据**。
+跑完 5 个需要实例的套件后再依次跑 13 个自包含套件，最后汇总通过/失败数——**不会碰真实数据**。
 
 排查单个功能时可按文件名过滤，只跑关心的套件（如 `ui-backup`、`discover`）：
 
@@ -634,6 +654,10 @@ node test/imagecompose.test.cjs
 # 13. 本地图标库自检（自包含：目录自洽 / 文件魔数真为图片而非 HTML 报错页 /
 #     国内站点 favicon 已落地 / icon-map 与目录一致 / 前端「本地优先」接线 / /icons/* 静态托管）
 node test/icons.test.js
+
+# 14. 首次引导 + 拖链接建卡 UI 测试（自包含：空配置才出现引导 / 跳过可持久化 /
+#     拖入链接的多种粘贴形态解析 / 仅编辑模式生效 / 非链接内容不弹窗）
+node test/ui-firstrun.test.cjs
 ```
 
 重新生成对外发布的 5 张截图（首页 / 夜 / 日 / 状态板夜 / 状态板日；自带隔离实例，不碰真实数据）：

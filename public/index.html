@@ -167,6 +167,35 @@
       </div>
   </div>
 
+  <!-- 首次使用引导：仅当配置里一张卡片都没有（且没被跳过过）时出现。
+       静态托管 / 无后端时不出现 —— 那时用户根本改不了东西，弹向导只会碍事。 -->
+  <div id="firstRun" class="modal-mask" hidden>
+    <div class="modal modal-wide first-run" role="dialog" aria-modal="true" aria-labelledby="firstRunTitle">
+      <h3 class="modal-title" id="firstRunTitle">👋 欢迎使用 Navi</h3>
+      <p class="fr-lead">这里还一张卡片都没有，三步就能用起来：</p>
+      <ol class="fr-steps">
+        <li>
+          <b>进入编辑模式</b>
+          <span>点右上角「编辑」。所有改动都要点底部「保存」才会写入服务器（不点保存随时可「取消」）。</span>
+        </li>
+        <li>
+          <b>加卡片：手动，或者自动</b>
+          <span>点分组标题上的「＋」手动添加；也可以把浏览器地址栏的链接<strong>直接拖到页面上</strong>。装了 Docker 就点底部「服务发现」，自动识别容器与本机端口、自动匹配图标。</span>
+        </li>
+        <li>
+          <b>记得备份</b>
+          <span>编辑模式下的「备份」可导出<strong>含图床库图片的完整 .zip</strong>，换机迁移不会丢图。</span>
+        </li>
+      </ol>
+      <p class="fr-note">⚠️ 要暴露到公网，请务必在 <code>.env</code> 里设置 <code>NAVI_PASSWORD</code> —— 不设等于无密码开放访问。</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="frDismiss">以后再说</button>
+        <button type="button" class="btn btn-ghost" id="frDiscover">用服务发现自动添加</button>
+        <button type="button" class="btn btn-primary" id="frStart">开始添加</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 导航项编辑弹窗 -->
   <div id="itemModal" class="modal-mask" hidden>
     <div class="modal" role="dialog" aria-modal="true">

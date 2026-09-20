@@ -361,7 +361,7 @@ docker run -d --name navi <span class="c"># …与初次启动相同的参数</s
 <div class="step"><span class="no">2</span><span class="t">页面访问</span></div>
 <p>浏览器打开 <code class="inline">http://服务器IP:8080</code> → 应跳转登录页 → 输入用户名 / 密码 → 看到导航卡片。</p>
 <div class="step"><span class="no">3</span><span class="t">自动化测试（可选）</span></div>
-<p>项目内置 <strong>825 项断言 / 17 个套件</strong>。最省事的方式是一条命令全跑（它会自动用「临时 config + 临时 uploads」在 8633 端口拉起隔离实例，不碰真实数据）：</p>
+<p>项目内置 <strong>858 项断言 / 18 个套件</strong>。最省事的方式是一条命令全跑（它会自动用「临时 config + 临时 uploads」在 8633 端口拉起隔离实例，不碰真实数据）：</p>
 <pre>NODE_PATH=&lt;已装 playwright 的 node_modules&gt; node test/run-all.cjs
 
 <span class="c"># 排查单个功能时按文件名过滤，只跑关心的套件</span>
@@ -369,20 +369,26 @@ NODE_PATH=&lt;已装 playwright 的 node_modules&gt; node test/run-all.cjs ui-ba
 <p>也可以按需单独运行：</p>
 <pre><span class="c"># ① 自包含套件（内部自行拉起隔离实例，直接运行即可）</span>
 node test/auth.test.js            <span class="c"># 密码保护 / 联合登录        27 项</span>
-node test/backup.test.js          <span class="c"># 备份恢复 / 图片魔数校验     20 项</span>
-node test/discover.test.js        <span class="c"># 服务发现（伪造 Docker API） 80 项</span>
-node test/library.test.js         <span class="c"># 图床库（引用保护 / 批量上传）40 项</span>
+node test/backup.test.js          <span class="c"># 备份恢复 / 图片魔数校验     22 项</span>
+node test/zipbackup.test.js       <span class="c"># 含图片的 zip 备份           54 项</span>
+node test/status.test.js          <span class="c"># 状态板（伪造 Docker API）   90 项</span>
+node test/discover.test.js        <span class="c"># 服务发现（伪造 Docker API） 99 项</span>
+node test/library.test.js         <span class="c"># 图床库（引用保护 / 批量上传）41 项</span>
+node test/icons.test.js           <span class="c"># 本地图标库自检              47 项</span>
 node test/ui-auth.test.cjs        <span class="c"># 登录页 UI                  8 项</span>
-node test/ui-discover.test.cjs    <span class="c"># 服务发现 UI                36 项</span>
+node test/ui-discover.test.cjs    <span class="c"># 服务发现 UI                58 项</span>
 node test/ui-library.test.cjs     <span class="c"># 图床库 UI                  47 项</span>
+node test/ui-firstrun.test.cjs    <span class="c"># 首次引导 / 拖链接建卡 UI    33 项</span>
 node test/checkdeploy.test.cjs    <span class="c"># 部署判定探针自检            22 项</span>
+node test/imagecompose.test.cjs   <span class="c"># 镜像发布契约自检            99 项</span>
 
-<span class="c"># ② 需要先有一个运行中的实例（下面四条都要传 baseUrl）</span>
-node test/server.test.js http://127.0.0.1:8080       <span class="c"># 服务端集成 24 项</span>
-node test/ui.test.cjs http://127.0.0.1:8080          <span class="c"># 主界面 UI  27 项</span>
-node test/ui-theme.test.cjs http://127.0.0.1:8080    <span class="c"># 主题切换 UI 8 项</span>
-node test/ui-backup.test.cjs http://127.0.0.1:8080   <span class="c"># 备份 UI    16 项</span></pre>
-<div class="warn"><strong>跑 ② 那四条前请先建一个隔离实例</strong>（把配置与上传目录指向临时位置），不要直接对生产实例执行——<code class="inline">ui.test.cjs</code> 会真实保存配置、<code class="inline">ui-backup.test.cjs</code> 会临时改写并还原 <code class="inline">public/config.json</code>。示例：
+<span class="c"># ② 需要先有一个运行中的实例（下面五条都要传 baseUrl）</span>
+node test/server.test.js http://127.0.0.1:8080       <span class="c"># 服务端集成  36 项</span>
+node test/ui.test.cjs http://127.0.0.1:8080          <span class="c"># 主界面 UI  103 项</span>
+node test/ui-theme.test.cjs http://127.0.0.1:8080    <span class="c"># 主题切换 UI  8 项</span>
+node test/ui-backup.test.cjs http://127.0.0.1:8080   <span class="c"># 备份 UI     32 项</span>
+node test/ui-status.test.cjs http://127.0.0.1:8080   <span class="c"># 状态板 UI   32 项</span></pre>
+<div class="warn"><strong>跑 ② 那五条前请先建一个隔离实例</strong>（把配置与上传目录指向临时位置），不要直接对生产实例执行——<code class="inline">ui.test.cjs</code> 会真实保存配置、<code class="inline">ui-backup.test.cjs</code> 会临时改写并还原 <code class="inline">public/config.json</code>。示例：
 <pre style="margin-top:8px">PORT=8633 NAVI_CONFIG_PATH=/tmp/navi-test/config.json \
   NAVI_UPLOAD_DIR=/tmp/navi-test/uploads node server.js
 <span class="c"># 另开一个终端再跑测试，URL 用 http://127.0.0.1:8633</span></pre>

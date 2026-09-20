@@ -19,6 +19,8 @@ public/uploads/
 # ---- 残留 / 缓存 ----
 # 原子写入的半成品
 *.tmp
+# 排障时把测试输出重定向成的临时日志（本机 shell 的 tail/head 不好用，只能落文件再看）
+test/_*.log
 # Node 依赖（本项目零依赖，通常不会出现；保留兜底）
 node_modules/
 npm-debug.log*

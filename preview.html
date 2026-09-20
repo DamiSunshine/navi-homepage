@@ -593,7 +593,7 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
 
     <div class="stats">
       <div class="stat"><b>17<span class="u">套</span></b><span>测试套件</span></div>
-      <div class="stat"><b>825<span class="u">项</span></b><span>断言全通过 · 0 失败</span></div>
+      <div class="stat"><b>858<span class="u">项</span></b><span>断言全通过 · 0 失败</span></div>
       <div class="stat"><b>0<span class="u">个</span></b><span>第三方运行时依赖</span></div>
       <div class="stat"><b>13<span class="u">个</span></b><span>API 接口</span></div>
       <div class="stat"><b>IPv6<span class="u">双栈</span></b><span>默认监听</span></div>
@@ -860,9 +860,10 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
           <tr><td><code>ui-discover.test.cjs</code></td><td>真实浏览器</td><td>58</td><td>发现弹窗勾选 / 忽略 / 加入 / 保存（自启伪造 Docker）；<strong>命中图标解析为本地内置路径</strong>、未收录时才回退 CDN；<strong>失效卡片只标记不删 / 一键恢复 / 二次确认清理</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>ui-library.test.cjs</code></td><td>真实浏览器</td><td>47</td><td>批量上传 / 选择回填 / 在线图标库 / 引用保护</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>ui-status.test.cjs</code></td><td>真实浏览器</td><td>32</td><td>状态板渲染 / Docker 不可用降级 / 手动刷新走 <code>fresh=1</code> / <strong>后台暂停轮询</strong> / <strong>接口 404 与服务端关闭时静默退场</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>ui-firstrun.test.cjs</code></td><td>真实浏览器</td><td>33</td><td><strong>首次引导</strong>（空配置才出现 / 三步说明 / 密码提醒 / 跳过可持久化且尊重选择 / 有卡片时不打扰）+ <strong>拖入链接建卡</strong>（多种粘贴形态解析 / 仅编辑模式生效 / 非链接不弹窗）+ 静态托管不弹向导</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>checkdeploy.test.cjs</code></td><td>部署判定</td><td>22</td><td>「部署的是不是新代码」探针自检：<strong>正反双向</strong>（新代码判新 / 旧行为判旧）+ <strong>无密码时降级判定</strong> + 参数异常</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>imagecompose.test.cjs</code></td><td>发布契约</td><td>99</td><td>「拉预构建镜像」这条路不变量：<strong>多架构构建 + 推送 GHCR + 冒烟启动容器</strong>、镜像编排<strong>不得含 build:</strong>、两条部署路径不得漂移、<strong>server.js 的每个本地依赖都必须被 Dockerfile COPY（否则本地全绿而容器起不来）</strong>、<strong>冒烟作业必须真的请求新模块的接口（状态板 / zip 备份）</strong>、<strong>对外发布的截图只有一个生产者且不得被测试套件覆盖</strong>、<strong>反向验证自检脚本能抓到护栏被拆</strong>、<strong>x86 部署指引（32 位 / SSE4.2 / SELinux）</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
-          <tr><td colspan="2"><strong>合计 17 套</strong></td><td><strong>825</strong></td><td colspan="2" class="ok"><span class="pass">✅ 全部通过 · 0 失败</span></td></tr>
+          <tr><td colspan="2"><strong>合计 18 套</strong></td><td><strong>858</strong></td><td colspan="2" class="ok"><span class="pass">✅ 全部通过 · 0 失败</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -870,7 +871,7 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
     <div class="tip">
       <span class="em">🧪</span>
       <span>
-        <b>如何复跑</b>：项目根目录执行 <code>node test/run-all.cjs</code> 可一次跑完全部 17 套
+        <b>如何复跑</b>：项目根目录执行 <code>node test/run-all.cjs</code> 可一次跑完全部 18 套
         （它会自动用「临时 config + 临时 uploads」拉起隔离实例，端口 8633，不碰真实数据）；
         也可只跑某几套，如 <code>node test/run-all.cjs ui-backup</code>（按文件名过滤），
         或单独跑 <code>node test/discover.test.js</code>。

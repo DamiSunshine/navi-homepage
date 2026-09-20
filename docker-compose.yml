@@ -65,3 +65,15 @@ services:
       - ./data:/app/data
       # 服务发现所需的 Docker Socket（可选，按需取消注释；见上方安全提示）
       # - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    # ---- DOCKER_GID：以非 root 运行时的 Docker Socket 访问（可选）----
+    # 本镜像默认以 root 运行，读写 /var/run/docker.sock 不需要任何额外配置。
+    # 只有当你**显式**给服务加了 user:（故意降权运行）时，才需要把宿主机 docker 组的
+    # GID 作为补充组加进来，否则会以 EACCES 读不到 socket（表现为「服务发现报 Docker 未接入」）：
+    #   ① 宿主机查 GID：stat -c '%g' /var/run/docker.sock   （常见输出 998 / 989 / 999）
+    #   ② 在 .env 里写：DOCKER_GID=989
+    #   ③ 取消下面两行注释
+    # ⚠️ 这里刻意**默认不启用**：补组 0（root 组）会把你降权运行的意图悄悄抵消掉，
+    #    属于「为了省事而绕过自己的安全设置」，所以改成显式选择。
+    # group_add:
+    #   - "${DOCKER_GID:-0}"

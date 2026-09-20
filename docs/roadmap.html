@@ -170,7 +170,7 @@
   <h2 style="font-size:15pt;color:#0d9488;border-left:4px solid #0d9488;padding-left:10px;margin-bottom:14px">实施进度更新（2026-09-20）</h2>
   <p style="color:#6b7280;font-size:9.5pt;margin-bottom:14px">
     本页第 3、4 章里的「13 个套件 / 435 项断言」等数字是<strong>审计当时（2026-09-19）的快照</strong>，保留原样以维持对照价值。
-    实际实施进展记录如下（最新全量回归：<strong>17 个套件 / 825 项断言 / 0 失败</strong>）。
+    实际实施进展记录如下（最新全量回归：<strong>18 个套件 / 858 项断言 / 0 失败</strong>）。
   </p>
   <table style="width:100%;border-collapse:collapse;font-size:10pt">
     <thead>
@@ -224,14 +224,23 @@
       <tr>
         <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P2</strong></td>
         <td style="border:1px solid #e5e7eb;padding:7px 9px">拆前端单文件 / 首次引导 / 拖链接建卡 / <code>DOCKER_GID</code> / CHANGELOG</td>
-        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— 拆分的前提「全绿安全网」已具备（825 项断言 / 0 失败）</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">大部分已完成</span> ——
+          <strong>首次引导</strong>（配置为空才出现 / 三步说明 / 跳过可持久化 / 有卡片与静态托管时不打扰）、
+          <strong>拖链接建卡</strong>（仅编辑模式 / 兼容 <code>text/uri-list</code> 与 <code>text/plain</code> 两种形态 / 非链接不弹窗）、
+          <strong><code>DOCKER_GID</code></strong>（compose 给出 <code>group_add</code> 示例，并解释「默认 root 不需要、降权运行时才需要」）、
+          <strong>CHANGELOG.md</strong> 均已落地，新增 <code>ui-firstrun.test.cjs</code> 33 项断言守着。<br>
+          <span style="color:#b45309;font-weight:700">仍未实施</span>：<strong>拆前端单文件</strong> ——
+          安全网已具备（<strong>858 项断言 / 0 失败</strong>），但拆分本身是纯重构、无行为收益，
+          且会大面积动 <code>app.js</code>（当前唯一被 5 个 UI 套件直接依赖的文件），
+          风险与收益不对称，故明确<strong>搁置</strong>而非仓促动手。</td>
       </tr>
     </tbody>
   </table>
   <p style="margin-top:14px;font-size:9.5pt;color:#6b7280">
     ✅ 审计时的两处已确认短板均已消除：① 图标改为「本地内置优先」，内网 / 断网不再全白图；
     ② 图标预设由 33 条扩到 <strong>227 条</strong>并加入国内站点 favicon 抓取（均属 P1-6）。<br>
-    ⏳ 仍未实施：P2（拆前端单文件 / 首次引导 / 拖链接建卡 / <code>DOCKER_GID</code> / CHANGELOG）。
+    ⏳ 仍未实施：P2 中的「拆前端单文件」（纯重构、无行为收益，已明确搁置）；
+    其余 P2 项（首次引导 / 拖链接建卡 / <code>DOCKER_GID</code> / CHANGELOG）已完成。
   </p>
 </div>
 
