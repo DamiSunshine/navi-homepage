@@ -6,7 +6,7 @@
 #
 # 记录时间：2026-09-20
 # 覆盖范围：P0-1 拼音搜索 / P0-2 Ctrl+K 命令面板 / P0-3 卡片级 netMode 与可达性探测
-#           / P0-4 备份含图片（手写 ZIP）/ P1-5 首页状态板
+#           / P0-4 备份含图片（手写 ZIP）/ P1-5 首页状态板 / 发布截图唯一生产者护栏
 
   ✓ server.test.js          24 通过, 0 失败
   ✓ ui.test.cjs             94 通过, 0 失败
@@ -23,6 +23,6 @@
   ✓ ui-library.test.cjs     47 通过, 0 失败
   ✓ ui-status.test.cjs      32 通过, 0 失败
   ✓ checkdeploy.test.cjs    22 通过, 0 失败
-  ✓ imagecompose.test.cjs   80 通过, 0 失败
+  ✓ imagecompose.test.cjs   99 通过, 0 失败
 
-合计：694 通过, 0 失败 / 共 16 个套件
+合计：713 通过, 0 失败 / 共 16 个套件

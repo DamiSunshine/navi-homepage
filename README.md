@@ -305,7 +305,7 @@ git push origin v1.0.0
 > `https://github.com/users/<用户名>/packages/container/navi-homepage/settings` →
 > Danger Zone → Change package visibility 改成 Public，否则目标机器要先 `docker login ghcr.io`。
 >
-> 这条链路的不变量由 `test/imagecompose.test.cjs`（80 项）固化：多架构构建、`packages: write` 权限、
+> 这条链路的不变量由 `test/imagecompose.test.cjs`（99 项）固化：多架构构建、`packages: write` 权限、
 > `latest` 只在打 tag 时更新、纯拉取编排不得含 `build:`、两条部署路径的环境变量/端口/挂载不得漂移，
 > 并**反向验证** `scripts/check-compose.cjs` 确实能抓到「护栏被拆掉」（4 类畸形夹具必须判失败）。
 
@@ -450,8 +450,8 @@ git push origin v1.0.0
 
 - **纯静态、零依赖**：不启动 Node、不联网也能打开；不读写任何配置文件，所有交互都在浏览器本地完成。
 - **含交互式界面复刻**：主题变量、卡片样式、图标解析与内网识别规则均取自项目源码，演示数据与 `config.json` 一致。可直接体验：搜索（`/` 聚焦）、命令面板（`Ctrl/⌘+K`）、日/夜切换、内外网切换、编辑模式、服务发现弹窗、图床库 / 在线图标库。
-- **含真实截图画廊**：10 张截图全部来自 `test/` 下由 Playwright 在真实浏览器中自动生成的运行截图（`node test/page-shots.cjs` 可重新生成首页 / 主题图），点击可放大。
-- **含功能、测试与部署说明**：701 项断言的分套件结果、接口清单、数据结构与三种部署方式。
+- **含真实截图画廊**：10 张截图全部来自 `test/` 下由 Playwright 在真实浏览器中自动生成的运行截图，点击可放大。其中 5 张（首页 / 夜间 / 日间 / 状态板夜间 / 状态板日间）由 `node test/page-shots.cjs` 一键重新生成 —— 该脚本是这几张图的**唯一生产者**，别的套件不得覆盖（否则主题与尺寸会串，`imagecompose.test.cjs` 有断言守着）。另有 4 张 `ui-library-*.png` 属历史产物、暂无生成脚本，已显式登记为已知缺口。
+- **含功能、测试与部署说明**：713 项断言的分套件结果、接口清单、数据结构与三种部署方式。
 
 > 该页面用于**展示与验收**，不具备后端能力（不写盘、不扫端口、不真实上传）。要体验完整功能请按下文启动服务或使用 Docker。
 
@@ -502,9 +502,9 @@ git push origin v1.0.0
 │   ├── ui-library.test.cjs     # 图床库 UI 测试（批量上传/搜索/点选回填/在线图标/批量删除/引用保护）
 │   ├── ui-status.test.cjs      # 状态板 UI 测试（渲染/降级/手动刷新/后台暂停轮询/接口缺失时静默退场）
 │   ├── checkdeploy.test.cjs    # 部署判定探针自检（正反双向验证 scripts/check-deploy.cjs）
-│   ├── imagecompose.test.cjs   # ★ 镜像发布契约自检（多架构/权限/无 build:/两条路径不漂移 + 反向验证自检脚本）
+│   ├── imagecompose.test.cjs   # ★ 镜像发布契约自检（多架构/权限/无 build:/两条路径不漂移 / 发布截图唯一生产者 + 反向验证自检脚本）
 │   ├── ui-theme.test.cjs       # 日/夜模式切换 UI 测试
-│   ├── page-shots.cjs          # 重新生成首页 / 主题截图（供 preview.html 与 share/ 用）
+│   ├── page-shots.cjs          # ★ 重新生成 5 张发布截图（首页/主题×2/状态板×2，供 preview.html 与 share/ 用）
 │   └── make-pdf.cjs            # 把 docs/ 下的指南 HTML 打印成 PDF
 ├── public/
 │   ├── index.html              # 单页入口（含编辑弹窗、图床库弹窗、命令面板、备份格式选择、状态板）
@@ -557,7 +557,7 @@ node scripts/check-deploy.cjs http://NAS的IP:端口 你的密码
 
 ## 自动化测试
 
-**推荐：一条命令跑完全部 16 个套件（701 项断言）**
+**推荐：一条命令跑完全部 16 个套件（713 项断言）**
 
 ```bash
 NODE_PATH=<已装 playwright 的 node_modules> node test/run-all.cjs
@@ -617,15 +617,20 @@ node test/ui-library.test.cjs
 node test/checkdeploy.test.cjs
 
 # 12. 镜像发布契约自检（自包含：多架构构建 / GHCR 推送 / 纯拉取编排不得含 build: /
-#     两条部署路径不漂移；并反向验证 scripts/check-compose.cjs 能抓到护栏被拆掉）
+#     两条部署路径不漂移 / 发布截图只有一个生产者；并反向验证 scripts/check-compose.cjs
+#     能抓到护栏被拆掉）
 node test/imagecompose.test.cjs
 ```
 
-重新生成文档用的首页截图（自带隔离实例，不碰真实数据）：
+重新生成对外发布的 5 张截图（首页 / 夜 / 日 / 状态板夜 / 状态板日；自带隔离实例，不碰真实数据）：
 
 ```bash
 NODE_PATH=<已装 playwright 的 node_modules> node test/page-shots.cjs
 ```
+
+> 这 5 张图是发布资产，**只有 `test/page-shots.cjs` 有权写**：它会显式写 `navi-theme=dark`
+> 并等图标解码完再按快门。别的套件顺手截一张会把主题/尺寸串掉（历史上真发生过），
+> 所以有断言盯着。另有 4 张 `ui-library-*.png` 是历史产物、暂无生成脚本。
 
 > **关于「无 JS 错误」断言与网络**：多个 UI 套件都有一条「全程无 JS 错误」断言。
 > 页面里的卡片图标指向公共 CDN，而 Chromium 在图片加载失败时会发一条

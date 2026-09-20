@@ -170,7 +170,7 @@
   <h2 style="font-size:15pt;color:#0d9488;border-left:4px solid #0d9488;padding-left:10px;margin-bottom:14px">实施进度更新（2026-09-20）</h2>
   <p style="color:#6b7280;font-size:9.5pt;margin-bottom:14px">
     本页第 3、4 章里的「13 个套件 / 435 项断言」等数字是<strong>审计当时（2026-09-19）的快照</strong>，保留原样以维持对照价值。
-    实际实施进展记录如下（最新全量回归：<strong>16 个套件 / 701 项断言 / 0 失败</strong>）。
+    实际实施进展记录如下（最新全量回归：<strong>16 个套件 / 713 项断言 / 0 失败</strong>）。
   </p>
   <table style="width:100%;border-collapse:collapse;font-size:10pt">
     <thead>
@@ -207,6 +207,11 @@
         <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成</span> —— <code>GET /api/status</code> + 首页状态栏（容器 / CPU / 内存 / 磁盘）；<strong>降级是一等公民</strong>（采不到给 <code>null</code> 不给 <code>0</code>，整块取不到就静默隐藏）；后台暂停轮询 + 失败退避。122 项新断言</td>
       </tr>
       <tr>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>发布包完整性</strong></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px">截图「唯一生产者」与可再生成</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成（本轮额外发现并修复）</span> —— <code>test/ui.test.cjs</code> 曾把对外发布的 <code>ui-home.png</code> 重截成浅色并覆盖正式图（preview 上标注「夜间主题」而图是白的，跑一次回归就覆一次）；已删除该写者、删掉会串主题的残留脚本 <code>theme-shot.cjs</code>，并把状态板特写纳入 <code>page-shots.cjs</code>。新增 9 项断言把「谁有权写哪张发布图」变成机器可查。<br><strong>遗留缺口（已断言、未修）</strong>：<code>ui-library-*.png</code> 四张是历史产物，<strong>目前没有生成脚本</strong>；一旦需要改版就得重写采集流程，已在 <code>imagecompose.test.cjs</code> 里显式登记为已知孤儿清单，多一张即报错</td>
+      </tr>
+      <tr>
         <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P1-6</strong></td>
         <td style="border:1px solid #e5e7eb;padding:7px 9px">图标库扩容 + 本地内置优先</td>
         <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— 现状仍是「公共 CDN 优先」，内网/断网环境图标全部加载不出来（第 3 章列为已确认短板）</td>
@@ -219,7 +224,7 @@
       <tr>
         <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P2</strong></td>
         <td style="border:1px solid #e5e7eb;padding:7px 9px">拆前端单文件 / 首次引导 / 拖链接建卡 / <code>DOCKER_GID</code> / CHANGELOG</td>
-        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— 拆分的前提「全绿安全网」已具备（701 项断言 / 0 失败）</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— 拆分的前提「全绿安全网」已具备（713 项断言 / 0 失败）</td>
       </tr>
     </tbody>
   </table>

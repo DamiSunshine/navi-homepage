@@ -168,6 +168,11 @@ try {
     check(/\/api\/health/.test(smokeRun), "冒烟作业会请求健康接口");
     check(/"ok"/.test(smokeRun), "冒烟作业会校验健康接口的 ok 字段（只看 HTTP 200 不够）");
     check(/grep -q/.test(smokeRun), "冒烟作业有失败即中断的断言（否则跑挂了也返回成功）");
+    // 容器「起得来」只证明 server.js 能加载；新模块是否真被打进镜像要单独验。
+    // 没有这几条，Dockerfile 再次漏 COPY 时 CI 依然全绿（冒险点正是本地全绿而镜像起不来）。
+    check(/\/api\/status/.test(smokeRun), "冒烟作业会请求状态板接口（确认 status.js 进了镜像且路由已挂）");
+    check(/\/api\/backup\?format=zip/.test(smokeRun), "冒烟作业会请求 zip 备份（确认 zip.js 进了镜像）");
+    check(/PK/.test(smokeRun), "冒烟作业校验 zip 备份的文件头（不只看 HTTP 200）");
   }
 
   const wfRaw = stripComments(readText(WORKFLOW));
@@ -350,6 +355,77 @@ try {
   check(listedButUnused.length === 0, "Dockerfile 没有 COPY 未被引用的模块（避免镜像里塞死文件）",
     listedButUnused.join(", "));
   check(/^COPY\s+public\/\s+\.\/public\//m.test(df), "Dockerfile 仍复制前端资源");
+
+  /* 关键护栏：对外发布的截图必须「唯一生产者」且可再生成。
+     回归背景（两条都是真发生过的）：
+       ① test/ui.test.cjs 顺手把 ui-home.png 重截（跟随系统偏好 → 浅色 + fullPage 1280x824），
+          把 page-shots.cjs 的正式图（显式 dark + 1280x900）覆盖掉 → preview.html 标注
+          「首页总览（夜间主题）」而图其实是白的，且**跑一次回归就覆一次**，还会随发布包上线；
+       ② test/theme-shot.cjs 是残留的临时脚本，用 localStorage.removeItem 让主题跟随系统偏好
+          （本机是 light）→ 同样把 theme-dark.png 截成白底。已删除。
+     这里把「谁有权写哪张发布图」变成机器可查的清单：多一个写者、或新图没有生成脚本，都会红。 */
+  const bs = readText(path.join(ROOT, "scripts", "build-share.cjs"));
+  const shotsBlock = bs.match(/const shots = \[([\s\S]*?)\];/);
+  check(!!shotsBlock, "能从 build-share.cjs 里解析出发布截图清单（护栏自身有效）");
+  const publishedShots = shotsBlock
+    ? Array.from(shotsBlock[1].matchAll(/["']([^"']+\.png)["']/g)).map((m) => m[1])
+    : [];
+  check(publishedShots.length >= 8, "发布包截图清单足够长（否则护栏形同虚设）", publishedShots.length + " 张");
+
+  const missingShot = publishedShots.filter((s) => !fs.existsSync(path.join(ROOT, "test", s)));
+  check(missingShot.length === 0,
+    "发布包引用的截图在 test/ 下都存在（缺一张 build-share 只会打 MISSING 然后静默少拷）",
+    missingShot.join(", "));
+
+  const CANONICAL = "test/page-shots.cjs";
+  const CANONICAL_OUTPUTS = [
+    "ui-home.png", "theme-dark.png", "theme-light.png",
+    "status-board-dark.png", "status-board-light.png"
+  ];
+  // 「已发布但暂无生成脚本」的历史产物。必须显式列出来：多一张就说明又冒出了不可再生的图。
+  const KNOWN_ORPHANS = [
+    "ui-library-icon-rows.png", "ui-library-manage.png",
+    "ui-library-online.png", "ui-library-pick.png"
+  ];
+
+  const writers = {}; // 图名 -> 写它的脚本（相对路径）
+  for (const dir of ["test", "scripts"]) {
+    (function scan(d) {
+      for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+        const fp = path.join(d, e.name);
+        if (e.isDirectory()) { scan(fp); continue; }
+        if (!/\.c?js$/.test(e.name)) continue;
+        const t = readText(fp);
+        if (!/screenshot\(/.test(t)) continue;
+        const rel = path.relative(ROOT, fp).replace(/\\/g, "/");
+        for (const s of publishedShots) {
+          if (new RegExp("path\\s*:[^)]*" + s.replace(/\./g, "\\.")).test(t)) {
+            (writers[s] = writers[s] || []).push(rel);
+          }
+        }
+      }
+    })(path.join(ROOT, dir));
+  }
+
+  const stolen = CANONICAL_OUTPUTS.filter((s) => (writers[s] || []).some((f) => f !== CANONICAL));
+  check(stolen.length === 0,
+    "page-shots.cjs 的产出没有第二个写者（别的套件截图会把主题/尺寸串掉）",
+    stolen.map((s) => s + " ← " + (writers[s] || []).join(" + ")).join("; "));
+  const notFromCanonical = CANONICAL_OUTPUTS.filter((s) => (writers[s] || []).indexOf(CANONICAL) === -1);
+  check(notFromCanonical.length === 0, "page-shots.cjs 确实产出全部 5 张页面图", notFromCanonical.join(", "));
+
+  const orphans = publishedShots.filter((s) => !(writers[s] || []).length).sort();
+  check(JSON.stringify(orphans) === JSON.stringify(KNOWN_ORPHANS.slice().sort()),
+    "「已发布但无生成脚本」的截图集合与已知清单一致（多出来 = 新图没写生成器）",
+    "实际: " + orphans.join(", "));
+  check(!fs.existsSync(path.join(ROOT, "test", "theme-shot.cjs")),
+    "会串主题的临时截图脚本 theme-shot.cjs 没有被加回来");
+
+  const ps = readText(path.join(ROOT, "test", "page-shots.cjs"));
+  check(/localStorage\.setItem\(\s*["']navi-theme["']\s*,\s*["']dark["']\s*\)/.test(ps),
+    "page-shots.cjs 显式写入 navi-theme=dark（系统偏好是 light 时否则会截成白底）");
+  check(!/localStorage\.removeItem\(\s*["']navi-theme["']/.test(ps),
+    "page-shots.cjs 不再用 removeItem 让主题跟随系统偏好（本机是 light，会截成白底）");
 
   const envEx2 = readText(ENV_EXAMPLE);
   check(/NAVI_STATUS_BOARD/.test(envEx2), ".env.example 记录了 NAVI_STATUS_BOARD（可整体关掉状态板）");

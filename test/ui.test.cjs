@@ -412,8 +412,10 @@ function check(name, cond, extra) {
   const finalCount = finalCfg.groups.reduce((n, g) => n + g.items.length, 0);
   check("测试项已删除并恢复原始数据", finalCount === initialCount, String(finalCount));
 
-  // 截图供人工核对样式
-  await page.screenshot({ path: "test/ui-home.png", fullPage: true });
+  // 此处刻意**不**截图：test/ui-home.png 是对外发布的资产，唯一生产者是 test/page-shots.cjs
+  // （它会显式写 navi-theme=dark、用 1280x900 视口）。本套件若顺手截一张，会把发布图
+  // 覆成浅色且尺寸另一个样（曾发生：preview.html 标注「夜间主题」而图是浅色）。
+  // 需要看图请跑 node test/page-shots.cjs；护栏见 imagecompose.test.cjs 的「唯一生产者」断言。
 
   console.log("== 保存失败分流（问题1修复验证） ==");
   await page.click("#editToggle");

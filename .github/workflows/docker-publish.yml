@@ -145,6 +145,21 @@ jobs:
           echo "健康接口返回：$(cat /tmp/health.json)"
           grep -qE '"ok"[[:space:]]*:[[:space:]]*true' /tmp/health.json
 
+          # 容器起得来只证明 server.js 能加载 —— 再打一次状态板接口，确认新模块
+          # （status.js / zip.js）真的被打进镜像并且路由已挂上。
+          # 回归背景：本地测试直接读源码目录，Dockerfile 漏 COPY 时本地全绿而镜像起不来；
+          # 这条把「镜像里到底有没有这个模块」变成可验证事实，而不是靠人记得改 Dockerfile。
+          curl -fsS http://127.0.0.1:8080/api/status -o /tmp/status.json
+          echo "状态接口返回：$(cat /tmp/status.json)"
+          grep -qE '"ok"[[:space:]]*:[[:space:]]*true' /tmp/status.json
+          grep -qE '"docker"[[:space:]]*:' /tmp/status.json
+          grep -qE '"mem"[[:space:]]*:' /tmp/status.json
+
+          # 含图片的 zip 备份：确认 zip.js 也被打进镜像（能生成合法 ZIP 头）
+          curl -fsS 'http://127.0.0.1:8080/api/backup?format=zip' -o /tmp/backup.zip
+          head -c 2 /tmp/backup.zip | grep -q 'PK'
+          echo "zip 备份头校验通过，体积 $(wc -c < /tmp/backup.zip) 字节"
+
       - name: 清理
         if: always()
         run: docker rm -f navi-smoke || true
