@@ -3,8 +3,9 @@
    - 静态文件托管（public/）
    - GET  /api/config  读取导航配置（支持环境变量覆盖站点标题）
    - PUT  /api/config  写回导航配置（前端编辑模式保存）
-   - GET  /api/backup  导出结构化备份包（含 SHA-256 校验和，附件下载）
-   - POST /api/backup/restore  校验并恢复备份（格式/版本/完整性/结构）
+   - GET  /api/backup  导出备份包（附件下载）：默认 JSON（仅配置）；
+                       带 ?format=zip 时打包为 ZIP（config + 图床库图片 + 逐项 SHA-256）
+   - POST /api/backup/restore  校验并恢复备份   ← 自动识别 ZIP 与 JSON 两种格式
    - POST /api/upload  上传本地 logo 图片（base64，落盘 public/uploads）
    - GET  /api/library 列出本地图床库全部图片（含被引用情况）与在线图标预设
    - POST /api/library/upload  批量上传图标到本地图床库（逐张独立校验，允许部分成功）
@@ -33,6 +34,8 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const discovery = require("./discovery");
+const zip = require("./zip");
+const status = require("./status");
 
 const PORT = parseInt(process.env.PORT || "80", 10);
 const HOST = process.env.HOST || "::"; // :: 同时接受 IPv4 与 IPv6（dual-stack）
@@ -41,6 +44,7 @@ const CONFIG_PATH = process.env.NAVI_CONFIG_PATH || path.join(ROOT, "config.json
 const MAX_BODY = 1024 * 1024; // 1MB（普通 API）
 const MAX_UPLOAD_BODY = 5 * 1024 * 1024; // 5MB（图片上传）
 const MAX_LIBRARY_BODY = 16 * 1024 * 1024; // 16MB（图床库批量上传：单图上限 3MB，前端按体积分片，此值留 4 张余量）
+const MAX_BACKUP_BODY = 64 * 1024 * 1024; // 64MB（zip 备份恢复：含图床库图片，单张上限 3MB）
 const LIBRARY_MAX_FILES = 20; // 单次请求最多接收的图片张数（前端分片时亦以此为界）
 const LIBRARY_MAX_SIZE = 3 * 1024 * 1024; // 单张图片体积上限 3MB（与 /api/upload 保持一致）
 const LIBRARY_IMAGE_EXT = { png: 1, jpg: 1, jpeg: 1, gif: 1, webp: 1 }; // 图床库允许的扩展名（删除接口白名单）
@@ -69,6 +73,11 @@ const LAN_HOST_ENV = process.env.NAVI_LAN_HOST || "";
 const WAN_HOST_ENV = process.env.NAVI_WAN_HOST || "";
 // 本机端口扫描总开关（容器内通常无意义，Docker 可用时也建议保留以便发现宿主机服务）
 const SCAN_LOCAL_ENABLED = process.env.NAVI_SCAN_LOCAL !== "0";
+// 状态板数据缓存时长（毫秒）。状态板 30s 轮询一次，多人同时打开会放大 Docker 压力，
+// 因此短时间内复用同一份结果；前端手动点「刷新」会带 ?fresh=1 绕过它。0 = 不缓存。
+const STATUS_TTL = Math.max(0, parseInt(process.env.NAVI_STATUS_TTL || "5000", 10) || 0);
+// 状态板总开关：设为 0 时 /api/status 直接返回 available:false（前端自动隐藏状态板）
+const STATUS_ENABLED = process.env.NAVI_STATUS_BOARD !== "0";
 
 // 启动时确保上传目录存在（logo 图片存储于此，可由 /uploads/* 直接访问）
 try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {}
@@ -266,6 +275,12 @@ function validateConfig(cfg) {
       if (it.lanUrl && !/^https?:\/\//i.test(it.lanUrl)) {
         return "导航项「" + it.title + "」的 lanUrl 必须以 http(s):// 开头";
       }
+      // 内外网策略（P0-3）：只允许 auto / lan / wan；写错会静默退化成自动，用户难以察觉，
+      // 因此在写入口就明确拒绝，让问题在前端就暴露出来。
+      if (it.netMode !== undefined && it.netMode !== null && it.netMode !== "" &&
+          ["auto", "lan", "wan"].indexOf(it.netMode) < 0) {
+        return "导航项「" + it.title + "」的 netMode 只能是 auto / lan / wan（当前：" + it.netMode + "）";
+      }
     }
   }
   return null;
@@ -424,17 +439,158 @@ function libraryIconPresets() {
   }));
 }
 
-// 生成结构化备份包：将配置序列化后计算 SHA-256 嵌入，供导入时校验完整性
-function buildBackup(cfg) {
+// 生成结构化备份包：将配置序列化后计算 SHA-256 嵌入，供导入时校验完整性。
+// files 为可选参数（仅 zip 备份传入）：为每张图片记录相对路径、体积与 SHA-256，
+// 恢复时逐项校验，任何一张对不上就整体拒绝，不会恢复出「半套图床库」。
+// 不传 files 时序列化结果与历史版本逐字节一致（老 JSON 备份保持原样，零行为变化）。
+function buildBackup(cfg, files) {
   const payload = JSON.stringify(cfg);
   const checksum = crypto.createHash("sha256").update(payload).digest("hex");
-  return {
+  const out = {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     appVersion: APP_VERSION,
     exportedAt: new Date().toISOString(),
     config: cfg,
     checksum: checksum
+  };
+  if (Array.isArray(files)) out.files = files;
+  return out;
+}
+
+/* ---------- 图床库打包 / 还原（备份含图片） ----------
+   目录结构（zip 内）：
+     navi-backup.json       ← 就是原来的 JSON 备份，额外多一个 files 数组
+     uploads/<文件名>        ← 图片原样存放（保留子目录，如 uploads/favicons/）
+
+   设计取舍：把「备份元数据」与「配置」合并进 navi-backup.json 而不是另造清单，
+   这样恢复路径可以完全复用既有 verifyBackup() 的四道校验（格式/版本/校验和/结构），
+   不必为 zip 再写一套校验逻辑，也不会出现两套校验强度不一致的隐患。 */
+
+// 递归收集上传目录内的全部文件（含子目录），返回 { rel, abs, size, sha256 }
+// rel 统一用 "/" 分隔，且永远是相对 UPLOAD_DIR 的路径 —— 恢复时据此还原。
+function collectUploadFiles() {
+  const found = [];
+  const walk = (dir, prefix) => {
+    let names;
+    try { names = fs.readdirSync(dir); } catch (e) { return; }
+    for (const name of names) {
+      if (path.basename(name) !== name) continue;      // 防御：目录项必为纯文件名
+      const abs = path.join(dir, name);
+      let st;
+      try { st = fs.statSync(abs); } catch (e) { continue; }
+      const rel = prefix ? prefix + "/" + name : name;
+      if (st.isDirectory()) { walk(abs, rel); continue; }
+      if (!st.isFile()) continue;
+      let buf;
+      try { buf = fs.readFileSync(abs); } catch (e) { continue; }   // 读不到的跳过，不让备份整体失败
+      found.push({
+        rel: rel,
+        abs: abs,
+        size: buf.length,
+        sha256: crypto.createHash("sha256").update(buf).digest("hex"),
+        data: buf
+      });
+    }
+  };
+  walk(UPLOAD_DIR, "");
+  found.sort((a, b) => (a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0));  // 稳定顺序 → 备份可复现
+  return found;
+}
+
+// 生成 zip 备份：navi-backup.json + uploads/**
+function buildZipBackup(cfg) {
+  const collected = collectUploadFiles();
+  const manifest = buildBackup(cfg, collected.map((f) => ({ path: "uploads/" + f.rel, size: f.size, sha256: f.sha256 })));
+  const entries = [{ name: "navi-backup.json", data: JSON.stringify(manifest, null, 2) }];
+  for (const f of collected) entries.push({ name: "uploads/" + f.rel, data: f.data });
+  const buf = zip.zipCreate(entries);
+  return { buf: buf, count: collected.length, bytes: collected.reduce((s, f) => s + f.size, 0), manifest: manifest };
+}
+
+// 从 zip 备份还原图片。策略：全部校验通过后才落盘；对新写入的文件先另存一份回滚副本。
+// 采用「只增不删」语义 —— 备份里没有的图片不会被删除，避免误恢复导致图床库丢文件。
+function restoreUploadFiles(zipEntries, files) {
+  // 条目名归一化：Windows 自带的压缩工具（Compress-Archive）用 "\" 做分隔符，
+  // 而备份清单里声明的一律是 "/"。若在 Windows 上解包再重新打包过，条目名就会变成
+  // "uploads\a.png" —— 归一化后这类备份仍可正常恢复（反斜杠不可能是文件名的一部分，
+  // 因此归一化不会造成歧义，安全边界仍由下面清单路径的严格校验把守）。
+  const byName = {};
+  for (const e of zipEntries) byName[String(e.name).replace(/\\/g, "/")] = e.data;
+
+  const plan = [];
+  for (const f of files || []) {
+    const rel = String((f && f.path) || "");
+    if (rel.indexOf("uploads/") !== 0) {
+      return { ok: false, error: "备份清单里有非法路径（必须以 uploads/ 开头）：" + rel };
+    }
+    let sub = rel.slice("uploads/".length);
+    // 逐段校验：拒绝 .. 、绝对路径、盘符，杜绝 zip 路径穿越（Zip Slip）
+    const segs = sub.split("/");
+    if (!sub || segs.some((s) => !s || s === "." || s === ".." || s.indexOf("\\") >= 0 || /^[a-zA-Z]:$/.test(s))) {
+      return { ok: false, error: "备份清单里有非法路径：" + rel };
+    }
+    const abs = path.join(UPLOAD_DIR, sub);
+    const back = path.relative(UPLOAD_DIR, abs);
+    if (back.indexOf("..") === 0 || path.isAbsolute(back)) {
+      return { ok: false, error: "备份清单里有非法路径：" + rel };
+    }
+    const buf = byName[rel];
+    if (!buf) return { ok: false, error: "备份包内缺少清单声明的文件：" + rel };
+    if (typeof f.size === "number" && buf.length !== f.size) {
+      return { ok: false, error: "图片体积与清单不符：" + rel };
+    }
+    if (f.sha256 && crypto.createHash("sha256").update(buf).digest("hex") !== String(f.sha256).toLowerCase()) {
+      return { ok: false, error: "图片校验失败（SHA-256 不符）：" + rel };
+    }
+    plan.push({ abs: abs, rel: rel, data: buf });
+  }
+
+  // 落盘：先写临时目录，全部成功后再搬到最终位置（避免中途失败留下半套文件）
+  const stageDir = path.join(UPLOAD_DIR, ".restore-staging");
+  const rollbackDir = UPLOAD_DIR + ".restore-backup-" + Date.now();
+  let written = 0;
+  let rollbackUsed = false;
+  try {
+    fs.rmSync(stageDir, { recursive: true, force: true });
+    for (let i = 0; i < plan.length; i++) {
+      const tmp = path.join(stageDir, String(i));
+      fs.mkdirSync(path.dirname(tmp), { recursive: true });
+      fs.writeFileSync(tmp, plan[i].data);
+    }
+    for (let i = 0; i < plan.length; i++) {
+      const item = plan[i];
+      // 已存在且内容一致 → 跳过（重复恢复同一备份时不产生无谓写入与回滚副本）
+      let same = false;
+      try {
+        if (fs.existsSync(item.abs) && fs.statSync(item.abs).size === item.data.length) {
+          same = crypto.createHash("sha256").update(fs.readFileSync(item.abs)).digest("hex") ===
+                 crypto.createHash("sha256").update(item.data).digest("hex");
+        }
+      } catch (e) { same = false; }
+      if (same) continue;
+      if (fs.existsSync(item.abs)) {
+        // 会被覆盖 → 先留一份回滚副本（保留原来的相对目录结构）
+        const bak = path.join(rollbackDir, item.rel);
+        fs.mkdirSync(path.dirname(bak), { recursive: true });
+        fs.copyFileSync(item.abs, bak);
+        rollbackUsed = true;
+      }
+      fs.mkdirSync(path.dirname(item.abs), { recursive: true });
+      fs.renameSync(path.join(stageDir, String(i)), item.abs);
+      written++;
+    }
+    fs.rmSync(stageDir, { recursive: true, force: true });
+  } catch (e) {
+    try { fs.rmSync(stageDir, { recursive: true, force: true }); } catch (e2) {}
+    return { ok: false, error: "图片写入失败：" + (e && e.message ? e.message : e) };
+  }
+  return {
+    ok: true,
+    total: plan.length,
+    written: written,
+    skipped: plan.length - written,
+    rollbackDir: rollbackUsed ? rollbackDir : null
   };
 }
 
@@ -512,7 +668,56 @@ function readDiscoverySettings(cfg) {
   };
 }
 
-// GET /api/discover：扫描并返回候选卡片（只读，不写任何配置）
+/* GET /api/status：首页 Widget 状态板的数据源（容器统计 + CPU / 内存 / 磁盘水位）。
+
+   降级是一等公民：任何一项采不到都只把该字段置 null 并附上原因，接口本身永远 200。
+   这样前端不需要为「Docker 没挂 / 不是 Linux / 老 Node」写四套特判 —— 统一按
+   「有值就显示、null 就显示不可用」渲染即可。
+
+   参数：
+     ?fresh=1   绕过 5s 缓存（用户手动点刷新时用） */
+async function handleStatus(req, res, u) {
+  if (!STATUS_ENABLED) {
+    sendJson(res, 200, {
+      ok: true,
+      disabled: true,
+      at: new Date().toISOString(),
+      docker: { available: false, error: "状态板已通过 NAVI_STATUS_BOARD=0 关闭" }
+    }, { "Cache-Control": "no-store" });
+    return;
+  }
+
+  let data;
+  try {
+    data = await status.getStatus({
+      fresh: u.searchParams.get("fresh") === "1",
+      ttlMs: STATUS_TTL,
+      cpuWindowMs: 150,
+      procRoot: "/",
+      dataDir: path.dirname(CONFIG_PATH),
+      uploadsDir: UPLOAD_DIR,
+      version: APP_VERSION,
+      docker: {
+        socketPath: DOCKER_SOCKET,
+        host: DOCKER_HOST_NAME,
+        port: DOCKER_HOST_PORT,
+        timeout: DISCOVER_TIMEOUT
+      }
+    });
+  } catch (e) {
+    // 兜底：status 模块自身设计为不抛异常，真抛了就如实报错，但不给前端的轮询制造 5xx 风暴
+    sendJson(res, 200, {
+      ok: false,
+      at: new Date().toISOString(),
+      error: "状态采集失败：" + (e && e.message ? e.message : e)
+    }, { "Cache-Control": "no-store" });
+    return;
+  }
+
+  sendJson(res, 200, data, { "Cache-Control": "no-store" });
+}
+
+/* GET /api/discover：扫描并返回候选卡片（只读，不写任何配置） */
 async function handleDiscover(req, res, u) {
   var cfg = {};
   try { cfg = loadConfig(); } catch (e) { /* 配置异常时仍允许发现 */ }
@@ -946,11 +1151,29 @@ const server = http.createServer(async (req, res) => {
 
     /* ---- 数据备份 / 恢复 / 上传（均需认证） ---- */
     if (pathname === "/api/backup" && req.method === "GET") {
-      // 导出当前全部数据：结构化备份包，浏览器按附件下载
+      // 导出备份，两种形态：
+      //   （默认）JSON —— 只含配置，体积小、可人工阅读，与历史版本逐字节兼容
+      //   ?format=zip —— 配置 + 图床库图片，换机迁移不会丢图（推荐）
       const cfg = loadConfig();
-      const backup = buildBackup(cfg);
-      const raw = JSON.stringify(backup);
       const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      if (u.searchParams.get("format") === "zip") {
+        let packed;
+        try {
+          packed = buildZipBackup(cfg);
+        } catch (e) {
+          console.error("[navi] 生成 zip 备份失败:", e && e.message);
+          sendJson(res, 500, { ok: false, error: "生成备份失败：" + (e && e.message ? e.message : e) });
+          return;
+        }
+        send(res, 200, packed.buf, {
+          "Content-Type": "application/zip",
+          "Content-Disposition": 'attachment; filename="navi-backup-' + stamp + '.zip"',
+          "Content-Length": packed.buf.length,
+          "X-Backup-Images": String(packed.count)
+        });
+        return;
+      }
+      const raw = JSON.stringify(buildBackup(cfg));
       send(res, 200, raw, {
         "Content-Type": "application/json; charset=utf-8",
         "Content-Disposition": 'attachment; filename="navi-backup-' + stamp + '.json"',
@@ -960,20 +1183,54 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === "/api/backup/restore" && req.method === "POST") {
-      // 恢复：先整体校验（格式/版本/校验和/结构），通过才原子写入，绝不影响现有运行
-      const bodyBuf = await readBody(req, MAX_BODY);
-      let body;
-      try {
-        body = JSON.parse(bodyBuf.toString("utf-8"));
-      } catch (e) {
-        sendJson(res, 400, { ok: false, error: "文件格式错误（不是合法 JSON）" });
+      // 恢复：先整体校验（格式/版本/校验和/结构/逐项 SHA-256），通过才写盘，绝不影响现有运行。
+      // 同时接受 JSON 与 ZIP 两种备份 —— 按文件头嗅探，不依赖扩展名或 Content-Type。
+      const declared = parseInt(req.headers["content-length"] || "0", 10);
+      if (declared > MAX_BACKUP_BODY) {
+        rejectBodyTooLarge(req, res, 413,
+          "备份文件过大（" + Math.round(declared / 1024 / 1024) + "MB，上限 " +
+          Math.round(MAX_BACKUP_BODY / 1024 / 1024) + "MB）");
         return;
       }
+      let bodyBuf;
+      try {
+        bodyBuf = await readBody(req, MAX_BACKUP_BODY);
+      } catch (e) {
+        sendJson(res, 413, { ok: false, error: "备份文件过大（上限 " + Math.round(MAX_BACKUP_BODY / 1024 / 1024) + "MB）" });
+        return;
+      }
+
+      let body = null;
+      let zipEntries = null;
+      let imagesInfo = null;
+      if (zip.looksLikeZip(bodyBuf)) {
+        try { zipEntries = zip.zipRead(bodyBuf); }
+        catch (e) { sendJson(res, 400, { ok: false, error: "备份包解析失败：" + (e && e.message ? e.message : e) }); return; }
+        const mf = zipEntries.filter(function (e) { return e.name === "navi-backup.json"; })[0];
+        if (!mf) { sendJson(res, 400, { ok: false, error: "备份包内缺少 navi-backup.json（不是 Navi 的 zip 备份）" }); return; }
+        try { body = JSON.parse(mf.data.toString("utf-8")); }
+        catch (e) { sendJson(res, 400, { ok: false, error: "备份包内的配置不是合法 JSON" }); return; }
+      } else {
+        try { body = JSON.parse(bodyBuf.toString("utf-8")); }
+        catch (e) { sendJson(res, 400, { ok: false, error: "文件格式错误（不是合法 JSON，也不是 ZIP 备份包）" }); return; }
+      }
+
       const v = verifyBackup(body);
       if (!v.ok) {
         sendJson(res, 400, { ok: false, error: v.error });
         return;
       }
+
+      // zip 备份：先还原图片，再写配置。图片失败则整体中止，配置保持不动（避免"配置指向了不存在的图"）。
+      if (zipEntries) {
+        const r = restoreUploadFiles(zipEntries, body.files || []);
+        if (!r.ok) {
+          sendJson(res, 400, { ok: false, error: r.error });
+          return;
+        }
+        imagesInfo = r;
+      }
+
       try {
         saveConfigAtomic(v.config);
       } catch (e) {
@@ -981,7 +1238,12 @@ const server = http.createServer(async (req, res) => {
         sendJson(res, 500, { ok: false, error: "服务器写入配置失败：" + (e && e.message ? e.message : e) });
         return;
       }
-      sendJson(res, 200, { ok: true });
+      const out = { ok: true, format: zipEntries ? "zip" : "json" };
+      if (imagesInfo) {
+        out.images = { total: imagesInfo.total, written: imagesInfo.written, skipped: imagesInfo.skipped };
+        if (imagesInfo.rollbackDir) out.rollbackDir = imagesInfo.rollbackDir;
+      }
+      sendJson(res, 200, out);
       return;
     }
 
@@ -1030,9 +1292,14 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    /* ---- 服务发现（需认证；只读扫描，不写配置） ---- */
+    /* ---- 服务发现 / 状态板（需认证；均只读，不写配置） ---- */
     if (pathname === "/api/discover" && req.method === "GET") {
       await handleDiscover(req, res, u);
+      return;
+    }
+
+    if (pathname === "/api/status" && req.method === "GET") {
+      await handleStatus(req, res, u);
       return;
     }
 

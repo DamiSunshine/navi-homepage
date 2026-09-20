@@ -592,10 +592,10 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
     </div>
 
     <div class="stats">
-      <div class="stat"><b>11<span class="u">套</span></b><span>测试套件</span></div>
-      <div class="stat"><b>435<span class="u">项</span></b><span>断言全通过 · 0 失败</span></div>
+      <div class="stat"><b>16<span class="u">套</span></b><span>测试套件</span></div>
+      <div class="stat"><b>701<span class="u">项</span></b><span>断言全通过 · 0 失败</span></div>
       <div class="stat"><b>0<span class="u">个</span></b><span>第三方运行时依赖</span></div>
-      <div class="stat"><b>15<span class="u">个</span></b><span>HTTP 接口</span></div>
+      <div class="stat"><b>13<span class="u">个</span></b><span>API 接口</span></div>
       <div class="stat"><b>IPv6<span class="u">双栈</span></b><span>默认监听</span></div>
     </div>
   </div>
@@ -764,14 +764,24 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
 
       <div class="feat">
         <span class="em">🌐</span>
-        <h3>内外网自动切换</h3>
-        <p>每张卡片可同时配置外网地址与内网地址。访问时自动识别当前是否处于内网环境（<code>localhost</code> / 私有网段 / IPv6 本地地址），选中对应地址，也可手动一键切换。</p>
+        <h3>内外网自动切换（可到卡片级）</h3>
+        <p>每张卡片可同时配置外网地址与内网地址。全局三态开关（自动 / 只用内网 / 只用外网），每张卡片还可单独指定策略，卡片级设置优先于全局。</p>
+        <ul>
+          <li>「自动」模式下<strong>异步探测</strong>每张卡片的内网地址可达性（2 秒超时），探测不阻塞点击，未出结论时先用启发式地址</li>
+          <li>探测结论按会话缓存，多张卡片并发探测、互不排队</li>
+          <li>HTTPS 页面无法探测 <code>http://内网IP</code>（浏览器混合内容限制）：这类卡片<strong>显式跳过探测</strong>并如实说明，不做假结论</li>
+        </ul>
       </div>
 
       <div class="feat">
-        <span class="em">🔍</span>
-        <h3>搜索与快捷键</h3>
-        <p>顶栏搜索框实时过滤站点（匹配名称与描述），按 <code>/</code> 快速聚焦，无结果时给出明确空状态提示。</p>
+        <span class="em">⌨️</span>
+        <h3>拼音搜索 · 命令面板</h3>
+        <p>搜索支持中文子串、<strong>全拼</strong>与<strong>首字母缩写</strong>（如 <code>jtyy</code> → 家庭影音），拼音表按需懒加载，取不到时静默降级为纯子串匹配。</p>
+        <ul>
+          <li><code>Ctrl / ⌘ + K</code> 打开命令面板：分组展示结果、<code>↑</code><code>↓</code> 选择、<code>Enter</code> 打开</li>
+          <li>面板内可直接把关键词交给搜索引擎（<code>site.searchEngines</code> / <code>site.defaultEngine</code> 可配）</li>
+          <li>保留 <code>/</code> 快速聚焦搜索框的旧习惯，两种入口并存</li>
+        </ul>
       </div>
 
       <div class="feat">
@@ -782,8 +792,24 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
 
       <div class="feat">
         <span class="em">💾</span>
-        <h3>备份与恢复</h3>
-        <p>一键导出带校验和的完整配置备份，导入时校验完整性并支持异常回滚；上传的图片实体随 <code>data/uploads</code> 一并持久化。</p>
+        <h3>备份与恢复（可选含图片）</h3>
+        <p>两种备份形态：<code>.json</code> 只含配置、可人工阅读；<code>.zip</code> 完整备份 = 配置 + 图床库全部图片，包内逐项 SHA-256 校验，<strong>换机迁移不会丢图</strong>。</p>
+        <ul>
+          <li>恢复时先用文件头判定格式（不看扩展名），四道校验（格式 / 版本 / 校验和 / 结构）全过才落盘</li>
+          <li>图片恢复采用<strong>「只增不删」</strong>语义，并在覆盖前另存回滚副本，误恢复不会清空图床库</li>
+          <li>逐条校验条目路径，拒绝 <code>..</code> / 绝对路径（Zip Slip 防护）；兼容 Windows 压缩工具产出的反斜杠条目名</li>
+        </ul>
+      </div>
+
+      <div class="feat">
+        <span class="em">📊</span>
+        <h3>首页状态板（采不到就说不可用）</h3>
+        <p>首页顶部一行 Widget：容器运行数、CPU、内存、磁盘水位，30 秒轮询。<strong>降级是一等公民</strong> —— 采不到的项显示「不可用」而不是 0。</p>
+        <ul>
+          <li>内存水位优先读 cgroup（容器视角），其次 <code>/proc/meminfo</code>，最后退回 <code>os</code>；磁盘用 <code>fs.statfs</code> 直接取数据盘</li>
+          <li>页面切到后台即<strong>暂停轮询</strong>，切回时若数据陈旧立刻补一次</li>
+          <li>连续失败按 30s → 60s → 120s 退避；接口不存在（或服务端关闭）时状态板静默隐藏，不在首页挂报错</li>
+        </ul>
       </div>
 
       <div class="feat">
@@ -811,7 +837,7 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
   <div class="wrap">
     <div class="sec-head">
       <h2><span class="no">4</span>测试验证结果</h2>
-      <p>所有测试均以「隔离实例 + 临时目录」方式运行，不触碰真实数据；其中 6 套为真实浏览器 UI 测试，1 套通过伪造 Docker API 端到端验证容器发现链路。</p>
+      <p>所有测试均以「隔离实例 + 临时目录」方式运行，不触碰真实数据；其中 7 套为真实浏览器 UI 测试，2 套通过伪造 Docker API 端到端验证容器发现与状态采集链路。</p>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -822,17 +848,20 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
           <tr><td><code>server.test.js</code></td><td>接口集成</td><td>24</td><td>配置读写、静态托管、错误处理、健康检查、<strong>前端资源版本号自动推导</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>auth.test.js</code></td><td>接口集成</td><td>27</td><td>登录 / 会话 / 限流 / 登出吊销 / 未授权拦截</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>backup.test.js</code></td><td>接口集成</td><td>20</td><td>备份导出、校验和、恢复异常、图片魔数、体积上限</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>zipbackup.test.js</code></td><td>接口集成</td><td>54</td><td><strong>手写 ZIP 读写</strong>（无第三方库）、逐项 SHA-256、<strong>与 Windows 自带压缩工具交叉验证</strong>、Zip Slip 防护、旧版 JSON 备份向后兼容</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>status.test.js</code></td><td>接口集成</td><td>90</td><td>状态板：meminfo / cgroup / CPU 差值等纯函数、<strong>伪造 Docker API 端到端</strong>、<strong>降级一律给 null 不给 0</strong>、TTL 缓存、开关与鉴权闸门</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>discover.test.js</code></td><td>接口集成</td><td>80</td><td>纯函数 + <strong>伪造 Docker API 端到端</strong> + 降级 + 鉴权 + <strong>图标探测协议与并发</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>library.test.js</code></td><td>接口集成</td><td>40</td><td>图床列库 / 批量上传 / 魔数校验 / 超限 / 删除引用保护</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
-          <tr><td><code>ui.test.cjs</code></td><td>真实浏览器</td><td>27</td><td>渲染 / 主题切换 / 搜索 / 编辑增删改 / 保存写回</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>ui.test.cjs</code></td><td>真实浏览器</td><td>94</td><td>渲染 / 主题切换 / <strong>拼音与首字母搜索</strong> / <strong>Ctrl+K 命令面板与引擎跳转</strong> / <strong>卡片级内外网策略与可达性探测</strong> / 编辑增删改 / 保存写回</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>ui-theme.test.cjs</code></td><td>真实浏览器</td><td>8</td><td>日 / 夜模式切换与持久化</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>ui-auth.test.cjs</code></td><td>真实浏览器</td><td>8</td><td>登录页字段校验、错误提示、联合登录</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
-          <tr><td><code>ui-backup.test.cjs</code></td><td>真实浏览器</td><td>16</td><td>备份导出 / 导入往返 / Logo 上传 / <strong>非安全上下文（局域网 HTTP）导入</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>ui-backup.test.cjs</code></td><td>真实浏览器</td><td>32</td><td>备份格式选择弹窗 / 导出导入往返 / <strong>zip 完整备份导入</strong> / Logo 上传 / <strong>非安全上下文（局域网 HTTP）导入</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>ui-discover.test.cjs</code></td><td>真实浏览器</td><td>36</td><td>发现弹窗勾选 / 忽略 / 加入 / 保存（自启伪造 Docker）</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>ui-library.test.cjs</code></td><td>真实浏览器</td><td>47</td><td>批量上传 / 选择回填 / 在线图标库 / 引用保护</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>ui-status.test.cjs</code></td><td>真实浏览器</td><td>32</td><td>状态板渲染 / Docker 不可用降级 / 手动刷新走 <code>fresh=1</code> / <strong>后台暂停轮询</strong> / <strong>接口 404 与服务端关闭时静默退场</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>checkdeploy.test.cjs</code></td><td>部署判定</td><td>22</td><td>「部署的是不是新代码」探针自检：<strong>正反双向</strong>（新代码判新 / 旧行为判旧）+ <strong>无密码时降级判定</strong> + 参数异常</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
-          <tr><td><code>imagecompose.test.cjs</code></td><td>发布契约</td><td>80</td><td>「拉预构建镜像」这条路不变量：<strong>多架构构建 + 推送 GHCR + 冒烟启动容器</strong>、镜像编排<strong>不得含 build:</strong>、两条部署路径不得漂移、<strong>反向验证自检脚本能抓到护栏被拆</strong>、<strong>x86 部署指引（32 位 / SSE4.2 / SELinux）</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
-          <tr><td colspan="2"><strong>合计 13 套</strong></td><td><strong>435</strong></td><td colspan="2" class="ok"><span class="pass">✅ 全部通过 · 0 失败</span></td></tr>
+          <tr><td><code>imagecompose.test.cjs</code></td><td>发布契约</td><td>87</td><td>「拉预构建镜像」这条路不变量：<strong>多架构构建 + 推送 GHCR + 冒烟启动容器</strong>、镜像编排<strong>不得含 build:</strong>、两条部署路径不得漂移、<strong>server.js 的每个本地依赖都必须被 Dockerfile COPY（否则本地全绿而容器起不来）</strong>、<strong>反向验证自检脚本能抓到护栏被拆</strong>、<strong>x86 部署指引（32 位 / SSE4.2 / SELinux）</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td colspan="2"><strong>合计 16 套</strong></td><td><strong>701</strong></td><td colspan="2" class="ok"><span class="pass">✅ 全部通过 · 0 失败</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -840,11 +869,11 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
     <div class="tip">
       <span class="em">🧪</span>
       <span>
-        <b>如何复跑</b>：项目根目录执行 <code>node test/run-all.cjs</code> 可一次跑完全部 13 套
+        <b>如何复跑</b>：项目根目录执行 <code>node test/run-all.cjs</code> 可一次跑完全部 16 套
         （它会自动用「临时 config + 临时 uploads」拉起隔离实例，端口 8633，不碰真实数据）；
         也可只跑某几套，如 <code>node test/run-all.cjs ui-backup</code>（按文件名过滤），
         或单独跑 <code>node test/discover.test.js</code>。
-        6 套浏览器 UI 测试是自包含的，内部自行启动隔离实例与伪造 Docker API。
+        7 套浏览器 UI 测试是自包含的，内部自行启动隔离实例与伪造 Docker API。
         完整命令清单见 <code>README.md</code>。
       </span>
     </div>
@@ -856,7 +885,7 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
   <div class="wrap">
     <div class="sec-head">
       <h2><span class="no">5</span>接口与数据结构</h2>
-      <p>后端共 15 个 HTTP 接口，全部基于 Node 内置模块实现。除登录与健康检查外均需认证。</p>
+      <p>后端共 <strong>13 个 API 接口</strong>（另有 <code>/login.html</code> 公开静态页与 <code>/uploads/*</code> 图片访问），全部基于 Node 内置模块实现。除登录、鉴权状态与健康检查外均需认证。</p>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -866,13 +895,14 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
         <tbody>
           <tr><td><code>/api/config</code></td><td>GET / PUT</td><td>读取与保存整站配置（分组、卡片）</td><td>PUT 写 <code>config.json</code></td></tr>
           <tr><td><code>/api/discover</code></td><td>GET</td><td>服务发现：返回识别到的容器 / 本机监听端口</td><td class="ok">只读</td></tr>
+          <tr><td><code>/api/status</code></td><td>GET</td><td>首页状态板：容器统计 + CPU / 内存 / 磁盘水位（<code>?fresh=1</code> 绕过 5s 缓存）</td><td class="ok">只读</td></tr>
           <tr><td><code>/api/library</code></td><td>GET</td><td>列出本地图床库（含「被哪些卡片引用」）</td><td class="ok">只读</td></tr>
           <tr><td><code>/api/library/upload</code></td><td>POST</td><td>批量上传图标入库（逐张魔数校验）</td><td>写上传目录</td></tr>
           <tr><td><code>/api/library/delete</code></td><td>POST</td><td>删除图片，带引用保护（409 + 引用清单）</td><td>删文件</td></tr>
           <tr><td><code>/api/upload</code></td><td>POST</td><td>单张 Logo 上传（同样入库，可复用）</td><td>写上传目录</td></tr>
-          <tr><td><code>/api/backup</code></td><td>GET</td><td>导出带校验和的完整备份</td><td class="ok">只读</td></tr>
-          <tr><td><code>/api/restore</code></td><td>POST</td><td>导入备份（校验后写入，异常回滚）</td><td>写 <code>config.json</code></td></tr>
-          <tr><td><code>/api/login</code> · <code>/api/logout</code></td><td>POST</td><td>密码登录（签发 HMAC 会话）/ 服务端吊销登出</td><td class="ok">无状态</td></tr>
+          <tr><td><code>/api/backup</code></td><td>GET</td><td>导出备份：默认 <code>.json</code> 只含配置；<code>?format=zip</code> 含配置 + 图床库全部图片（逐项 SHA-256）</td><td class="ok">只读</td></tr>
+          <tr><td><code>/api/backup/restore</code></td><td>POST</td><td>导入备份（按文件头判格式，四道校验后写入，图片「只增不删」+ 覆盖前回滚副本）</td><td>写 <code>config.json</code> / 图片</td></tr>
+          <tr><td><code>/api/login</code> · <code>/api/logout</code> · <code>/api/auth/status</code></td><td>POST / POST / GET</td><td>密码登录（签发 HMAC 会话）/ 服务端吊销登出 / 查询当前登录态</td><td class="ok">无状态</td></tr>
           <tr><td><code>/api/health</code></td><td>GET</td><td>健康检查（含是否启用鉴权、版本号）</td><td class="ok">只读</td></tr>
           <tr><td><code>/uploads/&lt;文件&gt;</code></td><td>GET</td><td>图床图片访问（映射到上传目录，长效缓存）</td><td class="ok">只读</td></tr>
         </tbody>
@@ -884,7 +914,12 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
         <span class="em">📄</span>
         <h3>配置数据 <code>config.json</code></h3>
         <pre style="font-family:var(--mono);font-size:12px;line-height:1.7;background:var(--input-bg);border:1px solid var(--page-line);border-radius:9px;padding:12px;overflow-x:auto;color:var(--text);margin-top:10px">{
-  "site": { "title": "Navi", "subtitle": "个人导航站" },
+  "site": {
+    "title": "Navi", "subtitle": "个人导航站",
+    "defaultEngine": "百度",
+    "searchEngines": [{ "name": "百度", "url": "https://www.baidu.com/s?wd=%s" }],
+    "statusBoard": true        // 设 false 可整体关闭首页状态板
+  },
   "groups": [{
     "name": "常用服务",
     "items": [{
@@ -893,7 +928,8 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
       "icon": "jellyfin",        // 在线图标引用
       "logo": "/uploads/xx.png", // 本地图床图片（优先）
       "url": "https://…",        // 外网地址
-      "lanUrl": "http://192.168…" // 内网地址
+      "lanUrl": "http://192.168…",// 内网地址
+      "netMode": "auto"          // auto / lan / wan，留空=跟随全局
     }]
   }],
   "discovery": { "ignored": ["port-6379"] }
@@ -1027,7 +1063,9 @@ node server.js</pre>
      2. 真实截图画廊 + 灯箱
      ============================================================ */
   var SHOTS = [
-    { f: "test/ui-home.png", t: "首页总览（夜间主题）", d: "默认主题下的完整首页：时钟、分组、14 张卡片" },
+    { f: "test/ui-home.png", t: "首页总览（夜间主题）", d: "默认暗色主题下的完整首页：时钟、状态板、分组与卡片" },
+    { f: "test/status-board-dark.png", t: "系统状态板 · 夜间", d: "容器运行数 / CPU / 内存 / 磁盘水位，30s 轮询，取不到就显示「不可用」" },
+    { f: "test/status-board-light.png", t: "系统状态板 · 日间", d: "同一状态板在浅色主题下的效果" },
     { f: "test/theme-light.png", t: "日间主题", d: "同一页面切换 light 主题后的效果" },
     { f: "test/theme-dark.png", t: "夜间主题", d: "默认的简约科技感暗色主题" },
     { f: "test/ui-login.png", t: "密码登录页", d: "启用 NAVI_PASSWORD 后未登录访问的落地页" },

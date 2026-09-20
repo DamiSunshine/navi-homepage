@@ -2,7 +2,13 @@
   "site": {
     "title": "Navi",
     "subtitle": "个人导航站",
-    "footer": "Powered by Navi · IPv4 / IPv6 双栈 · Docker Ready"
+    "footer": "Powered by Navi · IPv4 / IPv6 双栈 · Docker Ready",
+    "defaultEngine": "百度",
+    "searchEngines": [
+      { "name": "百度", "url": "https://www.baidu.com/s?wd=%s" },
+      { "name": "必应", "url": "https://www.bing.com/search?q=%s" },
+      { "name": "Google", "url": "https://www.google.com/search?q=%s" }
+    ]
   },
   "groups": [
     {

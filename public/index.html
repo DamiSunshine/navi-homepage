@@ -6,7 +6,7 @@
   <title>Navi · 个人导航站</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <!-- 静态资源带版本号：每次改版 app.js / style.css 后递增 v=，强制浏览器拉取新文件，避免旧缓存 -->
-  <link rel="stylesheet" href="css/style.css?v=20260919-3">
+  <link rel="stylesheet" href="css/style.css?v=20260920-1">
 </head>
 <body>
   <!-- 科技感网格背景 -->
@@ -100,6 +100,38 @@
       </div>
     </section>
 
+    <!-- 系统状态板（Widget）：容器 / CPU / 内存 / 磁盘。
+         数据来自 GET /api/status，30s 轮询；页面切到后台时暂停轮询，切回立即补一次。
+         任何一项采不到（没挂 docker.sock / 非 Linux / 接口不存在）都只显示「不可用」，
+         整个状态板在完全拿不到数据时会自行隐藏 —— 不允许因为状态板把首页弄出 JS 错误。 -->
+    <section class="status-board" id="statusBoard" hidden aria-label="系统状态">
+      <div class="sb-item" data-stat="docker" id="sbDockerItem">
+        <span class="sb-label">容器</span>
+        <span class="sb-value" id="sbDocker">—</span>
+      </div>
+      <div class="sb-item" data-stat="cpu" id="sbCpuItem">
+        <span class="sb-label">CPU</span>
+        <span class="sb-value" id="sbCpu">—</span>
+        <span class="sb-meter" aria-hidden="true"><i id="sbCpuBar"></i></span>
+      </div>
+      <div class="sb-item" data-stat="mem" id="sbMemItem">
+        <span class="sb-label">内存</span>
+        <span class="sb-value" id="sbMem">—</span>
+        <span class="sb-meter" aria-hidden="true"><i id="sbMemBar"></i></span>
+      </div>
+      <div class="sb-item" data-stat="disk" id="sbDiskItem">
+        <span class="sb-label">磁盘</span>
+        <span class="sb-value" id="sbDisk">—</span>
+        <span class="sb-meter" aria-hidden="true"><i id="sbDiskBar"></i></span>
+      </div>
+      <button class="sb-refresh" id="sbRefresh" type="button" title="立即刷新状态（绕过服务端缓存）" aria-label="立即刷新状态">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+      </button>
+    </section>
+
     <!-- 导航分组（JS 渲染） -->
     <main id="navRoot" class="nav-root">
       <div class="loading"><div class="loading-ring"></div>加载中…</div>
@@ -127,9 +159,9 @@
       <div class="savebar-actions">
         <button id="discoverBtn" class="btn btn-ghost" type="button" title="自动识别容器 / 本机端口，匹配图标并生成导航卡片">服务发现</button>
         <button id="libraryBtn" class="btn btn-ghost" type="button" title="批量上传图标到本地图床库，供所有卡片重复选用">图床库</button>
-        <button id="backupBtn" class="btn btn-ghost" type="button" title="下载完整数据备份文件（含校验和）">备份</button>
-        <button id="importBtn" class="btn btn-ghost" type="button" title="从备份文件恢复数据">导入</button>
-        <input id="importFile" type="file" accept="application/json,.json" hidden>
+        <button id="backupBtn" class="btn btn-ghost" type="button" title="导出备份（可选：含图床库图片的完整备份，或仅配置）">备份</button>
+        <button id="importBtn" class="btn btn-ghost" type="button" title="从备份文件恢复数据（支持 .zip 完整备份与 .json 配置备份）">导入</button>
+        <input id="importFile" type="file" accept="application/json,.json,application/zip,.zip" hidden>
         <button id="cancelEditBtn" class="btn btn-ghost" type="button">取消</button>
         <button id="saveBtn" class="btn btn-primary" type="button">保存</button>
       </div>
@@ -155,6 +187,14 @@
         <label class="field">
           <span>内网地址</span>
           <input name="lanUrl" type="url" placeholder="http://192.168.x.x:端口（可留空）">
+        </label>
+        <label class="field">
+          <span>内外网策略</span>
+          <select name="netMode">
+            <option value="auto">自动（推荐：按内网是否可达选择，不可达自动走外网）</option>
+            <option value="lan">只用内网地址（仅内网可用的服务，如 OpenWrt）</option>
+            <option value="wan">只用外网地址（如内网地址不可信的场合）</option>
+          </select>
         </label>
         <label class="field">
           <span>Logo（本地图床库）</span>
@@ -202,6 +242,48 @@
           <button type="submit" class="btn btn-primary">确定</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 命令面板（Ctrl / ⌘ + K）：全站搜索 · 键盘直达 · 可选搜索引擎跳转 -->
+  <div id="paletteMask" class="modal-mask palette-mask" hidden>
+    <div class="palette" role="dialog" aria-modal="true" aria-label="全局搜索">
+      <div class="palette-head">
+        <svg class="palette-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle><line x1="16.2" y1="16.2" x2="21" y2="21"></line>
+        </svg>
+        <input id="paletteInput" class="palette-input" type="text" autocomplete="off" spellcheck="false"
+               placeholder="搜索导航项 · 支持拼音与首字母（如 jtyy）">
+        <button type="button" class="palette-close" id="paletteClose" title="关闭（Esc）">Esc</button>
+      </div>
+      <div class="palette-list" id="paletteList" role="listbox" aria-label="搜索结果"></div>
+      <div class="palette-foot">
+        <span class="palette-keys"><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span class="palette-keys"><kbd>Enter</kbd> 打开</span>
+        <span class="palette-keys"><kbd>Ctrl</kbd><b>+</b><kbd>K</kbd> 开关</span>
+        <span class="palette-scope" id="paletteScope"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 备份格式选择（完整 .zip 含图床库图片 / 仅配置 .json） -->
+  <div id="backupModal" class="modal-mask" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3 class="modal-title">导出备份</h3>
+      <p class="bkp-hint">备份文件用于换机迁移或误操作后回滚。</p>
+      <div class="bkp-list">
+        <button type="button" class="bkp-opt" id="backupZipOpt">
+          <span class="bkp-opt-main"><b>完整备份</b><i>.zip</i><em>推荐</em></span>
+          <span class="bkp-opt-desc">配置 + 图床库全部图片与图标，包内逐项 SHA-256 校验。<strong>换机迁移不会丢图</strong>。</span>
+        </button>
+        <button type="button" class="bkp-opt" id="backupJsonOpt">
+          <span class="bkp-opt-main"><b>仅配置</b><i>.json</i></span>
+          <span class="bkp-opt-desc">只有导航配置，体积小、可直接打开查看或手工编辑；<strong>不含图片</strong>。</span>
+        </button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="backupModal">取消</button>
+      </div>
     </div>
   </div>
 
@@ -293,6 +375,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=20260919-3"></script>
+  <script src="js/app.js?v=20260920-1"></script>
 </body>
 </html>

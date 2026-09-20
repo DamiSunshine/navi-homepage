@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Navi 导航站 · 对标 NavDeck 的差距分析与改进方案</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    color: #1f2937; font-size: 10.5pt; line-height: 1.75;
+    background: #fff;
+  }
+
+  /* ---------- 封面 ---------- */
+  .cover {
+    min-height: 235mm;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center;
+    page-break-after: always;
+  }
+  .cover .logo {
+    width: 84px; height: 84px; margin-bottom: 26px;
+    display: grid; place-items: center;
+    color: #2563eb;
+    background: linear-gradient(135deg, #dbeafe, #ccfbf1);
+    border-radius: 22px;
+  }
+  .cover .logo svg { width: 44px; height: 44px; }
+  .cover h1 {
+    font-size: 28pt; font-weight: 800; letter-spacing: 1px;
+    background: linear-gradient(90deg, #2563eb, #0d9488);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .cover .sub { margin-top: 12px; font-size: 13pt; color: #6b7280; letter-spacing: 3px; }
+  .cover .meta {
+    margin-top: 54px; font-size: 9.5pt; color: #9ca3af; line-height: 2;
+  }
+  .cover .badge {
+    display: inline-block; margin-top: 18px; padding: 5px 16px;
+    border: 1px solid #bfdbfe; border-radius: 999px;
+    color: #2563eb; font-size: 9pt; letter-spacing: 1px;
+  }
+
+  /* ---------- 正文 ---------- */
+  h2 {
+    font-size: 15pt; font-weight: 700; color: #111827;
+    margin: 26px 0 10px; padding-left: 12px;
+    border-left: 4px solid #2563eb;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11.5pt; font-weight: 700; color: #1f2937;
+    margin: 18px 0 6px;
+    page-break-after: avoid;
+  }
+  h4 {
+    font-size: 10.5pt; font-weight: 700; color: #374151;
+    margin: 12px 0 4px;
+    page-break-after: avoid;
+  }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0 6px 22px; }
+  li { margin: 3px 0; }
+  strong { color: #111827; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code.inline {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 9pt;
+    background: #f1f5f9; color: #be123c;
+    padding: 1px 6px; border-radius: 4px;
+  }
+  pre {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 8.8pt; line-height: 1.6;
+    background: #0f172a; color: #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  pre .c { color: #64748b; }
+  pre .k { color: #7dd3fc; }
+  pre .s { color: #86efac; }
+  pre .r { color: #fca5a5; }
+
+  .tip, .warn, .danger {
+    border-radius: 8px; padding: 10px 14px; margin: 10px 0;
+    font-size: 9.5pt;
+  }
+  .tip { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e40af; }
+  .warn { background: #fff7ed; border-left: 4px solid #f97316; color: #9a3412; }
+  .danger { background: #fef2f2; border-left: 4px solid #dc2626; color: #991b1b; }
+  .ok { background: #f0fdf4; border-left: 4px solid #16a34a; color: #14532d;
+        border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-size: 9.5pt; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9.5pt;
+  }
+  th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; font-weight: 700; }
+  td code { font-family: Consolas, monospace; font-size: 8.8pt; color: #be123c; }
+
+  .toc {
+    background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px;
+    padding: 14px 20px; margin: 18px 0;
+  }
+  .toc h3 { margin: 0 0 8px; font-size: 11pt; }
+  .toc ol { margin-left: 20px; font-size: 9.8pt; }
+  .toc li { margin: 2px 0; }
+
+  .check li { list-style: none; margin-left: -18px; }
+  .check li::before { content: "☐ "; color: #9ca3af; }
+
+  .footer-note {
+    margin-top: 30px; padding-top: 10px; border-top: 1px solid #e5e7eb;
+    font-size: 9pt; color: #9ca3af; text-align: center;
+  }
+
+  /* ---------- 优先级徽章 ---------- */
+  .p0, .p1, .p2, .pn {
+    display: inline-block; padding: 1px 9px; border-radius: 999px;
+    font-size: 8.5pt; font-weight: 700; letter-spacing: .5px;
+    vertical-align: 1px;
+  }
+  .p0 { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+  .p1 { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
+  .p2 { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+  .pn { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+  /* ---------- 改进行卡片 ---------- */
+  .item {
+    border: 1px solid #e5e7eb; border-radius: 10px;
+    padding: 12px 16px; margin: 12px 0;
+    page-break-inside: avoid;
+  }
+  .item > h3 { margin-top: 0; }
+  .item table { margin: 8px 0 4px; }
+  .item .lbl {
+    display: inline-block; min-width: 62px;
+    color: #6b7280; font-size: 9pt;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== 封面 ==================== -->
+<div class="cover">
+  <span class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+    </svg>
+  </span>
+  <h1>Navi 个人导航站</h1>
+  <p class="sub">对标 NavDeck 的差距分析与改进方案</p>
+  <p><span class="badge">基于代码实测 · 非印象判断 · 含优先级与验收标准</span></p>
+  <div class="meta">
+    对标对象：NavDeck（MIT，v0.4.2，2026 年 9 月）<br>
+    分析对象：Navi v1.0.0（ghcr.io/mijunyi/navi-homepage）<br>
+    文档日期：2026 年 9 月 19 日
+  </div>
+</div>
+
+<!-- ==================== 进度更新（本页是 2026-09-19 的审计快照，下面这段记录实施进展） ==================== -->
+<div style="page-break-after:always;padding-top:6mm">
+  <h2 style="font-size:15pt;color:#0d9488;border-left:4px solid #0d9488;padding-left:10px;margin-bottom:14px">实施进度更新（2026-09-20）</h2>
+  <p style="color:#6b7280;font-size:9.5pt;margin-bottom:14px">
+    本页第 3、4 章里的「13 个套件 / 435 项断言」等数字是<strong>审计当时（2026-09-19）的快照</strong>，保留原样以维持对照价值。
+    实际实施进展记录如下（最新全量回归：<strong>16 个套件 / 701 项断言 / 0 失败</strong>）。
+  </p>
+  <table style="width:100%;border-collapse:collapse;font-size:10pt">
+    <thead>
+      <tr style="background:#f3f4f6">
+        <th style="border:1px solid #e5e7eb;padding:7px 9px;text-align:left;width:16%">优先级</th>
+        <th style="border:1px solid #e5e7eb;padding:7px 9px;text-align:left;width:34%">条目</th>
+        <th style="border:1px solid #e5e7eb;padding:7px 9px;text-align:left">状态与关键证据</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P0-4</strong></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px">备份纳入图片</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成</span> —— 手写 ZIP 读写（<code>zip.js</code>，仍零依赖）+ 逐项 SHA-256；<code>?format=zip</code> 导出、按文件头判格式导入、图片「只增不删」+ 回滚副本。已与 Windows 自带压缩工具<strong>交叉验证</strong>（54 项断言）</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P0-1</strong></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px">拼音搜索</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成</span> —— 全拼 + 首字母缩写，按拼音音节边界对齐（<code>ya</code> 不误命中「网易云音乐」）；69KB 表按需懒加载，取不到则静默降级</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P0-2</strong></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><code>Ctrl+K</code> 命令面板 + 引擎跳转</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成</span> —— 分组结果 / ↑↓ 选择 / Enter 打开 / 搜索引擎跳转（<code>site.searchEngines</code>）；保留 <code>/</code> 旧入口</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P0-3</strong></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px">卡片级 <code>netMode</code> + 可达性探测</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成</span> —— 全局三态 + 卡片级策略；<strong>异步探测不阻塞点击</strong>（出结论后原地改写 href）；HTTPS 混合内容边界显式跳过并如实说明；服务端校验 netMode 取值</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P1-5</strong></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px">首页 Widget 状态板</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成</span> —— <code>GET /api/status</code> + 首页状态栏（容器 / CPU / 内存 / 磁盘）；<strong>降级是一等公民</strong>（采不到给 <code>null</code> 不给 <code>0</code>，整块取不到就静默隐藏）；后台暂停轮询 + 失败退避。122 项新断言</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P1-6</strong></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px">图标库扩容 + 本地内置优先</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— 现状仍是「公共 CDN 优先」，内网/断网环境图标全部加载不出来（第 3 章列为已确认短板）</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P1-7</strong></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px">发现来源追踪与失效管理</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— <code>source</code> / <code>stale</code> 字段的读写已在前端预留（保存时不丢），标记与「只标记不删可恢复」的 UI 尚未落地</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>P2</strong></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px">拆前端单文件 / 首次引导 / 拖链接建卡 / <code>DOCKER_GID</code> / CHANGELOG</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#b45309;font-weight:700">待实施</span> —— 拆分的前提「全绿安全网」已具备（701 项断言 / 0 失败）</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="margin-top:14px;font-size:9.5pt;color:#6b7280">
+    ⚠️ 两处已确认短板仍然存在，实施时不要重复踩：① 图标走公共 CDN，内网环境全白图；
+    ② 内置服务指纹库仅 33 条、无 favicon 抓取。
+  </p>
+</div>
+
+<!-- ==================== 目录 ==================== -->
+<div class="toc">
+  <h3>目录</h3>
+  <ol>
+    <li><a href="#s1">结论摘要</a></li>
+    <li><a href="#s2">对标对象：NavDeck 的设计理念与实现</a></li>
+    <li><a href="#s3">Navi 现状盘点（代码实测）</a></li>
+    <li><a href="#s4">逐项对比矩阵</a></li>
+    <li><a href="#s5">判断：值得借鉴什么、不必跟什么</a></li>
+    <li><a href="#s6">改进方案 · P0（立即做）</a></li>
+    <li><a href="#s7">改进方案 · P1（提升定位）</a></li>
+    <li><a href="#s8">改进方案 · P2（生态与运营）</a></li>
+    <li><a href="#s9">优先级总表与实施建议</a></li>
+    <li><a href="#s10">预期效果与验收标准</a></li>
+    <li><a href="#s11">风险与取舍</a></li>
+    <li><a href="#s12">附录：本轮审计证据</a></li>
+  </ol>
+</div>
+
+<!-- ==================== 1 ==================== -->
+<h2 id="s1">1. 结论摘要</h2>
+
+<p>先说结论：<strong>Navi 的工程质量、部署链路与自动化程度明显强于 NavDeck；但在「中文用户的检索体验」和「首页的信息密度」两件事上落后。</strong>
+NavDeck 值得学的不是功能数量，而是它<strong>把目标人群的真实痛点直接做进核心功能</strong>这一取舍方式。</p>
+
+<table>
+  <tr><th style="width:20%">判断</th><th style="width:30%">内容</th><th>说明</th></tr>
+  <tr>
+    <td><strong>我们领先</strong></td>
+    <td>服务发现、本地图床库、零依赖架构、测试与发布链路</td>
+    <td>这四项是真正的护城河，改进过程中<strong>不能牺牲</strong></td>
+  </tr>
+  <tr>
+    <td><strong>我们落后</strong></td>
+    <td>拼音搜索、全局搜索面板、卡片级内外网策略、图标离线可用、首页状态板</td>
+    <td>前四项成本低、感知强，列为 P0 / P1</td>
+  </tr>
+  <tr>
+    <td><strong>需要正视</strong></td>
+    <td>图标依赖公共 CDN；备份不含图片</td>
+    <td>前者影响<strong>离线/局域网可用性</strong>（NAS 场景的核心），后者影响<strong>换机迁移</strong></td>
+  </tr>
+  <tr>
+    <td><strong>不必跟</strong></td>
+    <td>强绑定 Lucky、引入前端框架、为状态板引入重依赖</td>
+    <td>详见第 5 章，各有明确理由</td>
+  </tr>
+</table>
+
+<div class="warn"><strong>最值得借鉴的一条设计思想：</strong>NavDeck 的「同步只标记失效、不直接删除，支持一键恢复」。
+这是<strong>自动化功能的安全阀</strong>——自动生成/同步类功能一旦做错，用户的损失是不可逆的。
+Navi 的「服务发现」目前是「生成候选 → 用户勾选 → 加入」，已经比较安全，但缺少<strong>来源标记与失效追踪</strong>，
+这块值得补上（见 P1-7）。</div>
+
+<!-- ==================== 2 ==================== -->
+<h2 id="s2">2. 对标对象：NavDeck 的设计理念与实现</h2>
+
+<h3>2.1 它解决什么问题</h3>
+
+<p>NavDeck 定位是<strong>部署在自有 NAS 上的导航起始页</strong>：把 qBittorrent、Jellyfin、Alist 等自托管服务做成卡片，分类归档、拖拽排序、点击直达。
+它的目标人群非常明确——<strong>「服务装了 5 个以上的 NAS 玩家」</strong>。</p>
+
+<h3>2.2 五个核心功能</h3>
+
+<table>
+  <tr><th style="width:22%">功能</th><th style="width:40%">做法</th><th>解决的痛点</th></tr>
+  <tr>
+    <td><strong>内外网自动切换</strong></td>
+    <td>每张卡片同时填内网 + 外网地址；策略设「自动」后<strong>探测哪个可达就跳哪个</strong>；也可固定只走内网/外网</td>
+    <td>在家走内网 IP、出门走公网域名，不必维护两套链接</td>
+  </tr>
+  <tr>
+    <td><strong>拼音全局搜索</strong></td>
+    <td><code>Ctrl + K</code> 唤起；匹配<strong>名称子串 + 全拼 + 拼音首字母缩写</strong>（找 Jellyfin 敲 <code>jlc</code>）</td>
+    <td>卡片多到一屏放不下时，比翻卡片快得多</td>
+  </tr>
+  <tr>
+    <td><strong>Docker 监控 + Widget 栏</strong></td>
+    <td>挂载 <code>docker.sock</code> 后首页显示容器在线/停止/总数、CPU/内存/磁盘 IO 水位，<strong>30 秒自动刷新</strong>；另有倒数日、正数日小组件</td>
+    <td>首页从「书签集合」升维成「状态板」</td>
+  </tr>
+  <tr>
+    <td><strong>Lucky 反代规则同步</strong></td>
+    <td>填 Lucky 后台地址 + OpenToken，<strong>一键把反代规则变成卡片</strong>：前端域名→外网地址，后端地址→内网地址</td>
+    <td>手上有几十条反代规则时，不用手工建卡</td>
+  </tr>
+  <tr>
+    <td><strong>细节体验</strong></td>
+    <td>内置 275+ 自托管服务图标、自动抓 favicon、本地上传；<strong>浏览器地址栏链接直接拖进页面建卡</strong>；明暗主题、自定义壁纸、一键导出 zip 备份</td>
+    <td>降低建卡和维护的摩擦</td>
+  </tr>
+</table>
+
+<h3>2.3 技术实现要点</h3>
+
+<ul>
+  <li><strong>分发</strong>：官方镜像走 GHCR，README 首推<strong>不克隆源码、不本地构建</strong>；一条 <code>docker compose -f docker-compose.prod.yml up -d</code> 起服务。</li>
+  <li><strong>配置</strong>：<code>.env</code> 三件套 —— <code>AUTH_SECRET</code>（<code>openssl rand -base64 32</code> 生成）、<code>AUTH_USERNAME</code>、<code>AUTH_PASSWORD</code>，并明确警告「别用默认的 admin/changeme，登录前就改掉」。</li>
+  <li><strong>权限</strong>：需要 Docker 状态就挂 <code>/var/run/docker.sock</code>；Linux 上遇到容器内权限问题按 README 设 <code>DOCKER_GID</code> 解决。</li>
+  <li><strong>降级设计</strong>（关键）：<strong><code>docker.sock</code> 挂载失败时只是 Widget 降级显示，其他功能不受影响。</strong></li>
+  <li><strong>持久化</strong>：所有数据在 <code>data</code> 目录，换 NAS 时「整个目录 + 备份 zip」一起带走。</li>
+</ul>
+
+<h3>2.4 运营模式</h3>
+
+<table>
+  <tr><th style="width:22%">维度</th><th>做法</th></tr>
+  <tr><td>协议与节奏</td><td>MIT 开源；<strong>迭代很勤</strong>（发文时 v0.4.2 刚发布）</td></tr>
+  <tr><td>文档</td><td>官方手册 + README；README <strong>首推镜像方式</strong>，把部署门槛压到最低</td></tr>
+  <tr><td>拉新</td><td>靠中文自媒体文章（本文即其一）承载「场景故事 + 功能讲解 + 部署步骤」，文末导流关注</td></tr>
+  <tr><td>预期管理</td><td>明确写出<strong>「什么人值得上」与「什么人不太适合」</strong>，并主动承认「项目还年轻、迭代快，正式用起来前多导出几份备份」</td></tr>
+</table>
+
+<div class="tip"><strong>值得注意的运营手法：</strong>它不掩饰短板。主动说清「不合适谁」和「有什么风险」，
+反而是可信度来源。<strong>这一点我们完全可以照做</strong>——Navi 的文档目前全是「怎么做」，缺「适合谁」。</div>
+
+<!-- ==================== 3 ==================== -->
+<h2 id="s3">3. Navi 现状盘点（代码实测）</h2>
+
+<p>以下全部来自本轮对仓库的实际读取与统计，不是凭印象。</p>
+
+<h3>3.1 架构事实</h3>
+
+<table>
+  <tr><th style="width:26%">项目</th><th>实测值</th></tr>
+  <tr><td>服务端</td><td><code>server.js</code> 43,602 字节，<strong>仅用 Node 内置模块</strong>，无 <code>package.json</code></td></tr>
+  <tr><td>前端</td><td>原生 JS 单文件 <code>public/js/app.js</code> 73,014 字节 + <code>style.css</code> 27,830 字节，<strong>无构建步骤</strong></td></tr>
+  <tr><td>服务发现</td><td><code>discovery.js</code> 33,961 字节，内含<strong>零依赖 Docker Engine API 客户端</strong>（Unix Socket / TCP 双通道）+ <code>/proc</code> 端口扫描</td></tr>
+  <tr><td>数据模型</td><td><code>site{title,subtitle,footer}</code> + <code>groups[]{name,items[]{title,desc,icon,logo,url,lanUrl}}</code></td></tr>
+  <tr><td>接口</td><td>13 个：<code>/api/config</code>、<code>/api/discover</code>、<code>/api/library</code>(+upload/delete)、<code>/api/upload</code>、<code>/api/backup</code>(+restore)、<code>/api/login</code>、<code>/api/logout</code>、<code>/api/auth/status</code>、<code>/api/health</code></td></tr>
+  <tr><td>工程质量</td><td><strong>13 个测试套件 / 435 项断言，0 失败</strong>；GitHub Actions 多架构构建（amd64+arm64）+ 真实起容器冒烟验证</td></tr>
+</table>
+
+<h3>3.2 已具备的能力</h3>
+
+<table>
+  <tr><th style="width:24%">能力</th><th>实现程度</th></tr>
+  <tr><td>卡片与分组</td><td>增删改 + 拖拽排序 + 编辑模式隔离（草稿态可取消）</td></tr>
+  <tr><td>双地址</td><td>卡片已有 <code>url</code> + <code>lanUrl</code>；<strong>全局</strong>内/外网开关，按访问主机名（<code>isLanHost</code>）自动初判，选择存 <code>localStorage</code></td></tr>
+  <tr><td>搜索</td><td><strong>标题/描述/URL 子串匹配</strong>，实时过滤网格；<code>/</code> 聚焦、<code>Esc</code> 清空</td></tr>
+  <tr><td>服务发现</td><td>Docker 容器 + 本机监听端口 → 服务指纹匹配 → 生成候选卡片，用户勾选后加入</td></tr>
+  <tr><td>图床库</td><td>本地图片托管，批量上传 / 搜索 / 多选删除（<strong>默认拒绝删除仍被引用的图片</strong>）+ 在线图标库搜索</td></tr>
+  <tr><td>备份</td><td><code>/api/backup</code> 导出 JSON（含 SHA-256 校验和），恢复时校验格式/版本/完整性/结构</td></tr>
+  <tr><td>主题与外观</td><td>明/暗主题 + 科技感网格背景 + 光晕</td></tr>
+  <tr><td>部署</td><td><strong>两条路径</strong>：源码构建 / 纯拉取镜像；多架构 GHCR 镜像；三份部署指南 + PDF</td></tr>
+</table>
+
+<h3>3.3 三处需要正视的短板（本轮新发现）</h3>
+
+<div class="danger"><strong>短板一：图标依赖公共 CDN，离线/局域网会「白图」。</strong>
+<code>resolveIcon()</code> 把图标解析成 <code>api.iconify.design</code> 或 <code>cdn.jsdelivr.net</code> 的外链。
+这意味着：<strong>纯内网 / 断网环境下，所有图标都加载不出来</strong>——而 NAS 导航站恰恰常在这种环境里用。
+更麻烦的是，这个依赖还让测试出现「假失败」（CDN 抖动被当成 JS 错误，本项目已用桩测试绕过，但<strong>根因未解</strong>）。
+NavDeck 的选择是<strong>内置 275+ 图标</strong>，不依赖外网。</div>
+
+<div class="danger"><strong>短板二：备份不含图片，换机迁移会丢图床库。</strong>
+<code>buildBackup()</code> 只序列化 <code>config</code>，图片全在 <code>data/uploads/</code> 里没有进包。
+而 NavDeck 是「整个 data 目录加备份 zip 带走」。用户若靠备份迁移，会静默丢失所有上传的图标。</div>
+
+<div class="warn"><strong>短板三：内置图标/指纹库偏小。</strong>
+<code>SERVICE_PRESETS</code> 实测 <strong>33 条</strong>（NavDeck 是 275+）。
+虽然可以走在线图标库补，但离线时可选范围很窄；且<strong>没有「自动抓网站 favicon」</strong>这条兜底路径，
+用户填了 URL 却没填图标时，只能靠 Dashboard Icons 的 slug 猜测。</div>
+
+<!-- ==================== 4 ==================== -->
+<h2 id="s4">4. 逐项对比矩阵</h2>
+
+<table>
+  <tr>
+    <th style="width:15%">维度</th>
+    <th style="width:30%">NavDeck</th>
+    <th style="width:33%">Navi（实测）</th>
+    <th style="width:22%">判断</th>
+  </tr>
+
+  <tr>
+    <td colspan="4" style="background:#f8fafc;font-weight:700">内容组织与导航</td>
+  </tr>
+  <tr>
+    <td>卡片与分类</td>
+    <td>分类 + 卡片，拖拽排序</td>
+    <td>分组 + 卡片，拖拽排序，编辑模式有草稿态可取消</td>
+    <td><span class="pn">我们略优</span>（编辑安全性更好）</td>
+  </tr>
+  <tr>
+    <td>建卡方式</td>
+    <td>手工建卡 / 从 Lucky 同步 / <strong>拖动浏览器链接进页面</strong></td>
+    <td>手工建卡 / <strong>服务发现自动生成</strong> / 图床库选图标</td>
+    <td><span class="pn">各有所长</span>（我们更通用，它更省事）</td>
+  </tr>
+  <tr>
+    <td>首次空状态</td>
+    <td>有引导：建第一张卡片 / 从 Lucky 导入</td>
+    <td>仅一行「没有匹配的站点」</td>
+    <td><span class="p2">我们落后</span>（低成本可补）</td>
+  </tr>
+  <tr>
+    <td>标签 / 检索维度</td>
+    <td>仅分类</td>
+    <td>仅分组</td>
+    <td><span class="pn">持平</span></td>
+  </tr>
+
+  <tr>
+    <td colspan="4" style="background:#f8fafc;font-weight:700">搜索与检索</td>
+  </tr>
+  <tr>
+    <td>匹配能力</td>
+    <td><strong>子串 + 全拼 + 拼音首字母</strong></td>
+    <td>标题/描述/URL <strong>子串</strong></td>
+    <td><span class="p0">我们落后</span>（核心差距）</td>
+  </tr>
+  <tr>
+    <td>交互形态</td>
+    <td><code>Ctrl+K</code> 全局面板，键盘上下选、回车直达</td>
+    <td><code>/</code> 聚焦输入框，<strong>过滤网格</strong>（无结果面板、无键盘导航）</td>
+    <td><span class="p0">我们落后</span></td>
+  </tr>
+  <tr>
+    <td>搜索引擎跳转</td>
+    <td>输入非卡片关键词回车 → 走选定引擎搜索</td>
+    <td>无</td>
+    <td><span class="p1">我们落后</span></td>
+  </tr>
+
+  <tr>
+    <td colspan="4" style="background:#f8fafc;font-weight:700">网络与可达性</td>
+  </tr>
+  <tr>
+    <td>内外网策略粒度</td>
+    <td><strong>每张卡片独立</strong>：自动 / 仅内网 / 仅外网</td>
+    <td><strong>全局</strong>一个开关（卡片无法单独例外）</td>
+    <td><span class="p0">我们落后</span></td>
+  </tr>
+  <tr>
+    <td>判定依据</td>
+    <td><strong>探测可达性</strong>（哪个通就跳哪个）</td>
+    <td>访问主机名启发式（<code>10./172.16-31./192.168./localhost</code>）+ 手工切换</td>
+    <td><span class="p0">我们落后</span>（启发式在「公网域名下却身处内网」等场景会判错）</td>
+  </tr>
+
+  <tr>
+    <td colspan="4" style="background:#f8fafc;font-weight:700">状态可视化</td>
+  </tr>
+  <tr>
+    <td>Docker 状态</td>
+    <td>首页 Widget：在线/停止/总数，30s 刷新</td>
+    <td><strong>仅用于「服务发现」生成卡片</strong>，不展示状态</td>
+    <td><span class="p1">我们落后</span>（但<strong>数据管道已具备</strong>）</td>
+  </tr>
+  <tr>
+    <td>资源水位</td>
+    <td>CPU / 内存 / 磁盘 IO</td>
+    <td>无</td>
+    <td><span class="p1">我们落后</span></td>
+  </tr>
+  <tr>
+    <td>倒数日 / 纪念日</td>
+    <td>有</td>
+    <td>无</td>
+    <td><span class="p2">我们落后</span>（纯前端，成本极低）</td>
+  </tr>
+  <tr>
+    <td>时钟 / 日期</td>
+    <td>顶部时间</td>
+    <td>大号时钟 + 日期 + 网络模式徽章</td>
+    <td><span class="pn">我们略优</span></td>
+  </tr>
+
+  <tr>
+    <td colspan="4" style="background:#f8fafc;font-weight:700">自动化与集成</td>
+  </tr>
+  <tr>
+    <td>自动生成卡片</td>
+    <td>从 <strong>Lucky 反代规则</strong>同步（<strong>依赖特定第三方</strong>）</td>
+    <td>从 <strong>Docker 容器 + 监听端口</strong>发现（<strong>不依赖任何第三方</strong>）</td>
+    <td><span class="pn">我们更通用</span>（覆盖面更广）</td>
+  </tr>
+  <tr>
+    <td>同步安全语义</td>
+    <td><strong>全量 diff，源侧删除/禁用只标记失效，不删卡，可一键恢复</strong></td>
+    <td>无来源标记，加入后即成为普通卡片</td>
+    <td><span class="p1">我们落后</span>（<strong>最值得借鉴的设计</strong>）</td>
+  </tr>
+  <tr>
+    <td>反代规则导入</td>
+    <td>Lucky OpenToken 一键同步</td>
+    <td>无</td>
+    <td><span class="p2">我们落后</span>（视用户是否用反代）</td>
+  </tr>
+
+  <tr>
+    <td colspan="4" style="background:#f8fafc;font-weight:700">图标与素材</td>
+  </tr>
+  <tr>
+    <td>内置图标</td>
+    <td><strong>275+ 精选自托管服务图标，离线可用</strong></td>
+    <td>指纹库 <strong>33 条</strong>；图标实际走<strong>公共 CDN 外链</strong></td>
+    <td><span class="p0">我们落后</span>（影响离线可用性）</td>
+  </tr>
+  <tr>
+    <td>favicon 自动抓取</td>
+    <td>有</td>
+    <td>无（仅按名称猜 Dashboard Icons 的 slug）</td>
+    <td><span class="p1">我们落后</span></td>
+  </tr>
+  <tr>
+    <td>本地图床库</td>
+    <td>支持本地上传</td>
+    <td><strong>独立的图床库</strong>：批量上传、搜索、多选删除、引用保护</td>
+    <td><span class="pn">我们更优</span></td>
+  </tr>
+
+  <tr>
+    <td colspan="4" style="background:#f8fafc;font-weight:700">数据与迁移</td>
+  </tr>
+  <tr>
+    <td>备份内容</td>
+    <td>zip，含整个 <code>data</code> 目录</td>
+    <td>JSON，<strong>仅 config，不含图片</strong>；但<strong>带 SHA-256 校验和</strong></td>
+    <td><span class="p0">各有短板</span>：它全但无校验，我们有校验但不全</td>
+  </tr>
+  <tr>
+    <td>恢复校验</td>
+    <td>未提及</td>
+    <td>格式 / 版本 / 完整性 / 结构 <strong>四道校验</strong></td>
+    <td><span class="pn">我们更优</span></td>
+  </tr>
+
+  <tr>
+    <td colspan="4" style="background:#f8fafc;font-weight:700">部署与工程质量</td>
+  </tr>
+  <tr>
+    <td>镜像分发</td>
+    <td>GHCR 官方镜像</td>
+    <td>GHCR 官方镜像，<strong>amd64 + arm64 双架构</strong>，含<strong>起容器冒烟验证</strong></td>
+    <td><span class="pn">我们更优</span></td>
+  </tr>
+  <tr>
+    <td>依赖</td>
+    <td>有构建链（<code>AUTH_SECRET</code> 等运行时配置）</td>
+    <td><strong>零 npm 依赖、零构建步骤</strong>，只用 Node 内置模块</td>
+    <td><span class="pn">我们更优</span>（与 CPU 架构天然解耦）</td>
+  </tr>
+  <tr>
+    <td>测试</td>
+    <td>未在文章中体现</td>
+    <td><strong>13 套件 / 435 断言 / 0 失败</strong>，含反向验证护栏</td>
+    <td><span class="pn">我们更优</span></td>
+  </tr>
+  <tr>
+    <td>Linux 权限处理</td>
+    <td>文档给出 <code>DOCKER_GID</code> 解法</td>
+    <td>未提供 GID 配置；仅返回可操作错误提示</td>
+    <td><span class="p2">我们落后</span>（小缺口）</td>
+  </tr>
+
+  <tr>
+    <td colspan="4" style="background:#f8fafc;font-weight:700">文档与运营</td>
+  </tr>
+  <tr>
+    <td>文档</td>
+    <td>官方手册 + README</td>
+    <td><strong>三份部署指南 + PDF + 在线预览站</strong>，文档说法有断言守着</td>
+    <td><span class="pn">我们更优</span></td>
+  </tr>
+  <tr>
+    <td>「适合谁」</td>
+    <td><strong>明确列出适合 / 不适合的人群</strong>，主动承认风险</td>
+    <td>无</td>
+    <td><span class="p2">我们落后</span></td>
+  </tr>
+  <tr>
+    <td>版本与变更记录</td>
+    <td>版本号迭代可见（v0.4.2）</td>
+    <td>有 v1.0.0 标签，但<strong>无 CHANGELOG / Release Notes</strong></td>
+    <td><span class="p2">我们落后</span></td>
+  </tr>
+</table>
+
+<!-- ==================== 5 ==================== -->
+<h2 id="s5">5. 判断：值得借鉴什么、不必跟什么</h2>
+
+<h3>5.1 值得借鉴的五条</h3>
+
+<table>
+  <tr><th style="width:6%">#</th><th style="width:26%">借鉴点</th><th>为什么对我们有价值</th></tr>
+  <tr><td>1</td><td><strong>拼音检索</strong></td><td>我们的用户是中文用户，卡片名混合中英（「网易云音乐」「Portainer」）。子串匹配对中文输入法用户很不友好——想找「网易云音乐」得打全名，或打「163」碰运气</td></tr>
+  <tr><td>2</td><td><strong>卡片级内外网策略 + 可达性探测</strong></td><td>我们已有 <code>lanUrl</code> 字段和全局开关，<strong>只差最后一公里</strong>。目前的 hostname 启发式在常见场景会判错</td></tr>
+  <tr><td>3</td><td><strong>首页状态板</strong></td><td>我们已经有<strong>零依赖的 Docker API 客户端</strong>，做这件事的边际成本极低，但产品定位能从「书签页」升到「NAS 控制台」</td></tr>
+  <tr><td>4</td><td><strong>同步只标记失效、不删除、可恢复</strong></td><td>这是自动化的<strong>安全阀</strong>。我们的服务发现虽然已经「先候选后确认」，但仍缺少「来源追踪 + 失效管理」</td></tr>
+  <tr><td>5</td><td><strong>内置图标、离线可用</strong></td><td>直接解决短板一。NAS 导航站经常在内网/断网环境用，<strong>图标不该依赖外网</strong></td></tr>
+</table>
+
+<h3>5.2 不必跟的三条（附理由）</h3>
+
+<table>
+  <tr><th style="width:22%">不必跟</th><th>理由</th></tr>
+  <tr>
+    <td><strong>强绑定 Lucky 同步</strong></td>
+    <td>把核心功能绑死在某个第三方工具上，会把受众收窄到「用 Lucky 的人」。<strong>我们的服务发现覆盖面更广</strong>：
+    只要是 Docker 容器或本机监听端口就能识别，不要求用户装特定反代。<br>
+    → 可以<strong>补充</strong>通用导入（粘贴 JSON / NPM 导出），但不做单一工具强绑定。</td>
+  </tr>
+  <tr>
+    <td><strong>引入前端框架 / 构建链</strong></td>
+    <td>我们最大的差异优势是「零依赖 + 零构建」：与 CPU 架构天然解耦、镜像极小、435 项断言直接跑在源码上。
+    换框架会<strong>摧毁现有测试资产</strong>，且对一个单页导航站来说是负收益。<br>
+    → <strong>要拆的是模块，不是换技术栈</strong>（见 8.1）。</td>
+  </tr>
+  <tr>
+    <td><strong>为状态板引入重依赖</strong></td>
+    <td>NavDeck 的资源水位可以用现成的系统库。我们必须自己读 <code>/proc</code>——但这不难，
+    且<strong>沿用已有的降级模式</strong>即可（读不到就显示「不可用」，不影响其他功能）。<strong>不为了一个 Widget 破坏零依赖。</strong></td>
+  </tr>
+</table>
+
+<!-- ==================== 6 ==================== -->
+<h2 id="s6">6. 改进方案 · P0（立即做）</h2>
+
+<p>P0 的判据：<strong>成本可控、用户当天就能感知、且不触碰架构红线。</strong></p>
+
+<div class="item">
+<h3>P0-1　拼音搜索（全拼 + 首字母缩写）<span class="p0">P0</span></h3>
+<p><span class="lbl">现状</span><code>itemMatches()</code> 只做 <code>indexOf</code> 子串匹配，无拼音能力。</p>
+<p><span class="lbl">方案</span>新增 <code>public/js/pinyin.js</code> —— <strong>纯数据表，不引入任何 npm 依赖</strong>：</p>
+<ul>
+  <li>内置常用汉字（约 3,500 字，一级 + 二级常用字）→ 拼音映射，紧凑 JSON 格式约 <strong>25–35 KB</strong>。</li>
+  <li>把拼音表做成<strong>独立静态资源懒加载</strong>：首屏不加载，用户首次输入字母/中文时才 <code>fetch</code>，避免拖慢首页。</li>
+  <li><strong>只对卡片标题做索引</strong>（标题短、且是用户真正会打的内容），生成两个派生字段缓存在内存：<code>py</code>（全拼串，如 <code>wangyiyunyinyue</code>）与 <code>pyi</code>（首字母串，如 <code>wyyy</code>）。</li>
+  <li>匹配优先级（分数从高到低）：<strong>标题精确子串 → 拼音首字母 → 拼音全拼 → 描述 → URL</strong>。</li>
+</ul>
+<p><span class="lbl">验收</span>输入 <code>jlc</code> 命中 Jellyfin；输入 <code>wyyy</code> 与 <code>wangyiyun</code> 均命中网易云音乐；
+输入 <code>qb</code> 命中 qBittorrent；拼音表加载失败时<strong>自动退回纯子串匹配</strong>（不得因此报错或空白）。</p>
+<p><span class="lbl">效果</span>中文用户的「找卡片」动作从「回忆全名」变成「打几个字母」。</p>
+</div>
+
+<div class="item">
+<h3>P0-2　全局搜索面板（Ctrl+K）+ 搜索引擎跳转<span class="p0">P0</span></h3>
+<p><span class="lbl">现状</span>只有 <code>/</code> 聚焦输入框 + 过滤网格；无结果浮层、无键盘导航、无引擎跳转。</p>
+<p><span class="lbl">方案</span></p>
+<ul>
+  <li>新增搜索浮层：<code>Ctrl+K</code>（macOS 兼容 <code>⌘K</code>）唤起，<strong><code>/</code> 保留为兼容快捷键</strong>。</li>
+  <li>键盘交互：<code>↑</code> <code>↓</code> 移动选中项、<code>Enter</code> 新标签打开、<code>Esc</code> 关闭；鼠标悬停同步高亮。</li>
+  <li>结果分组显示：分组名作为小节标题（沿用现有分组结构，无需新数据模型）。</li>
+  <li>高亮匹配片段（标题中的命中字符加粗/着色），让用户一眼知道为什么命中。</li>
+  <li>引擎跳转：新增配置 <code>site.searchEngines: [{name, url}]</code>（<code>url</code> 里用 <code>%s</code> 占位），并提供 <code>site.defaultEngine</code>。
+      面板底部显示「用 <em>某引擎</em> 搜索 "<em>关键词</em>"」作为最后一项；回车即跳转。</li>
+</ul>
+<p><span class="lbl">验收</span><code>Ctrl+K</code> 能唤起浮层；<code>↑↓</code> 能改选中项；<code>Enter</code> 打开正确站点；
+输入 <code>如何学习 vim</code> 回车走默认引擎；旧配置（无 <code>searchEngines</code>）下该行<strong>不显示且不报错</strong>。</p>
+<p><span class="lbl">效果</span>搜索从「过滤器」升级为「命令面板」，这是 NavDeck 最直接的体验优势。</p>
+</div>
+
+<div class="item">
+<h3>P0-3　卡片级内外网策略 + 可达性探测<span class="p0">P0</span></h3>
+<p><span class="lbl">现状</span>全局一个开关，卡片无法单独例外；判定靠访问主机名启发式，在「用公网域名访问但身处内网」等场景会判错。</p>
+<p><span class="lbl">方案</span></p>
+<ul>
+  <li>数据模型：<code>item.netMode = "auto" | "lan" | "wan"</code>，<strong>默认 <code>auto</code></strong>（缺省时行为与现状兼容，老配置无需迁移）。</li>
+  <li>探测策略<strong>不照抄 NavDeck 的「点击时探测」</strong>（每次点击都等探测会明显变卡），改为：
+    <strong>页面加载后异步并发探测一次</strong>，对存在 <code>lanUrl</code> 的卡片发起
+    <code>fetch(lanUrl, { mode: "no-cors", signal: AbortSignal.timeout(1200) })</code>，
+    把「内网是否可达」缓存在内存并设 TTL（建议 5 分钟）。</li>
+  <li>点击时<strong>同步决策</strong>（不等网络）：可达 → 用 <code>lanUrl</code>；不可达 → 用 <code>url</code>；探测尚未返回 → 立即按启发式兜底跳转，不阻塞用户。</li>
+  <li>三级回退：<code>netMode</code> 显式设定 → 探测结果 → hostname 启发式。全局开关降级为<strong>「强制覆盖」</strong>（对齐 NavDeck 的「固定只走内网/外网」）。</li>
+  <li>卡片上给出轻量标识（如内网可用时显示小圆点），让用户知道当前会走哪个地址。</li>
+</ul>
+<div class="danger"><strong>必须诚实说明的浏览器限制：</strong>如果导航站本身通过 <strong>HTTPS</strong> 访问，
+浏览器会以 <em>mixed content</em> 为由阻止对 <code>http://内网IP</code> 的探测请求，<strong>探测会恒失败并全部回退到外网地址</strong>。
+我们的实际部署是局域网 HTTP 访问，不受影响；但文档必须写明这条边界，否则用户用 HTTPS 反代时会遇到「自动切换不生效」且找不到原因。</div>
+<p><span class="lbl">验收</span>内网可达时点卡片走内网地址；离开内网后自动改走外网；探测超时不阻塞跳转；
+HTTPS 场景下的回退行为符合预期且<strong>在文档中有说明</strong>。</p>
+<p><span class="lbl">效果</span>补齐 NavDeck 最受好评的功能，且<strong>体验比它更好</strong>（不阻塞点击）。</p>
+</div>
+
+<div class="item">
+<h3>P0-4　备份纳入图片（zip 导出 / 导入）<span class="p0">P0</span></h3>
+<p><span class="lbl">现状</span><code>buildBackup()</code> 只含 <code>config</code>；图片在 <code>data/uploads/</code> 里不进包 → 换机迁移静默丢图标。</p>
+<p><span class="lbl">方案</span></p>
+<ul>
+  <li>新增 <code>GET /api/backup?format=zip</code>：打包 <code>config.json</code> + <code>uploads/**</code> + <code>manifest.json</code>。
+      ZIP 由<strong>内置 <code>zlib</code> 手写</strong>（local file header + central directory），<strong>不引入依赖</strong>。</li>
+  <li><code>manifest.json</code> 记录每个文件的 <code>sha256</code> 与字节数，恢复时<strong>逐项校验</strong>——把现有「校验和」这一优势延续到 zip 上。</li>
+  <li><code>POST /api/backup/restore</code> 扩展为<strong>同时接受现有 JSON 与 zip</strong>（按内容嗅探，不靠扩展名），
+      旧备份文件<strong>继续可用</strong>。</li>
+  <li>恢复前先备份当前 <code>uploads/</code> 到临时目录，失败可回滚——避免「恢复了一半」的中间态。</li>
+</ul>
+<p><span class="lbl">验收</span>导出 zip → 在全新环境导入 → 卡片、分组、图床图片全部还原；
+旧版 JSON 备份仍可正常导入；篡改 zip 内任一文件后导入<strong>被拒绝并给出具体文件名</strong>。</p>
+<p><span class="lbl">效果</span>「换 NAS 整个带走」这句话对我们才真正成立。</p>
+</div>
+
+<!-- ==================== 7 ==================== -->
+<h2 id="s7">7. 改进方案 · P1（提升定位）</h2>
+
+<div class="item">
+<h3>P1-5　首页 Widget 状态板<span class="p1">P1</span></h3>
+<p><span class="lbl">现状</span><code>discovery.js</code> 已有零依赖 Docker Engine API 客户端，但只用于<strong>生成卡片</strong>，不展示状态。</p>
+<p><span class="lbl">方案</span></p>
+<ul>
+  <li>新增 <code>GET /api/status</code>，一次返回：<strong>容器统计</strong>（运行中 / 已停止 / 总数，复用 <code>/containers/json?all=true</code>）
+      + <strong>资源水位</strong>（CPU 由 <code>os.cpus()</code> 差值计算；内存读 <code>/proc/meminfo</code>；磁盘读 <code>/proc/diskstats</code>）。</li>
+  <li>前端在时钟下方新增 Widget 栏，<strong>30 秒轮询</strong>，页面隐藏时（<code>document.hidden</code>）暂停轮询省电。</li>
+  <li><strong>降级是一等公民</strong>：Docker 不可用 → 该 Widget 显示「Docker 不可用」，其余功能完全不受影响；
+      非 Linux 环境（<code>/proc</code> 不存在）→ 资源 Widget 显示「不支持」，不报错、不抛异常。</li>
+  <li>倒数日 / 纪念日：纯前端，数据存 <code>site.widgets[]</code>（<code>{type:"countdown"|"countup", title, date}</code>），
+      <strong>与 P0 系列无耦合，可独立上线</strong>。</li>
+</ul>
+<p><span class="lbl">验收</span>挂载 <code>docker.sock</code> 时显示真实容器数；<strong>不挂载时页面无 JS 错误</strong>、
+其余功能全正常；轮询在标签页隐藏时停止。</p>
+<p><span class="lbl">效果</span>首页从「书签集合」变成「NAS 状态板」——这是产品定位的实质性提升。</p>
+</div>
+
+<div class="item">
+<h3>P1-6　内置图标扩容（33 → 200+）与 favicon 兜底<span class="p1">P1</span></h3>
+<p><span class="lbl">现状</span><code>SERVICE_PRESETS</code> 33 条；图标实际走公共 CDN；无 favicon 抓取。
+<strong>离线/内网环境下图标全部加载不出来</strong>（NAS 场景的常见工况）。</p>
+<p><span class="lbl">方案</span></p>
+<ul>
+  <li>把「服务指纹库」与「图标别名表」合并为一份可维护数据文件 <code>public/icons/presets.json</code>，扩充到 <strong>200+</strong> 常见自托管服务，含 <code>name</code> / <code>aliases</code> / <code>ports</code> / <code>icon</code>。</li>
+  <li><strong>内置图标资源本地化</strong>：把高频图标随镜像一起打包（SVG 体积小），
+      解析顺序改为 <strong>本地内置 → 图床库 → 在线 CDN</strong>。这直接解决短板一。</li>
+  <li>补 favicon 兜底链：卡片填了 <code>url</code> 但无 <code>icon</code> 时，依次尝试
+      <strong>本地内置库 → <code>/favicon.ico</code>（同源代理，绕开跨域）→ 首字母占位图</strong>。</li>
+  <li>新增 <code>GET /api/favicon?url=</code> 服务端代理抓取并缓存到 <code>data/uploads/favicons/</code>，
+      避免浏览器跨域限制、同时让图标「抓一次就离线可用」。</li>
+</ul>
+<p><span class="lbl">验收</span>断网状态下，200+ 内置服务图标<strong>全部正常显示</strong>；
+新建卡片只填 URL 时能自动拿到 favicon 并落盘；CDN 不可达时<strong>不产生控制台 JS 错误</strong>。</p>
+<p><span class="lbl">效果</span>既补齐离线可用性，也从根因上消除「CDN 抖动导致测试假失败」这一历史问题。</p>
+</div>
+
+<div class="item">
+<h3>P1-7　发现/导入的来源追踪与失效管理<span class="p1">P1</span></h3>
+<p><span class="lbl">现状</span>服务发现生成的卡片加入后即成为<strong>普通卡片</strong>，无法区分「手工建的」与「自动发现的」，也没有失效追踪。</p>
+<p><span class="lbl">方案</span><em>（直接借鉴 NavDeck「只标记、不删除、可恢复」的语义）</em></p>
+<ul>
+  <li>卡片新增可选字段 <code>source: {type:"discover"|"manual"|"import", id, syncedAt}</code>。</li>
+  <li>重新扫描时做<strong>全量 diff</strong>：源侧消失的卡片<strong>只标记 <code>stale: true</code>，不删除</strong>，
+      前端以弱化样式提示「来源已失效」。</li>
+  <li>提供两个显式动作：<strong>一键恢复</strong>（清掉 <code>stale</code>）与 <strong>清理失效项</strong>（需二次确认）。</li>
+  <li><code>stale</code> 卡片在导出/备份中<strong>照常保留</strong>，避免用户在不知情时丢数据。</li>
+</ul>
+<p><span class="lbl">验收</span>停掉一个容器后重新扫描，对应卡片<strong>仍在</strong>且标记为失效；恢复容器后可一键复原；
+清理动作有二次确认且<strong>不影响手工卡片</strong>。</p>
+<p><span class="lbl">效果</span>把「自动生成卡片」这个我们已经领先的功能，补上它缺失的安全阀。</p>
+</div>
+
+<!-- ==================== 8 ==================== -->
+<h2 id="s8">8. 改进方案 · P2（生态与运营）</h2>
+
+<h3>8.1 架构专项：拆分单文件，但不引入构建</h3>
+
+<p><span class="lbl">现状</span><code>app.js</code> 73 KB、<code>server.js</code> 43 KB、<code>discovery.js</code> 34 KB，均为单文件。</p>
+<p><span class="lbl">判断</span>按当前规模尚可维护，但<strong>P0/P1 会再增加 3–4 个模块</strong>（拼音、搜索面板、Widget、favicon），
+继续堆进 <code>app.js</code> 会失控。<strong>建议在动手做 P0 之前先拆</strong>，否则后面拆更贵。</p>
+<p><span class="lbl">方案</span></p>
+<ul>
+  <li>前端按功能拆成 <code>js/app.js</code>（主控）+ <code>js/pinyin.js</code> + <code>js/search.js</code> +
+      <code>js/widgets.js</code> + <code>js/discover.js</code> + <code>js/library.js</code>，
+      用<strong>原生 ES Module（<code>type="module"</code>）</strong>组织——<strong>零构建、零依赖的红线不破</strong>。</li>
+  <li>注意：现有资源版本号机制（<code>?v=</code> 由服务端按 mtime 自动生成）需要覆盖到新增的 JS 文件，
+      确保缓存策略继续自动生效。</li>
+  <li>服务端同理，可拆 <code>routes/</code> 目录；<code>server.js</code> 只保留路由分发与启动。</li>
+  <li><strong>拆分的验收前提：435 项断言在拆分后仍全部通过</strong>——这是安全网，必须先跑通再拆。</li>
+</ul>
+<div class="warn"><strong>顺序很重要：</strong>先让测试全绿 → 拆分 → 再跑测试 → 确认数字不变 → 才动新功能。
+项目已有的「反向验证」文化（故意破坏护栏看测试是否报警）正是为这种重构准备的。</div>
+
+<h3>8.2 内容组织专项</h3>
+
+<table>
+  <tr><th style="width:22%">改进点</th><th style="width:8%">优先级</th><th>说明</th></tr>
+  <tr>
+    <td><strong>首次使用引导</strong></td><td><span class="p2">P2</span></td>
+    <td>空状态从「没有匹配的站点」升级为两条路径：<strong>「手动创建第一张卡片」/「用服务发现自动导入」</strong>。
+        对齐 NavDeck 的空状态引导。</td>
+  </tr>
+  <tr>
+    <td><strong>拖动链接建卡</strong></td><td><span class="p2">P2</span></td>
+    <td>把浏览器地址栏的链接拖到页面上即建卡并预填 URL（<code>drop</code> + <code>text/uri-list</code>），
+        成本很低，建卡摩擦显著降低。</td>
+  </tr>
+  <tr>
+    <td><strong>卡片标签</strong></td><td><span class="p2">P2</span></td>
+    <td>卡片加可选 <code>tags[]</code>，让搜索与面板能<strong>跨分组</strong>检索（如「下载」「媒体」）。
+        与拼音搜索天然互补。</td>
+  </tr>
+  <tr>
+    <td><strong>自定义壁纸</strong></td><td><span class="p2">P2</span></td>
+    <td>现有网格背景之外，允许上传自定义壁纸（存图床库，复用现有上传链路）。</td>
+  </tr>
+  <tr>
+    <td><strong>通用反代规则导入</strong></td><td><span class="p2">P2</span></td>
+    <td>支持粘贴 JSON / NPM 导出等<strong>通用格式</strong>批量导入（含 <code>automatic</code> diff 语义），
+        <strong>但不对接单一工具</strong>——理由见 5.2。</td>
+  </tr>
+  <tr>
+    <td><strong>DOCKER_GID 支持</strong></td><td><span class="p2">P2</span></td>
+    <td>compose 增加 <code>group_add</code> 配置示例 + 文档说明，解决 RHEL/CentOS 等
+        <strong>SELinux / 用户组权限</strong>下 docker.sock 读取失败的问题。</td>
+  </tr>
+</table>
+
+<h3>8.3 运营专项</h3>
+
+<table>
+  <tr><th style="width:22%">改进点</th><th style="width:8%">优先级</th><th>说明与做法</th></tr>
+  <tr>
+    <td><strong>「适合谁 / 不适合谁」</strong></td><td><span class="p2">P2</span></td>
+    <td>README 与预览站增加此章节。<strong>主动写清边界</strong>（如：只跑一两个服务的人用系统书签就够；
+        它不适合管公网 SaaS 账号；不挂 docker.sock 时没有状态板）。<em>这是 NavDeck 最聪明的运营手法，成本几乎为零。</em></td>
+  </tr>
+  <tr>
+    <td><strong>CHANGELOG 与 Release Notes</strong></td><td><span class="p2">P2</span></td>
+    <td>我们的 <code>docker-publish.yml</code> 已在打 tag 时自动发版，可顺势
+        <strong>在 Release 上附变更说明</strong>（从 CHANGELOG 或提交摘要生成）。
+        目前有 v1.0.0 标签但无说明，用户看不出改了什么。</td>
+  </tr>
+  <tr>
+    <td><strong>功能一览与截图</strong></td><td><span class="p2">P2</span></td>
+    <td>预览站首页增加「功能一览 + 界面截图（明/暗）」。
+        项目里已有多张实测截图（<code>test/*.png</code>），是现成素材。</td>
+  </tr>
+  <tr>
+    <td><strong>版本节奏</strong></td><td><span class="p2">P2</span></td>
+    <td>建立小步发版习惯：P0 完成 → <code>v1.1.0</code>；P1 完成 → <code>v1.2.0</code>。
+        每次发版自动产出镜像 + Release Notes，形成可见的迭代记录。</td>
+  </tr>
+</table>
+
+<!-- ==================== 9 ==================== -->
+<h2 id="s9">9. 优先级总表与实施建议</h2>
+
+<table>
+  <tr>
+    <th style="width:6%">序号</th><th style="width:26%">改进项</th>
+    <th style="width:7%">优先级</th><th style="width:14%">主要成本</th><th>依赖关系</th>
+  </tr>
+  <tr><td>0</td><td><strong>拆分前端单文件（架构前置）</strong></td><td><span class="p2">P2</span></td><td>中</td>
+      <td><strong>建议在 P0 之前做</strong>，否则后面拆更贵</td></tr>
+  <tr><td>1</td><td>拼音搜索</td><td><span class="p0">P0</span></td><td>中（词典数据是主要工作量）</td><td>依赖 0（拆分后）</td></tr>
+  <tr><td>2</td><td>全局搜索面板 + 引擎跳转</td><td><span class="p0">P0</span></td><td>中</td><td>复用 1 的匹配函数</td></tr>
+  <tr><td>3</td><td>卡片级内外网策略 + 探测</td><td><span class="p0">P0</span></td><td>低–中</td><td>无</td></tr>
+  <tr><td>4</td><td>备份纳入图片（zip）</td><td><span class="p0">P0</span></td><td>中（手写 ZIP 需仔细测）</td><td>无</td></tr>
+  <tr><td>5</td><td>首页 Widget 状态板</td><td><span class="p1">P1</span></td><td>中</td><td>复用 discovery 的 Docker 客户端</td></tr>
+  <tr><td>6</td><td>内置图标扩容 + favicon 兜底</td><td><span class="p1">P1</span></td><td>中–高（素材整理量大）</td><td>无</td></tr>
+  <tr><td>7</td><td>来源追踪与失效管理</td><td><span class="p1">P1</span></td><td>低–中</td><td>无</td></tr>
+  <tr><td>8</td><td>首次引导 / 拖链接建卡 / 标签 / 壁纸</td><td><span class="p2">P2</span></td><td>低（逐项独立）</td><td>无</td></tr>
+  <tr><td>9</td><td>通用反代导入 / DOCKER_GID</td><td><span class="p2">P2</span></td><td>低</td><td>无</td></tr>
+  <tr><td>10</td><td>运营：CHANGELOG / 适合谁 / 截图</td><td><span class="p2">P2</span></td><td>低</td><td>无</td></tr>
+</table>
+
+<h3>9.1 建议的实施顺序</h3>
+
+<div class="step"><span class="no">1</span><span class="t">先立安全网</span></div>
+<p>跑一遍全量回归，确认 <strong>435 / 0 / 13</strong> 基线存在。之后每个改动都以「断言数只增不减」为纪律。</p>
+
+<div class="step"><span class="no">2</span><span class="t">架构前置：拆前端模块</span></div>
+<p>不新增功能，只做搬家；用现有断言证明行为未变。这一步做完，后续每一项改动都是「新增一个文件」而非「在 73KB 里找位置」。</p>
+
+<div class="step"><span class="no">3</span><span class="t">P0 四项，逐项独立提交</span></div>
+<p>顺序建议：<strong>P0-3（内外网探测）→ P0-4（备份 zip）→ P0-1（拼音）→ P0-2（搜索面板）</strong>。
+理由：前两项改动集中在数据与服务端、风险隔离好；拼音与面板相关性强，放一起能复用匹配逻辑。</p>
+
+<div class="step"><span class="no">4</span><span class="t">P1 三项</span></div>
+<p>Widget 与图标扩容可以并行推进（一个偏服务端、一个偏素材）。</p>
+
+<div class="step"><span class="no">5</span><span class="t">P2 与运营收尾</span></div>
+<p>逐项独立、随时可停。运营项可以立刻做，不受代码进度影响。</p>
+
+<!-- ==================== 10 ==================== -->
+<h2 id="s10">10. 预期效果与验收标准</h2>
+
+<h3>10.1 能力对照（改进后）</h3>
+
+<table>
+  <tr><th style="width:24%">能力</th><th style="width:14%">现在</th><th style="width:16%">改进后</th><th>说明</th></tr>
+  <tr><td>中文检索</td><td>子串匹配</td><td><strong>子串 + 全拼 + 首字母</strong></td><td>追平 NavDeck</td></tr>
+  <tr><td>搜索交互</td><td><code>/</code> 过滤网格</td><td><strong><code>Ctrl+K</code> 命令面板 + 引擎跳转</strong></td><td>追平并<strong>增加原项目没有的分组小节</strong></td></tr>
+  <tr><td>内外网</td><td>全局开关 + 启发式</td><td><strong>卡片级策略 + 异步探测（不阻塞点击）</strong></td><td><strong>体验优于 NavDeck</strong></td></tr>
+  <tr><td>首页信息密度</td><td>时钟 + 卡片</td><td><strong>时钟 + Widget 状态板 + 卡片</strong></td><td>追平 NavDeck 的定位</td></tr>
+  <tr><td>图标离线可用</td><td>依赖公共 CDN</td><td><strong>本地内置优先，200+ 服务</strong></td><td><strong>优于 NavDeck 的 275 条纯图标</strong>（我们兼具在线检索）</td></tr>
+  <tr><td>数据迁移</td><td>JSON（无图片）</td><td><strong>zip（含图片）+ 逐项校验</strong></td><td><strong>优于 NavDeck</strong>（它无校验和）</td></tr>
+  <tr><td>自动化安全阀</td><td>无来源追踪</td><td><strong>只标记失效、可恢复</strong></td><td>追平 NavDeck 的关键设计</td></tr>
+</table>
+
+<h3>10.2 量化目标</h3>
+
+<table>
+  <tr><th style="width:30%">指标</th><th style="width:16%">当前</th><th style="width:20%">P0/P1 完成后</th><th>衡量方式</th></tr>
+  <tr><td>测试套件 / 断言</td><td>13 / 435</td><td><strong>≥ 17 / ≥ 520</strong></td><td>新增 pinyin、backup-zip、widgets、status 四类断言</td></tr>
+  <tr><td>内置图标 / 指纹条目</td><td>33</td><td><strong>≥ 200</strong></td><td>统计 <code>presets.json</code> 条目数并纳入断言</td></tr>
+  <tr><td>离线可用性</td><td>图标全部失败</td><td><strong>核心图标 100% 可用</strong></td><td>断网环境手动验收 + 桩测试断言</td></tr>
+  <tr><td>备份完整性</td><td>丢图片</td><td><strong>卡片 + 图片 100% 还原</strong></td><td>导出 → 全新环境导入 → 逐项比对</td></tr>
+  <tr><td>拼音命中</td><td>不支持</td><td><strong>首字母 / 全拼均可命中</strong></td><td>针对真实卡片名的案例断言</td></tr>
+</table>
+
+<div class="ok"><strong>不变的红线（任何改进都不得破坏）：</strong><br>
+① <strong>零 npm 依赖、零构建步骤</strong>；② <strong>多架构镜像与冒烟验证</strong>继续通过；
+③ <strong>435 项断言只增不减</strong>，文档中每条说法都要有断言守着（项目既有纪律）；
+④ <strong>不挂 docker.sock 时全部功能可用</strong>（仅状态板降级）。</div>
+
+<!-- ==================== 11 ==================== -->
+<h2 id="s11">11. 风险与取舍</h2>
+
+<table>
+  <tr><th style="width:24%">风险</th><th style="width:36%">说明</th><th>对策</th></tr>
+  <tr>
+    <td><strong>拼音词典体积</strong></td>
+    <td>全量拼音库可达数百 KB，会拖慢首屏</td>
+    <td>只收常用 3,500 字、独立资源<strong>懒加载</strong>、只索引标题；
+        加载失败自动退回子串匹配</td>
+  </tr>
+  <tr>
+    <td><strong>HTTPS 下探测失效</strong></td>
+    <td>mixed content 会阻止对 HTTP 内网地址的探测</td>
+    <td><strong>文档明确写出</strong>；三级回退保证功能不坏；
+        提供手动固定「仅内网/仅外网」的兜底开关</td>
+  </tr>
+  <tr>
+    <td><strong>手写 ZIP 的兼容性</strong></td>
+    <td>ZIP 格式细节多（编码、UTF-8 标志位、中央目录偏移）</td>
+    <td>只支持 store / deflate 两种方法；文件名限定 ASCII（<code>uploads/</code> 内已是我们生成的 hash 名）；
+        用三个真实解压工具交叉验证</td>
+  </tr>
+  <tr>
+    <td><strong>拆分重构引入回归</strong></td>
+    <td>73KB 单文件搬家容易改坏行为</td>
+    <td><strong>先全绿 → 拆 → 再全绿</strong>，断言数必须一致；重构与功能改动<strong>分开提交</strong></td>
+  </tr>
+  <tr>
+    <td><strong>图标素材的版权</strong></td>
+    <td>内置图标随镜像分发涉及许可</td>
+    <td>优先采用 permissive 许可的图标集（Simple Icons 等）；保留来源与许可说明文件</td>
+  </tr>
+  <tr>
+    <td><strong>状态板的额外攻击面</strong></td>
+    <td>docker.sock 等价宿主机 root 权限</td>
+    <td>保持<strong>默认不挂载</strong>、<code>:ro</code> 只读、文档保留现有安全警告；
+        状态板<strong>只读不写</strong>（不提供重启容器等操作）</td>
+  </tr>
+  <tr>
+    <td><strong>与 NavDeck 的定位差异</strong></td>
+    <td>我们会越来越像它，可能失去「极简」特色</td>
+    <td>所有 Widget 与增强<strong>默认关闭或可隐藏</strong>，保持「打开即用」的极简默认态</td>
+  </tr>
+</table>
+
+<h3>11.1 取舍原则</h3>
+
+<p>三条判断标准，用于未来遇到类似取舍时复用：</p>
+<ol>
+  <li><strong>是否服务于「中文 NAS 用户」？</strong>是 → 优先。这是 NavDeck 成功的根本原因，也是我们该守的定位。</li>
+  <li><strong>能否离线可用？</strong>不能 → 必须有降级路径。NAS 场景断网/内网是常态，不是异常。</li>
+  <li><strong>是否破坏零依赖与测试资产？</strong>是 → 换方案。这两个是我们的护城河，不是可选项。</li>
+</ol>
+
+<!-- ==================== 12 ==================== -->
+<h2 id="s12">12. 附录：本轮审计证据</h2>
+
+<p>以下均来自本轮对仓库代码的实际读取与统计。</p>
+
+<table>
+  <tr><th style="width:34%">结论</th><th>证据位置</th></tr>
+  <tr><td>搜索仅子串匹配，无拼音</td>
+      <td><code>public/js/app.js</code> → <code>itemMatches()</code>：<code>hay.indexOf(kw) !== -1</code></td></tr>
+  <tr><td>快捷键是 <code>/</code> 而非 <code>Ctrl+K</code></td>
+      <td><code>public/js/app.js</code> → <code>keydown</code> 监听：仅处理 <code>"/"</code> 与 <code>"Escape"</code></td></tr>
+  <tr><td>内外网判定靠主机名启发式</td>
+      <td><code>public/js/app.js</code> → <code>isLanHost()</code> + <code>initMode()</code>，结果存 <code>localStorage</code></td></tr>
+  <tr><td>内外网开关是全局的</td>
+      <td><code>state.mode</code> 单一变量；<code>pickUrl()</code> 按其选 <code>lanUrl</code> 或 <code>url</code>；卡片无独立策略字段</td></tr>
+  <tr><td>图标走公共 CDN</td>
+      <td><code>public/js/app.js</code> → <code>resolveIcon()</code> 返回 <code>api.iconify.design</code> / <code>cdn.jsdelivr.net</code> 外链</td></tr>
+  <tr><td>内置指纹库 33 条</td>
+      <td><code>discovery.js</code> → <code>SERVICE_PRESETS</code> 数组，统计得 33 条</td></tr>
+  <tr><td>无 favicon 抓取</td>
+      <td><code>resolveIcon()</code> 无 favicon 分支；仅按名称 slug 猜 Dashboard Icons</td></tr>
+  <tr><td>备份不含图片</td>
+      <td><code>server.js</code> → <code>buildBackup(cfg)</code> 只序列化 <code>config</code>；uploads 目录独立</td></tr>
+  <tr><td>备份有 SHA-256 校验</td>
+      <td><code>server.js</code> → <code>verifyBackup()</code> 校验 format / version / checksum / 结构 四项</td></tr>
+  <tr><td>Docker 客户端零依赖且已具备</td>
+      <td><code>discovery.js</code> → Docker Engine API 客户端（Unix Socket / TCP 双通道），仅用于服务发现</td></tr>
+  <tr><td>无 DOCKER_GID 配置</td>
+      <td>全项目 grep <code>DOCKER_GID</code> / <code>group_add</code> 无命中</td></tr>
+  <tr><td>零 npm 依赖</td>
+      <td>仓库无 <code>package.json</code>；<code>server.js</code> 仅 require <code>http/fs/path/crypto</code> 等内置模块</td></tr>
+  <tr><td>测试规模</td>
+      <td><code>test/</code> 13 个套件；最新全量回归 <strong>435 通过 / 0 失败</strong></td></tr>
+</table>
+
+<div class="tip"><strong>关于对标对象的说明：</strong>本文对 NavDeck 的描述来自公开技术文章《NavDeck 部署教程：Docker 一条命令搭好 NAS 导航站，内外网自动切换》
+（作者「丛集黑科技」，2026 年 9 月 16 日，发布地北京；文章截图来自其官方手册）。
+文中未逐项验证 NavDeck 源码实现细节，涉及它内部机制的部分（如探测具体算法、同步 diff 实现）
+以其官方手册与 README 的公开描述为准。<strong>对比结论中所有关于 Navi 的部分均为本轮代码实测结果。</strong></div>
+
+<div class="footer-note">
+  Navi 个人导航站 · 对标 NavDeck 差距分析与改进方案 · 2026-09-19<br>
+  本文档为内部改进规划，未纳入对外部署指南体系
+</div>
+
+</body>
+</html>

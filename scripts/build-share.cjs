@@ -22,9 +22,11 @@ fs.copyFileSync(path.join(ROOT, 'scripts', 'share-index.html'), path.join(OUT, '
 // 3. 预览页
 fs.copyFileSync(path.join(ROOT, 'preview.html'), path.join(OUT, 'preview.html'));
 
-// 4. 预览页引用的 8 张真实截图
+// 4. 预览页引用的真实截图（与 preview.html 的 SHOTS 列表一一对应）
 const shots = [
   'ui-home.png',
+  'status-board-dark.png',
+  'status-board-light.png',
   'theme-light.png',
   'theme-dark.png',
   'ui-login.png',

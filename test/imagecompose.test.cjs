@@ -331,6 +331,32 @@ try {
   check(/NAVI_CONFIG_PATH=\/app\/data\/config\.json/.test(df),
     "Dockerfile 默认配置路径指向数据卷内");
 
+  /* 关键护栏：server.js 里 require 的本地模块，必须在 Dockerfile 里被 COPY 进去。
+     回归背景：新增 zip.js / status.js 时忘了加 COPY —— 本地测试全绿（直接读源码目录），
+     但镜像里 node server.js 会 MODULE_NOT_FOUND 直接退出，容器起不来。
+     这条断言把「本地全绿 ≠ 镜像能跑」这个盲区堵上。 */
+  const srv = readText(path.join(ROOT, "server.js"));
+  const localReqs = Array.from(srv.matchAll(/require\(\s*["']\.\/([A-Za-z0-9_-]+)(?:\.js)?["']\s*\)/g))
+    .map((m) => m[1]);
+  const uniqReqs = Array.from(new Set(localReqs)).sort();
+  check(uniqReqs.length >= 2, "server.js 至少 require 了两个本地模块（护栏自身有效）",
+    uniqReqs.join(", "));
+  const missingCopy = uniqReqs.filter((n) => !new RegExp("^COPY\\s+" + n + "\\.js\\s", "m").test(df));
+  check(missingCopy.length === 0,
+    "server.js 的每个本地依赖都被 Dockerfile COPY（漏一个就是容器起不来）",
+    "缺失: " + missingCopy.join(", "));
+  const listedButUnused = ["zip", "status", "discovery"].filter(
+    (n) => new RegExp("^COPY\\s+" + n + "\\.js\\s", "m").test(df) && uniqReqs.indexOf(n) === -1);
+  check(listedButUnused.length === 0, "Dockerfile 没有 COPY 未被引用的模块（避免镜像里塞死文件）",
+    listedButUnused.join(", "));
+  check(/^COPY\s+public\/\s+\.\/public\//m.test(df), "Dockerfile 仍复制前端资源");
+
+  const envEx2 = readText(ENV_EXAMPLE);
+  check(/NAVI_STATUS_BOARD/.test(envEx2), ".env.example 记录了 NAVI_STATUS_BOARD（可整体关掉状态板）");
+  check(/NAVI_STATUS_TTL/.test(envEx2), ".env.example 记录了 NAVI_STATUS_TTL（状态板缓存时长）");
+  const composeMain = readText(path.join(ROOT, "docker-compose.yml"));
+  check(/NAVI_STATUS_BOARD/.test(composeMain), "源码构建编排里给出了状态板开关（注释形式即可）");
+
   const guide = path.join(ROOT, "docs", "image-deploy-guide.html");
   check(fs.existsSync(guide), "存在 docs/image-deploy-guide.html（拉取部署指南）");
   if (fs.existsSync(guide)) {

@@ -46,6 +46,11 @@ services:
       # - NAVI_WAN_HOST=nav.example.com
       # 离线环境建议关闭图标在线探测，加快扫描速度
       # - NAVI_ICON_PROBE=0
+
+      # 首页状态板（容器数 / CPU / 内存 / 磁盘水位，30s 轮询）
+      # 设为 0 整体关闭；NAVI_STATUS_TTL 是服务端缓存时长（毫秒）
+      # - NAVI_STATUS_BOARD=1
+      # - NAVI_STATUS_TTL=5000
     ports:
       # IPv4 + IPv6 双栈发布（Docker 默认即绑定双栈，若宿主机启用了 IPv6 会同时监听 :::8080）
       - "8080:80"

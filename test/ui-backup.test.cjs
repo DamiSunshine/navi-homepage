@@ -8,6 +8,7 @@ const { chromium } = require("playwright");
 const { stubExternal, isNotJsError } = require("./lib/hermetic.cjs");
 const fs = require("fs");
 const path = require("path");
+const http = require("http");
 
 const BASE = process.argv[2] || "http://127.0.0.1:8632";
 const ROOT = path.join(__dirname, "..", "public");
@@ -65,6 +66,48 @@ const PNG_1x1 = Buffer.from(
     console.log("== 备份接口连通 ==");
     const backupStatus = await page.evaluate(() => fetch("/api/backup").then((r) => r.status));
     check("备份接口返回 200", backupStatus === 200, String(backupStatus));
+    const zipStatus = await page.evaluate(() => fetch("/api/backup?format=zip").then((r) => r.status));
+    check("zip 备份接口返回 200", zipStatus === 200, String(zipStatus));
+
+    /* ---------- 备份格式选择弹窗（完整 zip / 仅配置 json） ---------- */
+    console.log("== 备份格式选择弹窗 ==");
+    // 先关掉上一步为测 Logo 上传而打开的「添加导航项」弹窗，否则它的遮罩会挡住保存栏按钮
+    await page.click('#itemModal [data-close="itemModal"]');
+    await page.waitForTimeout(200);
+    check("关闭编辑弹窗后遮罩已移除", await page.locator("#itemModal").isHidden());
+    await page.click("#backupBtn");
+    await page.waitForSelector("#backupModal:not([hidden])", { timeout: 5000 });
+    check("点击「备份」打开格式选择弹窗", await page.locator("#backupModal").isVisible());
+    check("弹窗含「完整备份 .zip」选项", await page.locator("#backupZipOpt").isVisible());
+    check("弹窗含「仅配置 .json」选项", await page.locator("#backupJsonOpt").isVisible());
+    const zipOptText = (await page.locator("#backupZipOpt").textContent()) || "";
+    const jsonOptText = (await page.locator("#backupJsonOpt").textContent()) || "";
+    check("完整备份选项明确写了「含图片」", /图片/.test(zipOptText), zipOptText.trim());
+    check("仅配置选项明确写了「不含图片」", /不含图片/.test(jsonOptText), jsonOptText.trim());
+    check("弹窗点遮罩以外的取消按钮可关闭",
+      await (async () => {
+        await page.click('[data-close="backupModal"]');
+        await page.waitForTimeout(200);
+        return !(await page.locator("#backupModal").isVisible());
+      })());
+
+    // 选择「完整备份」应真的触发 .zip 下载（验证选项与后端接口确实连通）
+    const [dl] = await Promise.all([
+      page.waitForEvent("download", { timeout: 15000 }),
+      (async () => { await page.click("#backupBtn"); await page.waitForSelector("#backupModal:not([hidden])"); await page.click("#backupZipOpt"); })()
+    ]);
+    check("选择完整备份触发下载且文件名为 .zip",
+      /\.zip$/.test(dl.suggestedFilename() || ""), dl.suggestedFilename());
+    check("下载文件名以 navi-backup- 开头",
+      /^navi-backup-/.test(dl.suggestedFilename() || ""), dl.suggestedFilename());
+    // 选择「仅配置」应触发 .json 下载
+    const [dl2] = await Promise.all([
+      page.waitForEvent("download", { timeout: 15000 }),
+      (async () => { await page.click("#backupBtn"); await page.waitForSelector("#backupModal:not([hidden])"); await page.click("#backupJsonOpt"); })()
+    ]);
+    check("选择仅配置触发下载且文件名为 .json",
+      /\.json$/.test(dl2.suggestedFilename() || ""), dl2.suggestedFilename());
+    await page.waitForTimeout(300);
 
     /* ---------- 导出 → 导入 往返，以及「非安全上下文」回归 ----------
        背景（真实故障）：crypto.subtle 只在安全上下文可用。用户通过
@@ -133,6 +176,35 @@ const PNG_1x1 = Buffer.from(
       dInsecureBad.join(" | ")
     );
 
+    /* ---------- ZIP 完整备份（含图片）导入往返 ---------- */
+    console.log("== ZIP 完整备份 导入 ==");
+    const zipBuf = await new Promise((resolve, reject) => {
+      http.get(BASE + "/api/backup?format=zip", (res) => {
+        const cs = []; res.on("data", (d) => cs.push(d));
+        res.on("end", () => resolve(Buffer.concat(cs)));
+      }).on("error", reject);
+    });
+    check("ZIP 备份体是合法的 PK 文件头",
+      zipBuf.length > 22 && zipBuf[0] === 0x50 && zipBuf[1] === 0x4b, zipBuf.length + " 字节");
+    const zipFile = path.join(__dirname, "_bk-full.zip");
+    fs.writeFileSync(zipFile, zipBuf);
+
+    const dZip = await runImport(page, zipFile, false);
+    check("导入 .zip 备份进入覆盖确认（被识别为 ZIP 而非误报 JSON 错误）",
+      dZip.some((t) => t.startsWith("confirm")), dZip.join(" | "));
+    check("导入 .zip 未出现「不是合法的 JSON」误报",
+      !dZip.join("|").includes("不是合法的 JSON"), dZip.join(" | "));
+    check("覆盖确认中说明了备份包体积", /MB/.test(dZip.join("|")), dZip.join(" | "));
+
+    // 损坏的 zip：应以明确错误提示收尾，而不是静默或误判为成功
+    const brokenFile = path.join(__dirname, "_bk-broken.zip");
+    const brokenBuf = Buffer.from(zipBuf);
+    brokenBuf.writeUInt32LE(0, brokenBuf.length - 22);
+    fs.writeFileSync(brokenFile, brokenBuf);
+    const dBroken = await runImport(page, brokenFile, true);
+    check("导入损坏的 .zip：提示解析失败",
+      dBroken.join("|").includes("解析失败"), dBroken.join(" | "));
+
     console.log("== 页面错误 ==");
     check("无 JS 运行时错误", pageErrors.length === 0, pageErrors.join(" | "));
   } finally {
@@ -147,7 +219,7 @@ const PNG_1x1 = Buffer.from(
     }
     fs.writeFileSync(CONFIG, configBak, "utf-8");
     // 清理本次导入用例的临时备份文件
-    ["_bk-valid.json", "_bk-tampered.json"].forEach((f) => {
+    ["_bk-valid.json", "_bk-tampered.json", "_bk-full.zip", "_bk-broken.zip"].forEach((f) => {
       try { fs.unlinkSync(path.join(__dirname, f)); } catch (e) {}
     });
   }

@@ -19,6 +19,12 @@ COPY server.js ./
 # 服务发现模块（自动识别容器 / 本机端口 + 服务指纹与图标匹配）
 COPY discovery.js ./
 
+# 含图片的 zip 备份：手写 ZIP 读写（零依赖）
+COPY zip.js ./
+
+# 首页状态板：CPU / 内存 / 磁盘 / 容器统计（全部可降级）
+COPY status.js ./
+
 # 复制前端资源，但排除真实的本地 config.json 与 uploads（已在 .dockerignore 排除）
 COPY public/ ./public/
 

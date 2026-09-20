@@ -1,8 +1,16 @@
-/* 线上交付物验证：落地页 / 预览页 / 文档页 是否真正可用（含截图实际解码） */
+/* 线上交付物验证：落地页 / 预览页 / 文档页 是否真正可用（含截图实际解码）
+
+   用法：
+     NODE_PATH=<含 playwright 的 node_modules> node scripts/verify-share-ui.cjs
+     NODE_PATH=<...> node scripts/verify-share-ui.cjs http://127.0.0.1:8640   # 验证本地 share/
+
+   ⚠️ 默认校验的是**已发布的线上站**，因此「发布前先用本地 share/ 跑一遍」是更省事的工作流：
+     发布才发现问题 = 把旧内容留在线上多待一轮。 */
 const path = require('path');
 const { chromium } = require('playwright');
 
-const BASE = 'https://navi-preview.app.workbuddy.host';
+// 优先命令行参数，其次环境变量，最后回落到线上地址
+const BASE = process.argv[2] || process.env.NAVI_SHARE_BASE || 'https://navi-preview.app.workbuddy.host';
 const OUT = 'E:/workbuddy存储空间/导航站/test';
 const fails = [];
 const ok = (m) => console.log('  ✓ ' + m);
@@ -48,7 +56,7 @@ const bad = (m) => { fails.push(m); console.log('  ✗ ' + m); };
   const shots = await page.locator('#shotGrid img').evaluateAll((imgs) =>
     imgs.map((i) => ({ src: i.getAttribute('src'), w: i.naturalWidth, h: i.naturalHeight }))
   );
-  shots.length === 8 ? ok('截图卡片 8 张') : bad('截图卡片 ' + shots.length + ' 张');
+  shots.length === 10 ? ok('截图卡片 10 张') : bad('截图卡片 ' + shots.length + ' 张');
   const broken = shots.filter((s) => !s.w || s.w < 10);
   broken.length === 0 ? ok('全部截图真实解码成功') : bad('截图未解码：' + broken.map((b) => b.src).join(', '));
   await page.screenshot({ path: path.join(OUT, 'share-preview-shots.png') });
@@ -67,10 +75,10 @@ const bad = (m) => { fails.push(m); console.log('  ✗ ' + m); };
   // 只看 HTTP 200 抓不到「发了旧内容」，这里校验本次改动的关键标记。
   console.log('[4] 内容新鲜度');
   const markers = [
-    ['/', ['<b>13</b> 套', '435'], ['427', '355', '348', '333', '325', '317']],
-    ['/preview.html', ['435', '非安全上下文', 'checkdeploy.test.cjs', 'imagecompose.test.cjs', 'SSE4.2'], ['427', '355', '348', '333', '325', '317']],
+    ['/', ['<b>16</b> 套', '701'], ['435', '427', '355', '348', '333', '325', '317']],
+    ['/preview.html', ['701', '非安全上下文', 'checkdeploy.test.cjs', 'imagecompose.test.cjs', 'SSE4.2', 'ui-status.test.cjs', 'zipbackup.test.js', 'status.test.js', 'status-board-dark.png'], ['435', '427', '355', '348', '333', '325', '317']],
     ['/docs/fnos-deploy-guide.html', ['导入自己刚导出的备份', '重建容器时要不要清空这个目录', '确认新代码真的生效', 'ghcr.io'], []],
-    ['/docs/docker-guide.html', ['关于「完整性校验失败」', '435', 'check-deploy.cjs', 'docker-compose.image.yml', 'SSE4.2'], ['427', '355', '348', '333', '325']],
+    ['/docs/docker-guide.html', ['关于「完整性校验失败」', '701', 'check-deploy.cjs', 'docker-compose.image.yml', 'SSE4.2'], ['435', '427', '355', '348', '333', '325']],
     ['/docs/image-deploy-guide.html', ['docker-compose.image.yml', 'ghcr.io', 'linux/arm64', 'config.json', 'Change package visibility', 'SSE4.2', 'SELinux'], []],
   ];
   for (const [url, musts, mustNots] of markers) {
