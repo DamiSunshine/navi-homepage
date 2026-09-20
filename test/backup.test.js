@@ -68,6 +68,7 @@ const BASE_CONFIG = {
       // 那等于用户在自己的备份里不知情地丢了数据。
       { title: "已消失的服务", url: "http://192.168.1.10:9999", stale: true,
         staleAt: "2026-09-20T00:00:00.000Z",
+        tags: ["下载", "媒体"],
         source: { type: "discover", via: "docker", id: "gone0000" } }
     ] }
   ]
@@ -104,6 +105,11 @@ const PNG_1x1_B64 =
     check("备份导出内含失效卡片（只标记不删 → 备份同样不丢）",
       backup && JSON.stringify(backup.config).indexOf("gone0000") !== -1,
       JSON.stringify(backup && backup.config && backup.config.groups));
+    // P2：标签是用户自己整理的检索索引，同样是「不可再生」的人工数据，
+    // 备份里丢掉它，换机恢复后搜索能力就悄悄变弱了。
+    check("备份导出内含卡片标签（P2）",
+      backup && JSON.stringify(backup.config).indexOf("下载") !== -1,
+      JSON.stringify(backup && backup.config && backup.config.groups));
 
     console.log("== 恢复：正常往返 ==");
     // 先改配置，再恢复，验证可还原
@@ -132,6 +138,13 @@ const PNG_1x1_B64 =
       restoredStale[0].staleAt === "2026-09-20T00:00:00.000Z" &&
       restoredStale[0].source && restoredStale[0].source.id === "gone0000",
       JSON.stringify(restoredStale));
+
+    const restoredTagged = JSON.parse(r.body).groups
+      .reduce((a, g) => a.concat(g.items || []), []).filter((i) => Array.isArray(i.tags) && i.tags.length);
+    check("标签随恢复原样保留（顺序与写法都不被改写）",
+      restoredTagged.length === 1 &&
+      JSON.stringify(restoredTagged[0].tags) === JSON.stringify(["下载", "媒体"]),
+      JSON.stringify(restoredTagged));
 
     console.log("== 恢复：异常处理 ==");
     r = await request(PORT, "POST", "/api/backup/restore", {

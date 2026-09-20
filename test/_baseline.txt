@@ -9,14 +9,15 @@
 #           / P0-4 备份含图片（手写 ZIP）/ P1-5 首页状态板 / 发布截图唯一生产者护栏
 #           / P1-6 图标本地优先（内置 227 个 / 离线可用）
 #           / P1-7 发现来源追踪与失效标记（只标记不删 / 未接入不误判）
-#           / P2 首次引导 + 拖链接建卡（DOCKER_GID 与 CHANGELOG 不产生断言）
+#           / P2 首次引导 / 拖链接建卡 / 卡片标签（跨分组检索）
+#           / 前端版本号 token 取「整个前端目录的最新 mtime」（含 css，反向守一条）
 
-  ✓ server.test.js          36 通过, 0 失败
+  ✓ server.test.js          50 通过, 0 失败
   ✓ ui.test.cjs            103 通过, 0 失败
   ✓ ui-theme.test.cjs        8 通过, 0 失败
   ✓ ui-backup.test.cjs      32 通过, 0 失败
   ✓ auth.test.js            27 通过, 0 失败
-  ✓ backup.test.js          22 通过, 0 失败
+  ✓ backup.test.js          24 通过, 0 失败
   ✓ zipbackup.test.js       54 通过, 0 失败
   ✓ status.test.js          90 通过, 0 失败
   ✓ discover.test.js        99 通过, 0 失败
@@ -27,7 +28,8 @@
   ✓ ui-library.test.cjs     47 通过, 0 失败
   ✓ ui-status.test.cjs      32 通过, 0 失败
   ✓ ui-firstrun.test.cjs    33 通过, 0 失败
+  ✓ ui-tags.test.cjs        40 通过, 0 失败
   ✓ checkdeploy.test.cjs    22 通过, 0 失败
   ✓ imagecompose.test.cjs   99 通过, 0 失败
 
-合计：858 通过, 0 失败 / 共 18 个套件
+合计：914 通过, 0 失败 / 共 19 个套件

@@ -304,6 +304,26 @@ function validateConfig(cfg) {
           }
         }
       }
+      // 卡片标签（P2）：标签是给搜索用的「跨分组索引」，写坏了会静默失效 —— 例如把 tags
+      // 写成字符串 "下载"，前端遍历字符串会得到单个汉字当标签，检索结果莫名其妙；
+      // 写成 [{name:"下载"}] 则整条标签链路失效。因此在写入口就拒绝，与 netMode / stale 同策略。
+      // 上限（8 个 / 单个 12 字）与前端的 normalizeTags() 保持一致，避免「前端存得进去、后端存不下」。
+      if (it.tags !== undefined && it.tags !== null) {
+        if (!Array.isArray(it.tags)) {
+          return "导航项「" + it.title + "」的标签（tags）必须是字符串数组（当前：" + typeof it.tags + "）";
+        }
+        if (it.tags.length > 8) {
+          return "导航项「" + it.title + "」的标签最多 8 个（当前 " + it.tags.length + " 个）";
+        }
+        for (const t of it.tags) {
+          if (typeof t !== "string" || !t.trim()) {
+            return "导航项「" + it.title + "」的标签必须是非空字符串";
+          }
+          if (t.trim().length > 12) {
+            return "导航项「" + it.title + "」的标签「" + t.trim() + "」超过 12 个字符";
+          }
+        }
+      }
     }
   }
   return null;

@@ -170,7 +170,7 @@
   <h2 style="font-size:15pt;color:#0d9488;border-left:4px solid #0d9488;padding-left:10px;margin-bottom:14px">实施进度更新（2026-09-20）</h2>
   <p style="color:#6b7280;font-size:9.5pt;margin-bottom:14px">
     本页第 3、4 章里的「13 个套件 / 435 项断言」等数字是<strong>审计当时（2026-09-19）的快照</strong>，保留原样以维持对照价值。
-    实际实施进展记录如下（最新全量回归：<strong>18 个套件 / 858 项断言 / 0 失败</strong>）。
+    实际实施进展记录如下（最新全量回归：<strong>19 个套件 / 914 项断言 / 0 失败</strong>）。
   </p>
   <table style="width:100%;border-collapse:collapse;font-size:10pt">
     <thead>
@@ -227,19 +227,21 @@
           架构：拆前端单文件；<br>
           内容组织：首次引导 / 拖链接建卡 / 卡片标签 / 自定义壁纸 / 通用反代导入 / <code>DOCKER_GID</code>；<br>
           运营：<code>CHANGELOG</code> 与 Release Notes / 功能一览与截图 / 版本节奏</td>
-        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成 4 / 10</span> ——
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成 5 / 10</span> ——
           <strong>首次引导</strong>（配置为空才出现 / 三步说明 / 跳过可持久化 / 有卡片与静态托管时不打扰）、
           <strong>拖链接建卡</strong>（仅编辑模式 / 兼容 <code>text/uri-list</code> 与 <code>text/plain</code> 两种形态 / 非链接不弹窗）、
+          <strong>卡片标签</strong>（搜索框与 <code>Ctrl/⌘+K</code> 面板均可按标签命中且<strong>不受分组限制</strong>；
+          卡片上的标签点一下就筛，标签同样支持拼音；标签属人工索引，随备份原样带走，写入口校验形状）、
           <strong><code>DOCKER_GID</code></strong>（compose 给出 <code>group_add</code> 示例，并解释「默认 root 不需要、降权运行时才需要」）、
-          <strong><code>CHANGELOG.md</code></strong> 均已落地，新增 <code>ui-firstrun.test.cjs</code> 33 项断言守着。<br>
-          <span style="color:#b45309;font-weight:700">仍未实施 6 项</span>（均已逐条核查为「代码中无对应实现」，不是估计）：
+          <strong><code>CHANGELOG.md</code></strong> 均已落地，新增 <code>ui-firstrun.test.cjs</code> 33 项与
+          <code>ui-tags.test.cjs</code> 40 项断言守着。<br>
+          <span style="color:#b45309;font-weight:700">仍未实施 5 项</span>（均已逐条核查为「代码中无对应实现」，不是估计）：
           <strong>① 拆前端单文件</strong>（刻意搁置：纯重构、无行为收益，且 <code>app.js</code> 是唯一被 5 个 UI 套件
-          直接依赖的文件，风险/收益不对称 —— 安全网 <strong>858 项断言 / 0 失败</strong> 已具备，要做应独立一轮）；
-          <strong>② 卡片标签 <code>tags[]</code></strong>（<code>app.js</code>/<code>server.js</code> 均无 <code>tags</code> 实现）；
-          <strong>③ 自定义壁纸</strong>（前端与样式表均无 wallpaper 分支）；
-          <strong>④ 通用反代规则导入</strong>（无对应解析入口）；
-          <strong>⑤ Release Notes</strong>（<code>docker-publish.yml</code> 未接入自动发版说明；<code>APP_VERSION</code> 仍为 <code>1.0.0</code>）；
-          <strong>⑥ 版本节奏</strong>（仍只有 <code>v1.0.0</code> 一个标签，未按 P0/P1 节点发 <code>v1.1.0</code>/<code>v1.2.0</code>）。
+          直接依赖的文件，风险/收益不对称 —— 安全网 <strong>914 项断言 / 0 失败</strong> 已具备，要做应独立一轮）；
+          <strong>② 自定义壁纸</strong>（前端与样式表均无 wallpaper 分支）；
+          <strong>③ 通用反代规则导入</strong>（无对应解析入口）；
+          <strong>④ Release Notes</strong>（<code>docker-publish.yml</code> 未接入自动发版说明；<code>APP_VERSION</code> 仍为 <code>1.0.0</code>）；
+          <strong>⑤ 版本节奏</strong>（仍只有 <code>v1.0.0</code> 一个标签，未按 P0/P1 节点发 <code>v1.1.0</code>/<code>v1.2.0</code>）。
           另有 <strong>功能一览与截图</strong>属<strong>部分完成</strong>（<code>preview.html</code> 已有 10 张真实截图画廊与功能说明、
           share 落地页有「页面效果预览」，但尚未做成运维口径的「功能一览」专章）。</td>
       </tr>
@@ -248,9 +250,9 @@
   <p style="margin-top:14px;font-size:9.5pt;color:#6b7280">
     ✅ 审计时的两处已确认短板均已消除：① 图标改为「本地内置优先」，内网 / 断网不再全白图；
     ② 图标预设由 33 条扩到 <strong>227 条</strong>并加入国内站点 favicon 抓取（均属 P1-6）。<br>
-    ⏳ 仍未实施：<strong>P2 的 6 项</strong> —— 拆前端单文件（刻意搁置）、卡片标签 <code>tags[]</code>、
-    自定义壁纸、通用反代规则导入、Release Notes、版本节奏；另「功能一览与截图」属部分完成。
-    已完成的 P2 项为：首次引导 / 拖链接建卡 / <code>DOCKER_GID</code> / <code>CHANGELOG</code>。
+    ⏳ 仍未实施：<strong>P2 的 5 项</strong> —— 拆前端单文件（刻意搁置）、自定义壁纸、
+    通用反代规则导入、Release Notes、版本节奏；另「功能一览与截图」属部分完成。
+    已完成的 P2 项为：首次引导 / 拖链接建卡 / 卡片标签 / <code>DOCKER_GID</code> / <code>CHANGELOG</code>。
     <strong>P0 四项 + P1 三项共 7 项已全部完成。</strong>
   </p>
 </div>

@@ -392,7 +392,7 @@
     updateNetBadgeDetail();
   }
 
-  /* ---------- 搜索匹配（子串 → 拼音 → 描述 → 网址） ----------
+  /* ---------- 搜索匹配（标题 → 拼音 → 标签 → 描述 → 网址） ----------
      匹配等级越小越优先。改这里等于同时改了「网格过滤」与「命令面板排序」两处行为，
      两级共用同一个 matchRank()，避免两边判定不一致。 */
   var RANK = {
@@ -401,8 +401,9 @@
     PY_INI: 2,       // 拼音首字母连续命中（音节边界对齐，如「家庭影音」→ jtyy 命中 jt）
     PY_FULL: 3,      // 全拼从某个音节边界起的命中（如 jiating、yingyin）
     PY_LOOSE: 4,     // 全拼串里的松散命中（≥3 字符才启用，避免短查询噪音）
-    DESC: 5,         // 描述命中
-    URL: 6,          // 网址命中
+    TAG: 5,          // 标签命中：用户亲手标的分类，比「描述里恰好出现这个词」更可信，故排在 DESC 之前
+    DESC: 6,         // 描述命中
+    URL: 7,          // 网址命中
     NONE: -1
   };
   var PY_LOOSE_MIN = 3;
@@ -430,6 +431,83 @@
     return out;
   }
 
+  // 拼音命中判定（标题与标签共用同一套规则）。
+  // 抽出来的理由：如果标题用一套规则、标签用另一套，就会出现「网格里搜得到、面板里搜不到」
+  // 这类最难查的不一致 —— 与 matchRank 被两级共用是同一个道理。
+  // 返回 RANK 等级（越小越优先），未命中返回 0；looseMin > 0 时才启用第 ③ 级松散兜底。
+  function pyHit(py, kw, looseMin) {
+    if (!py) return 0;
+    // ① 首字母：必须是连续若干「完整音节」的首字母，避免 ty 命中 jtyy 这类跨音节噪音
+    for (var i = 0; i + kw.length <= py.syls.length; i++) {
+      var hit = true;
+      for (var j = 0; j < kw.length; j++) {
+        if (py.syls[i + j].charAt(0) !== kw.charAt(j)) { hit = false; break; }
+      }
+      if (hit) return RANK.PY_INI;
+    }
+    // ② 全拼：命中必须从某个音节边界开始（jiat / jiating / yingyin 都算）
+    for (var b = 0; b < py.bounds.length - 1; b++) {
+      if (py.syls.length && py.full.slice(py.bounds[b]).indexOf(kw) === 0) return RANK.PY_FULL;
+    }
+    // ③ 松散兜底：允许跨音节（如 yiny），但要求查询足够长，否则短词会把整页点亮
+    if (looseMin > 0 && kw.length >= looseMin && py.full.indexOf(kw) >= 0) return RANK.PY_LOOSE;
+    return 0;
+  }
+
+  /* ---------- 卡片标签（P2） ----------
+     标签是用户自己给的「跨分组索引」：搜「下载」能把散落在各组里的下载类站点一次找出来。
+     与拼音搜索互补 —— 拼音解决「读音记得、字忘了」，标签解决「类别记得、名字忘了」。
+     上限与后端 validateConfig 严格一致（8 个 / 单个 12 字），避免「前端存得进去、后端存不下」。 */
+  var TAG_MAX = 8, TAG_LEN = 12, CARD_TAG_SHOWN = 3;
+
+  // 把用户输入整理成规范标签数组：中英文逗号都当分隔符、去首尾空白、丢掉空项、
+  // 超长截断、超出数量的丢弃、按小写去重（保留首次出现时的写法）。
+  // 接受字符串（来自输入框）或数组（来自 config.json），其余类型一律当「没有标签」。
+  function normalizeTags(raw) {
+    var arr;
+    if (Array.isArray(raw)) arr = raw;
+    else if (typeof raw === "string") arr = raw.split(/[,，]/);
+    else return [];
+    var out = [], seen = Object.create(null);
+    for (var i = 0; i < arr.length; i++) {
+      // 数组分支可能来自 config.json（手写的），混进 null / 数字一律丢掉，
+      // 而不是把它们 String() 成 "null" / "7" 变成假标签 —— 后端也会拒，这里先收敛。
+      if (typeof arr[i] !== "string") continue;
+      var t = arr[i].trim();
+      if (!t) continue;
+      if (t.length > TAG_LEN) t = t.slice(0, TAG_LEN);
+      var key = t.toLowerCase();
+      if (seen[key]) continue;
+      seen[key] = true;
+      out.push(t);
+      if (out.length >= TAG_MAX) break;
+    }
+    return out;
+  }
+
+  // 读一张卡片的标签。永远返回数组：缺字段、被写成字符串、混进 null / 数字都不会让渲染炸掉。
+  function tagList(item) {
+    var raw = item && item.tags;
+    if (!Array.isArray(raw)) return [];
+    var out = [];
+    for (var i = 0; i < raw.length; i++) {
+      if (typeof raw[i] === "string" && raw[i].trim()) out.push(raw[i]);
+    }
+    return out;
+  }
+
+  // 标签是否命中：子串优先，其次复用标题那套拼音规则（标签多是中文，用户同样可能只记得读音）。
+  // 标签不做「松散兜底」——标签本身很短，松散匹配会把太多卡片点亮。
+  function tagHit(item, kw) {
+    var list = tagList(item);
+    for (var i = 0; i < list.length; i++) {
+      var t = list[i].toLowerCase();
+      if (t.indexOf(kw) >= 0) return true;
+      if (/^[a-z0-9]+$/.test(kw) && pyHit(pinyinIndex(t), kw, 0)) return true;
+    }
+    return false;
+  }
+
   function matchRank(item, kw) {
     if (!kw) return RANK.TITLE_START;
     var title = String(item.title || "").toLowerCase();
@@ -437,24 +515,13 @@
     if (title.indexOf(kw) >= 0) return RANK.TITLE;
 
     if (/^[a-z0-9]+$/.test(kw)) {
-      var py = pinyinIndex(item.title);
-      if (py) {
-        // ① 首字母：必须是连续若干「完整音节」的首字母，避免 ty 命中 jtyy 这类跨音节噪音
-        for (var i = 0; i + kw.length <= py.syls.length; i++) {
-          var hit = true;
-          for (var j = 0; j < kw.length; j++) {
-            if (py.syls[i + j].charAt(0) !== kw.charAt(j)) { hit = false; break; }
-          }
-          if (hit) return RANK.PY_INI;
-        }
-        // ② 全拼：命中必须从某个音节边界开始（jiat / jiating / yingyin 都算）
-        for (var b = 0; b < py.bounds.length - 1; b++) {
-          if (py.syls.length && py.full.slice(py.bounds[b]).indexOf(kw) === 0) return RANK.PY_FULL;
-        }
-        // ③ 松散兜底：允许跨音节（如 yiny），但要求查询足够长，否则短词会把整页点亮
-        if (kw.length >= PY_LOOSE_MIN && py.full.indexOf(kw) >= 0) return RANK.PY_LOOSE;
-      }
+      var pr = pyHit(pinyinIndex(item.title), kw, PY_LOOSE_MIN);
+      if (pr) return pr;
     }
+
+    // 标签命中：与标题一样支持拼音，但一律记作 TAG 等级（不再细分成「标签首字母 / 标签全拼」——
+    // 标签是用户自定的分类词，再分级只会让排序结果变得难以解释）。
+    if (tagHit(item, kw)) return RANK.TAG;
 
     if (String(item.desc || "").toLowerCase().indexOf(kw) >= 0) return RANK.DESC;
     var urls = [item.url, item.lanUrl].filter(Boolean).join(" ").toLowerCase();
@@ -564,6 +631,22 @@
         html += '<span class="card-body">';
         html += '<span class="card-title">' + escapeHtml(item.title) + "</span>";
         if (item.desc) html += '<span class="card-desc">' + escapeHtml(item.desc) + "</span>";
+        // P2：标签行。最多铺 3 个，其余折成「+n」—— 卡片只有一列宽，
+        // 把 8 个标签全摊开会把标题和图标挤变形。
+        var tags = tagList(item);
+        if (tags.length) {
+          var shownTags = tags.slice(0, CARD_TAG_SHOWN);
+          html += '<span class="card-tags">';
+          shownTags.forEach(function (t) {
+            html += '<span class="tag" data-tag="' + escapeAttr(t) +
+                    '" title="只看带「' + escapeAttr(t) + '」标签的站点">' + escapeHtml(t) + "</span>";
+          });
+          if (tags.length > shownTags.length) {
+            html += '<span class="tag-more" title="' + escapeAttr(tags.join("、")) + '">+' +
+                    (tags.length - shownTags.length) + "</span>";
+          }
+          html += "</span>";
+        }
         // P1-7：来自服务发现、但源侧已消失的卡片 —— 只标记不删。
         // 做成 body 内的行内角标（而非绝对定位），避免与右上角 LAN / 右下角 net-pin 重叠。
         if (item.stale) {
@@ -653,6 +736,10 @@
     },
     // 拖入链接的解析规则（纯函数，单独暴露便于测试各种粘贴/拖拽形态）
     parseDroppedLink: function (t) { return parseDroppedLink(t); },
+    // 标签（P2）：归一化规则与只读读取都暴露出来，便于测试各种输入形态（不改变行为）
+    parseTags: function (raw) { return normalizeTags(raw); },
+    itemTags: function (it) { return tagList(it); },
+    tagFilter: function (tag) { applyTagFilter(tag); },
     // 首次引导是否应该出现（只读判断，便于测试；不触发任何 UI）
     shouldShowFirstRun: function () {
       return !!state.apiAvailable && !firstRunDismissed() && configItemCount(state.config) === 0;
@@ -825,7 +912,8 @@
         if (rank < 0) return;
         rows.push({
           kind: "item", rank: rank, item: it, gi: gi, ii: ii,
-          group: g.name || "未命名分组", title: it.title || "(未命名)"
+          group: g.name || "未命名分组", title: it.title || "(未命名)",
+          tags: tagList(it)
         });
       });
     });
@@ -852,7 +940,7 @@
         ? '<div class="palette-empty">没有匹配「' + escapeHtml(paletteState.query.trim()) + '」的导航项' +
           (engOnly ? "<br>按 Enter 用 " + escapeHtml(engOnly.name) + " 上网搜一搜" :
                      "<br>可在 config.json 的 site.searchEngines 配置搜索引擎，这里就能一键上网搜") + "</div>"
-        : '<div class="palette-empty">输入关键词开始搜索<br>支持标题、描述、网址，以及中文的拼音与首字母（如「家庭影音」搜 jtyy）</div>';
+        : '<div class="palette-empty">输入关键词开始搜索<br>支持标题、描述、网址、标签，以及中文的拼音与首字母（如「家庭影音」搜 jtyy）</div>';
       paletteScope.textContent = res.total ? res.total + " 个导航项" : "";
       if (engOnly) { appendEngineRow(engOnly); paletteSetActive(0, false); }
       return;
@@ -876,14 +964,20 @@
             return py ? '<span class="palette-row-py">' + escapeHtml(py.full) + "</span>" : "";
           })()
         : "";
+      // 命中原因是标签时给个徽章：跨分组检索最让人困惑的就是「这条为什么会出来」，
+      // 点明「标签」二字，用户才能确认是分类对上了，而不是描述里碰巧含这个词。
+      var hitBadge = r.rank === RANK.TAG ? '<span class="palette-row-hit">标签</span>' : "";
       html += '<a class="palette-row' + (i === paletteState.active ? " is-active" : "") + '"' +
               ' data-idx="' + i + '" role="option" href="' + escapeAttr(url) + '" target="_blank" rel="noopener noreferrer">' +
               iconHtml +
               '<span class="palette-row-body">' +
                 '<span class="palette-row-title">' + highlightTitle(r.title, kw, r.rank) + "</span>" +
                 '<span class="palette-row-meta">' + escapeHtml(r.group) +
+                  (r.tags && r.tags.length
+                     ? ' · <span class="palette-row-tag">' + escapeHtml(r.tags.join(" / ")) + "</span>"
+                     : "") +
                   (r.item.desc ? " · " + escapeHtml(String(r.item.desc).slice(0, 60)) : "") + "</span>" +
-              "</span>" + pyBadge + "</a>";
+              "</span>" + pyBadge + hitBadge + "</a>";
     });
 
     // 最后一项：用搜索引擎搜索当前关键词（仅配置了引擎时出现）
@@ -1715,6 +1809,7 @@
       itemForm.lanUrl.value = it.lanUrl || "";
       itemForm.netMode.value = NET_MODES.indexOf(it.netMode) >= 0 ? it.netMode : "auto";
       itemForm.icon.value = it.icon || "";
+      itemForm.tags.value = tagList(it).join(", ");
       setLogoValue(it.logo || "");
       itemModalTitle.textContent = "编辑导航项";
       // 失效标记：说明原因 + 就地恢复入口（恢复只清标记，不动其它字段）
@@ -2381,6 +2476,11 @@
     if (!item.desc) delete item.desc;
     if (!item.lanUrl) delete item.lanUrl;
     if (!item.icon) delete item.icon;
+    // 标签：与 desc / lanUrl 同样「空则不落库」，保持配置文件干净、与旧格式兼容。
+    // 必须先过 normalizeTags() 收敛（中英文逗号、空白、重复、超长、超量都在这儿处理），
+    // 后端 validateConfig 也会再验一遍 —— 前端只是提前提示，后端才是权威。
+    var tags = normalizeTags(itemForm.tags ? itemForm.tags.value : "");
+    if (tags.length) item.tags = tags;
     // 内外网策略：只在显式指定时落库，"auto" 不写入（保持配置文件干净、与旧格式兼容）
     var nm = itemForm.netMode ? itemForm.netMode.value : "auto";
     if (nm === "lan" || nm === "wan") item.netMode = nm;
@@ -2437,6 +2537,33 @@
   });
 
   addGroupBtn.addEventListener("click", function () { openGroupModal(-1); });
+
+  /* ---------- 点击标签即筛选（跨分组） ----------
+     这是「标签能跨分组检索」最直观的入口：不必先想起 Ctrl+K，
+     看到某张卡上的「下载」直接点，散落在其它分组的下载类站点就都出来了。
+     卡片本身是 <a>，所以必须拦掉默认跳转，否则点标签会变成打开站点。
+     编辑模式下不参与 —— 与既有的「编辑模式下点击卡片不跳转」保持同一种克制，
+     避免编排卡片时误触筛选把大半卡片藏起来。 */
+  function applyTagFilter(tag) {
+    var t = String(tag || "").trim();
+    if (!t) return;
+    searchInput.value = t;
+    state.keyword = t;
+    ensurePinyin();
+    render();
+    // 结果区在搜索框下方：用户可能正停在页面中部点标签，不回到顶部就看不到筛选生效。
+    try { window.scrollTo({ top: 0, behavior: "smooth" }); }
+    catch (err) { window.scrollTo(0, 0); }
+  }
+
+  navRoot.addEventListener("click", function (e) {
+    if (state.editMode) return;
+    var el = e.target.closest ? e.target.closest("[data-tag]") : null;
+    if (!el) return;
+    e.preventDefault();
+    e.stopPropagation();
+    applyTagFilter(el.getAttribute("data-tag"));
+  });
 
   /* ---------- 卡片 / 分组操作（事件委托） ---------- */
   navRoot.addEventListener("click", function (e) {

@@ -53,7 +53,7 @@ async function req(path, opts) {
   console.log("== 前端资源版本号（自动推导）==");
 
   // 与服务端同一算法独立复算：public/js + public/css 的最新 mtime
-  function deriveToken() {
+  function deriveNewest() {
     let newest = 0;
     for (const dir of ["js", "css"]) {
       for (const n of fs.readdirSync(path.join(PUBLIC_DIR, dir))) {
@@ -61,8 +61,9 @@ async function req(path, opts) {
         if (st.mtimeMs > newest) newest = st.mtimeMs;
       }
     }
-    return String(Math.round(newest)).slice(-10);
+    return newest;
   }
+  function deriveToken() { return String(Math.round(deriveNewest())).slice(-10); }
 
   const idxRes = await req("/");
   const idxHtml = await idxRes.text();
@@ -87,7 +88,11 @@ async function req(path, opts) {
   const origStat = fs.statSync(appJs);
   const origAtime = origStat.atime, origMtime = origStat.mtime;
   try {
-    const bumped = new Date(origMtime.getTime() + 60000);
+    // 基准必须取「整个前端目录的最大 mtime」再加偏移，而不是 app.js 自己 +60s：
+    // token 看的是 js 与 css 里的最新者。若刚改过 style.css（mtime 比 app.js 新），
+    // 只把 app.js 调新并不能让它成为最大者，token 本就不该变 ——
+    // 那样断言失败是假警报（真实发生过：改完 CSS 跑回归，这条挂了而功能完全正常）。
+    const bumped = new Date(deriveNewest() + 60000);
     fs.utimesSync(appJs, origAtime, bumped);
     await new Promise((r) => setTimeout(r, 3300));
     const t2 = ((await (await req("/")).text()).match(/js\/app\.js\?v=([^"']*)/) || [])[1];
@@ -98,6 +103,23 @@ async function req(path, opts) {
   }
   const t3 = ((await (await req("/")).text()).match(/js\/app\.js\?v=([^"']*)/) || [])[1];
   check("版本号可回退（mtime 还原后一致）", t3 === servedJs, t3 + " vs " + servedJs);
+
+  // 反向守一条语义：token 看的是「js 与 css 目录里的最新 mtime」，不是只看 app.js。
+  // 不守的话，将来有人把上面那条改回「只碰 app.js」，同一个坑会以假警报的形式再次出现。
+  const cssPath = path.join(PUBLIC_DIR, "css", "style.css");
+  const cssStat = fs.statSync(cssPath);
+  try {
+    fs.utimesSync(cssPath, cssStat.atime, new Date(deriveNewest() + 120000));
+    await new Promise((r) => setTimeout(r, 3300));
+    const t4 = ((await (await req("/")).text()).match(/js\/app\.js\?v=([^"']*)/) || [])[1];
+    check("css 更新同样推进版本号（token 取整个前端目录的最新 mtime）",
+      t4 !== servedJs && t4 === deriveToken(), servedJs + " -> " + t4);
+  } finally {
+    fs.utimesSync(cssPath, cssStat.atime, cssStat.mtime);
+    await new Promise((r) => setTimeout(r, 3300));
+  }
+  const t5 = ((await (await req("/")).text()).match(/js\/app\.js\?v=([^"']*)/) || [])[1];
+  check("css 的 mtime 还原后版本号也还原", t5 === servedJs, t5 + " vs " + servedJs);
 
   console.log("== 配置 API ==");
   const getRes = await req("/api/config");
@@ -161,9 +183,34 @@ async function req(path, opts) {
       typeof b.error === "string" && b.error.length > 0, JSON.stringify(b));
   }
 
+  // P2：卡片标签（tags）的写入口校验。标签是给搜索用的「跨分组索引」，
+  // 写成字符串 "下载" 会让前端遍历出单个汉字当标签、检索结果莫名其妙；
+  // 写成 [{name:"下载"}] 则整条标签链路静默失效 —— 因此在入口拒绝，与 netMode / stale 同策略。
+  console.log("== 卡片标签字段校验（P2） ==");
+  const badTagCases = [
+    ["tags 是字符串", { title: "a", url: "https://a.example.com", tags: "下载" }],
+    ["tags 含非字符串", { title: "a", url: "https://a.example.com", tags: ["下载", 7] }],
+    ["tags 含空串", { title: "a", url: "https://a.example.com", tags: ["下载", "   "] }],
+    ["tags 单项超 12 字", { title: "a", url: "https://a.example.com", tags: ["这个标签名字实在是太长了啊啊"] }],
+    ["tags 超过 8 个", { title: "a", url: "https://a.example.com",
+      tags: ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9"] }]
+  ];
+  for (const [name, item] of badTagCases) {
+    const r = await req("/api/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groups: [{ name: "x", items: [item] }] })
+    });
+    const b = await r.json().catch(() => ({}));
+    check("PUT " + name + " -> 400 拒写", r.status === 400, String(r.status));
+    check("PUT " + name + " -> 返回可读 error",
+      typeof b.error === "string" && /标签/.test(b.error), JSON.stringify(b));
+  }
+
   const okCfg = { groups: [{ name: "x", items: [
     { title: "源侧已消失", url: "https://a.example.com", stale: true,
       staleAt: "2026-09-20T00:00:00.000Z",
+      tags: ["下载", "媒体"],
       source: { type: "discover", via: "docker", id: "abc123", syncedAt: "2026-09-19T00:00:00.000Z" } },
     { title: "手工", url: "https://b.example.com", source: { type: "manual" } }
   ] }] };
@@ -181,6 +228,24 @@ async function req(path, opts) {
     backItem.source && backItem.source.type === "discover" &&
     backItem.source.via === "docker" && backItem.source.id === "abc123",
     JSON.stringify(backItem));
+
+  check("tags 原样往返（顺序与写法都不被改写，中文标签不丢）",
+    Array.isArray(backItem.tags) && backItem.tags.length === 2 &&
+    backItem.tags[0] === "下载" && backItem.tags[1] === "媒体",
+    JSON.stringify(backItem.tags));
+
+  // 边界不误杀：恰好 8 个标签、单项恰好 12 字都必须放行 ——
+  // 上限是用来挡异常数据的，不该让合法数据在边界上莫名其妙被拒。
+  const putEdgeTags = await req("/api/config", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ groups: [{ name: "x", items: [
+      { title: "边界", url: "https://c.example.com",
+        tags: ["一二三四五六七八九十十一", "t2", "t3", "t4", "t5", "t6", "t7", "t8"] }
+    ] }] })
+  });
+  check("PUT 恰好 8 个标签 / 单项恰好 12 字 -> 放行（边界不误杀）",
+    putEdgeTags.status === 200, String(putEdgeTags.status));
 
   // 还原配置，避免影响后续检查
   await req("/api/config", {

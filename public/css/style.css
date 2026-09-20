@@ -356,6 +356,33 @@ body {
   font-size: 11.5px; color: var(--text-dim);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* P2：卡片标签。它同时是「跨分组筛选」的入口，所以做成可点的胶囊；
+   nowrap + overflow:hidden 保证标签再多也不会把卡片撑高或挤歪标题。 */
+.card-tags {
+  display: flex; flex-wrap: nowrap; gap: 4px;
+  margin-top: 5px; overflow: hidden;
+}
+.card-tags .tag {
+  flex: none; max-width: 76px;
+  font-size: 10px; line-height: 1.6;
+  padding: 1px 6px; border-radius: 999px;
+  color: var(--accent);
+  background: rgba(79, 140, 255, 0.12);
+  border: 1px solid rgba(79, 140, 255, 0.3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.card-tags .tag:hover {
+  background: rgba(79, 140, 255, 0.24);
+  border-color: rgba(79, 140, 255, 0.6);
+}
+.card-tags .tag-more {
+  flex: none; font-size: 10px; line-height: 1.6;
+  padding: 1px 4px; color: var(--text-dim);
+}
+/* 编辑模式下点标签不筛选（那一下用于编辑卡片），光标要如实反映这个分歧 */
+body.edit-mode .card-tags .tag { cursor: default; }
 
 /* 内网模式标识：有独立内网地址的卡片在切换后亮起角标 */
 .lan-flag {
@@ -571,6 +598,11 @@ body.edit-mode .footer { padding-bottom: 70px; }
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   animation: modalIn 0.2s ease;
+  /* 弹窗高度必须封顶 + 可滚动：遮罩是 place-items:center，一旦内容高于视口，
+     弹窗会向上下两端同时溢出，底部的「保存 / 取消」直接被推到屏幕外点不到
+     （小屏笔记本上编辑弹窗字段一多就会踩到）。这里封顶后改为内部滚动。 */
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 @keyframes modalIn {
   from { opacity: 0; transform: translateY(10px) scale(0.98); }
@@ -579,6 +611,8 @@ body.edit-mode .footer { padding-bottom: 70px; }
 .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
 .field { display: block; margin-bottom: 12px; }
 .field span { display: block; margin-bottom: 5px; font-size: 12.5px; color: var(--text-dim); }
+/* 字段下方的补充说明（如「标签」用来跨分组检索）：比标签文字再小一号、紧贴输入框 */
+.field .field-hint { margin: 2px 0 0; font-size: 11.5px; line-height: 1.5; }
 .field input {
   width: 100%; height: 38px;
   padding: 0 12px;
@@ -704,6 +738,15 @@ body.edit-mode .footer { padding-bottom: 70px; }
   padding: 2px 6px; border-radius: 5px;
   color: var(--accent-2); background: rgba(56, 225, 198, 0.08);
   border: 1px solid rgba(56, 225, 198, 0.2);
+}
+/* P2：面板结果里的标签与「命中原因」提示。
+   跨分组检索最让人困惑的是「这条为什么会出来」，所以命中标签时明确标出来。 */
+.palette-row-tag { color: var(--accent); }
+.palette-row-hit {
+  flex: none; font-size: 10px;
+  padding: 2px 6px; border-radius: 5px;
+  color: var(--accent); background: rgba(79, 140, 255, 0.1);
+  border: 1px solid rgba(79, 140, 255, 0.28);
 }
 .palette-empty { padding: 26px 16px; text-align: center; font-size: 13px; color: var(--text-dim); line-height: 1.8; }
 .palette-foot {
