@@ -483,6 +483,7 @@ git push origin v1.0.0
 ## 项目结构
 
 ```
+├── PROJECT_SUMMARY.md          # ★ 项目总结（功能定位 / 开发过程 / 问题与解决方案 / 最终架构与配置 / 经验沉淀与后续优化）
 ├── Dockerfile                  # All-in-One 镜像（node:22-alpine，零依赖，含 /app/data 数据目录）
 ├── docker-compose.yml          # 【源码构建模式】双栈端口 + 整目录数据卷挂载（./data:/app/data）
 ├── docker-compose.image.yml    # 【纯拉取模式】无 build:，直接拉 ghcr.io 上的预构建镜像（二选一，靠 -f 切换）
