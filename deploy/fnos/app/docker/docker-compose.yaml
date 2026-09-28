@@ -1,0 +1,42 @@
+# ============================================================
+# Navi · fnOS 应用包内的 Compose 编排（由飞牛应用中心按 docker-project 资源启动）
+#
+# 三个关键点：
+#   ① 镜像用「固定版本标签」，不用 latest —— 标签可与 fpk 的版本号一一对应，
+#      出问题时能一眼看出装的是哪一版；想升级就换 fpk。
+#   ② 容器名 navi-fnos 与手动部署用的 navi 区分开 —— 两者可以并存，不会撞名。
+#   ③ 数据目录挂在 ${TRIM_PKGVAR}（应用运行时数据目录）而不是包内 ——
+#      升级/重装 fpk 不会碰它，卸载时也由系统决定是否保留。
+# ============================================================
+services:
+  navi:
+    image: ghcr.io/damisunshine/navi-homepage:1.1.1
+    container_name: navi-fnos
+    restart: unless-stopped
+
+    # 访问密码 / 站点标题等用户输入不写进包，改由管理侧生成的环境文件注入。
+    # 该文件由 cmd/install_callback、cmd/config_callback 写入并 chmod 600。
+    env_file:
+      - ${TRIM_PKGVAR}/navi.env
+
+    environment:
+      # 把"写文件"从镜像内置目录迁到挂载的数据目录（可持久化）
+      - NAVI_CONFIG_PATH=/app/data/config.json
+      - NAVI_UPLOAD_DIR=/app/data/uploads
+      # 服务发现：读取 Docker Socket 自动识别容器并生成卡片
+      - DOCKER_SOCKET=/var/run/docker.sock
+      # 登录会话有效期（小时）
+      - SESSION_TTL_HOURS=72
+
+    ports:
+      # 宿主机端口来自 manifest 的 service_port（8080），容器内固定监听 80
+      - "${TRIM_SERVICE_PORT}:80"
+
+    volumes:
+      # 数据目录：config.json + uploads（唯一不可再生的数据，务必随升级保留）
+      - ${TRIM_PKGVAR}/data:/app/data
+      # 服务发现所需的 Docker Socket（只读）。
+      # ⚠️ 挂载后容器获得等价于宿主机 root 的 Docker 控制权，仅建议在可信内网使用。
+      #    不需要服务发现 / 首页状态板的「Docker 服务」计数时，把下面这行注释掉即可：
+      #    站点其余功能完全不受影响（状态板会如实降级，而不是显示 0）。
+      - /var/run/docker.sock:/var/run/docker.sock:ro

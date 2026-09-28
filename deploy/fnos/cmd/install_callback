@@ -1,0 +1,54 @@
+#!/bin/bash
+# Navi · 安装后初始化
+#
+# 做三件事，缺一不可：
+#   ① 建数据目录并落地一份初始 config.json —— compose 整目录挂载会遮住镜像内置示例，
+#      宿主机没有 config.json 时服务启动即失败（这是本项目最经典的部署坑）；
+#   ② 把向导里收集的密码/标题写进 ${TRIM_PKGVAR}/navi.env，供 compose 的 env_file 注入；
+#      密码只落在这个 600 权限的文件里，不进镜像、不进 fpk 包；
+#   ③ 空密码直接中止安装 —— NAVI_PASSWORD 为空会让站点变成无鉴权开放访问，
+#      宁可装不上，也不能悄悄装出一个裸奔的站点。
+LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+APPNAME="${TRIM_APPNAME:-navi}"
+VAR_DIR="${TRIM_PKGVAR:-/var/apps/${APPNAME}/var}"
+APPDEST="${TRIM_APPDEST:-/var/apps/${APPNAME}/target}"
+DATA_DIR="${VAR_DIR}/data"
+ENV_FILE="${VAR_DIR}/navi.env"
+BOOTSTRAP="${APPDEST}/docker/bootstrap/config.json"
+
+if [ -z "${navi_password:-}" ]; then
+    echo "未收到访问密码（向导字段 navi_password 为空）。为避免站点在无鉴权状态下对外开放，安装已中止，请重新安装并在向导中填写密码。" > "$LOG"
+    exit 1
+fi
+
+mkdir -p "$DATA_DIR/uploads" || {
+    echo "无法创建数据目录 ${DATA_DIR}，请检查存储空间权限。" > "$LOG"
+    exit 1
+}
+
+if [ ! -f "${DATA_DIR}/config.json" ]; then
+    if [ -f "$BOOTSTRAP" ]; then
+        cp "$BOOTSTRAP" "${DATA_DIR}/config.json" || {
+            echo "写入初始配置失败：${DATA_DIR}/config.json" > "$LOG"
+            exit 1
+        }
+    else
+        echo "安装包内缺少初始配置模板（${BOOTSTRAP}），无法初始化站点配置。" > "$LOG"
+        exit 1
+    fi
+fi
+
+umask 077
+{
+    echo "NAVI_PASSWORD=${navi_password}"
+    [ -n "${navi_site_title:-}" ] && echo "SITE_TITLE=${navi_site_title}"
+    [ -n "${navi_site_subtitle:-}" ] && echo "SITE_SUBTITLE=${navi_site_subtitle}"
+    [ -n "${navi_lan_host:-}" ] && echo "NAVI_LAN_HOST=${navi_lan_host}"
+} > "$ENV_FILE" || {
+    echo "写入环境变量文件失败：${ENV_FILE}" > "$LOG"
+    exit 1
+}
+chmod 600 "$ENV_FILE"
+
+echo "Navi 初始化完成：数据目录 ${DATA_DIR}，环境变量文件 ${ENV_FILE}"
+exit 0

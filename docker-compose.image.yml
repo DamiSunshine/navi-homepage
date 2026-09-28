@@ -13,7 +13,7 @@
 #   ★ 首次初始化：宿主机 data/config.json 必须先存在，
 #     因为 ./data:/app/data 会遮住镜像内置的示例配置，缺文件会让服务启动即失败。
 #       mkdir -p data
-#       docker run --rm ghcr.io/mijunyi/navi-homepage:latest \
+#       docker run --rm ghcr.io/DamiSunshine/navi-homepage:latest \
 #         cat /app/data/config.json > data/config.json
 #     或直接从源码仓库取示例：cp public/config.example.json data/config.json
 #
@@ -25,8 +25,8 @@ services:
     # 镜像地址可用环境变量覆盖：
     #   NAVI_IMAGE  —— 换用 GHCR 镜像站 / 自建代理时很有用（国内直连 ghcr.io 常不通）
     #   NAVI_TAG    —— 固定版本（如 1.2.3）可避免 latest 漂移
-    # 例：NAVI_IMAGE=ghcr.nju.edu.cn/mijunyi/navi-homepage docker compose -f ... up -d
-    image: ${NAVI_IMAGE:-ghcr.io/mijunyi/navi-homepage}:${NAVI_TAG:-latest}
+    # 例：NAVI_IMAGE=ghcr.nju.edu.cn/DamiSunshine/navi-homepage docker compose -f ... up -d
+    image: ${NAVI_IMAGE:-ghcr.io/DamiSunshine/navi-homepage}:${NAVI_TAG:-latest}
     container_name: navi
     restart: unless-stopped
     # 想让每次 up 都去远端核对一次镜像，可取消下面这行注释。

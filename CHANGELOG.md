@@ -7,6 +7,37 @@
 > （semver 会剥掉前缀 `v`，所以 `docker pull …:v1.2.3` 是不存在的标签）。
 > 本文件里的版本号与 `server.js` 的 `APP_VERSION` 保持一致。
 
+## [1.1.1] - 2026-09-20
+
+本版为 **fnOS 原生安装包** 而发：新增 `.fpk` 打包工程，飞牛 NAS 用户可在应用中心一键安装 /
+升级 / 卸载，不必手写 compose。**运行时代码无行为变更**（仅版本号与引用地址更新）。
+
+> 打 `v1.1.1` 标签会推送 `1.1.1` / `1.1` / `latest` 三个镜像标签。
+
+### 新增
+
+- **fnOS 应用安装包（`.fpk`）**：`deploy/fnos/` 是完整的打包工程 —— `manifest`、`config/privilege`、
+  `config/resource`、`app/ui/config`、`app/docker/docker-compose.yaml`、`cmd/` 下九个生命周期脚本、
+  `wizard/install|config` 图形化向导与两套图标。`scripts/build-fpk.cjs` 负责调用官方 `fnpack` 出包、
+  把 Windows 下打出来的属主/权限规范化成 Linux 友好的形态，再做一轮出厂校验
+  （必需成员、`manifest.checksum` 与 `app.tgz` 实际 MD5、版本号格式、`app.tgz` 内关键文件、
+  `ui/config` 是否为合法 JSON、compose 不得出现浮动标签且镜像标签必须等于包版本），
+  全部通过才把产物落到 `deploy/fnos/dist/`。
+  安装时在向导里设站点密码、标题与监听端口；数据落在应用数据目录，**卸载不删**；
+  桌面图标以 iframe 直达站点。
+- **品牌图标生成脚本**：`scripts/build-fpk-icon.cjs` 用 Playwright 渲染 64 / 256 两个尺寸的
+  `ICON.PNG` 与 `app/ui/images/icon_*.png`，与站点 favicon 同源，改品牌色后重跑即可。
+
+### 变更
+
+- **仓库 / 镜像地址随 GitHub 用户名迁移**：`mijunyi` → `DamiSunshine`。README、compose、
+  `.env.example`、`LICENSE` 与全部文档共 58 处引用一并更新
+  （`docs/roadmap.html` 里 2026-09-19 的审计快照按原样保留，以维持对照价值）。
+  新的镜像地址是 `ghcr.io/damisunshine/navi-homepage`。
+  旧命名空间 `ghcr.io/mijunyi/navi-homepage` **已冻结在 1.1.0，不再更新**，请改用新地址。
+- 包内 compose 固定使用**版本标签**（不用 `latest`）：避免"装了新版却拉到旧镜像"这种装的时候
+  一切正常、只有行为不对的故障。
+
 ## [1.1.0] - 2026-09-20
 
 本轮为对标同类项目做的一轮系统性改进，全部以「不破坏既有行为」为前提，并配了回归断言
@@ -102,6 +133,7 @@
 支持分组导航、编辑模式、图床库、访问密码保护、IPv4/IPv6 双栈、Docker 一键部署，
 并提供 `linux/amd64` 与 `linux/arm64` 多架构预构建镜像。
 
-[未发布]: https://github.com/mijunyi/navi-homepage/compare/v1.1.0...HEAD
-[1.1.0]: https://github.com/mijunyi/navi-homepage/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/mijunyi/navi-homepage/releases/tag/v1.0.0
+[未发布]: https://github.com/DamiSunshine/navi-homepage/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/DamiSunshine/navi-homepage/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/DamiSunshine/navi-homepage/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/DamiSunshine/navi-homepage/releases/tag/v1.0.0

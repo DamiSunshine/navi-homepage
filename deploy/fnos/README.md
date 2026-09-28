@@ -1,0 +1,182 @@
+# Navi 导航站 · fnOS 应用包（`.fpk`）
+
+把 Navi 打包成飞牛 fnOS 可以用「应用中心 → 手动安装」直接装的安装包。
+装完自带启动 / 停止 / 升级 / 卸载与桌面图标，用户不必手写 compose。
+
+> 面向**构建者**。只是想装的话看 `docs/fnos-deploy-guide.html` 第 16 节。
+
+---
+
+## 1. 依赖
+
+| 依赖 | 用途 | 获取方式 |
+| --- | --- | --- |
+| **fnpack** | 飞牛官方打包工具（Go 单文件二进制，约 3.9MB） | 见下方下载地址表 |
+| **Node.js** | 跑本目录的构建脚本（`scripts/build-fpk.cjs`） | 项目本来就要求 Node 18+ |
+| **Playwright**（可选） | 只在需要**重新生成图标**时用到 | 见 `README.md` 的测试说明 |
+
+fnpack 下载地址（按平台取其一）：
+
+```
+https://static2.fnnas.com/fnpack/fnpack-1.2.3-windows-amd64     → 存为 fnpack.exe
+https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64
+https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-arm64
+https://static2.fnnas.com/fnpack/fnpack-1.2.3-darwin-amd64
+https://static2.fnnas.com/fnpack/fnpack-1.2.3-darwin-arm64
+```
+
+下载后放到本目录的 `tools/` 下（已被 `.gitignore` 忽略，不入库）：
+
+```bash
+mkdir -p deploy/fnos/tools
+# Windows 版必须命名为 fnpack.exe，构建脚本按这个名字找
+mv fnpack-1.2.3-windows-amd64 deploy/fnos/tools/fnpack.exe
+chmod +x deploy/fnos/tools/fnpack-*          # Linux / macOS
+```
+
+构建脚本按 **`FNPACK` 环境变量 → `deploy/fnos/tools/` → `PATH`** 的顺序查找，找不到会明确报错而不是静默出个坏包。
+
+---
+
+## 2. 目录结构
+
+```
+deploy/fnos/
+├── manifest                  # 包元信息（INI，必须 LF 换行）
+├── ICON.PNG                  # 64×64 应用图标
+├── ICON_256.PNG              # 256×256 应用图标
+├── config/
+│   ├── privilege             # 运行身份（package 用户）
+│   └── resource              # 声明这是一份 docker-project 编排
+├── app/                      # 打进 app.tgz 的内容（路径基准就是这个目录）
+│   ├── ui/
+│   │   ├── config            # 桌面图标 / 入口定义
+│   │   └── images/           # 入口图标（icon_64 / icon_256）
+│   └── docker/
+│       ├── docker-compose.yaml   # 应用中心据此起停容器
+│       └── bootstrap/config.json # 首次安装的初始配置模板
+├── cmd/                      # 生命周期钩子（无扩展名的 shell 脚本）
+│   ├── main                  # 必需：status（exit 0 运行中 / 3 未运行）
+│   ├── install_init / _callback
+│   ├── upgrade_init / _callback
+│   ├── uninstall_init / _callback
+│   └── config_init / _callback
+├── wizard/
+│   ├── install               # 安装向导（JSON）
+│   └── config                # 装完后的「应用设置」（JSON）
+└── dist/                     # 产物输出（.gitignore 忽略）
+```
+
+---
+
+## 3. 构建
+
+```bash
+# 1)（可选）重新生成图标——改了品牌色 / 换了图形才需要
+NODE_PATH=<含 playwright 的 node_modules> node scripts/build-fpk-icon.cjs
+
+# 2) 一条命令出包：调 fnpack → 规范化属主权限 → 出厂校验 → 落到 dist/
+node scripts/build-fpk.cjs
+```
+
+产物：`deploy/fnos/dist/navi-<版本>.fpk`。
+
+### `--skip-build`：本机 Node 不能派生子进程时
+
+若脚本报 `无法调用 fnpack（EBUSY）`（某些受限环境禁止 Node 创建子进程），手动跑一次 fnpack 再让脚本接管后续步骤：
+
+```bash
+cd deploy/fnos && ./tools/fnpack.exe build && cd ../..
+node scripts/build-fpk.cjs --skip-build
+```
+
+> 注意：`fnpack build` 把 `navi.fpk` 写在**当前工作目录**，不是 `-d` 指定的目录，所以要先 `cd` 进 `deploy/fnos`。
+
+---
+
+## 4. 构建脚本做了哪些额外的事
+
+`fnpack` 只负责按规则打 tar.gz，下面这些它不管，`scripts/build-fpk.cjs` 补齐：
+
+1. **规范化属主与权限** —— fnpack 在 Windows 上打出来的包里文件属主是空的、权限一律 `0666`、`cmd/` 下的脚本没有可执行位。飞牛解包后设置目录权限时会报「设置目录权限失败」。脚本统一改为：属主 `root:root`、目录 `0755`、`cmd/` 下脚本 `0755`、其余 `0644`。
+2. **manifest 换行修正** —— fnpack 1.2.3 在 Windows 上会把 `manifest` 重写成 CRLF，而飞牛按行解析这份 INI，值尾残留的 `\r` 会让 `version` / `appname` 之类的字段对不上。脚本统一改回 LF。
+3. **出厂校验** —— 全部通过才把产物复制到 `dist/`：
+   - 必需成员齐全（`manifest` / `app.tgz` / `cmd/` / `config/privilege` / `config/resource` / `wizard/` / 两张图标）
+   - `manifest.checksum` 与 `app.tgz` 的**实际 MD5** 一致
+   - `version` 是 `X.Y.Z`、`appname` 是 `navi`
+   - `manifest` 里没有 CR
+   - `app.tgz` 内含 `ui/config`、`ui/images/icon_*.png`、`docker/docker-compose.yaml`、`docker/bootstrap/config.json`
+   - `app/ui/config` 是合法 JSON 且 `.url` 里至少有一个入口
+   - compose 里**不得出现 `:latest`**，且镜像标签必须**等于** `manifest.version`
+   - 包里没有混进 `.DS_Store`
+
+   最后一条特别重要：**版本升了却忘了改 compose 里的镜像标签**，装出来的包会去拉上一版镜像——装的时候一切正常，只有行为不对。
+
+---
+
+## 5. 关键约定与踩过的坑
+
+### 路径基准有两套，别混
+
+| 位置 | 内容 | 基准 |
+| --- | --- | --- |
+| fpk 外层 | `manifest`、`cmd/`、`config/`、`wizard/`、图标 | 包根目录 |
+| `app.tgz` 内部 | 源工程 `app/` 下的内容 | **`app/` 目录本身** |
+
+所以 `app.tgz` 里看到的是 `ui/config`、`docker/docker-compose.yaml`，**不是** `app/ui/config`。按后者去校验必然报「缺少文件」。
+
+### fnOS 注入的环境变量
+
+生命周期脚本与 compose 里可以直接用（不需要自己探测）：
+
+| 变量 | 含义 |
+| --- | --- |
+| `TRIM_APPDEST` | 应用安装目录 |
+| `TRIM_PKGVAR` | **运行时数据目录**（持久化数据放这里） |
+| `TRIM_PKGETC` | 配置目录 |
+| `TRIM_SERVICE_PORT` | manifest 里 `service_port` 的当前值 |
+| `TRIM_APPNAME` / `TRIM_APPVER` | 应用名 / 版本 |
+| `TRIM_TEMP_LOGFILE` | 出错日志文件——脚本失败时把原因写进去，应用中心会展示 |
+
+自定义向导字段的变量名建议加 `wizard_` 前缀；**禁止用 `TRIM_` 前缀**（会被当成系统保留字段）。
+
+### docker-project 的起停不由我们管
+
+声明了 `config/resource` 的 `docker-project` 之后，**启动 / 停止由应用中心负责**（它自己调 compose），`cmd/main` 只需要回答「现在是否在运行」：
+
+```sh
+docker inspect -f '{{.State.Status}}' navi-fnos   # running → exit 0，否则 exit 3
+```
+
+### 数据放在 `TRIM_PKGVAR`，且刻意不随卸载删除
+
+- 数据目录：`${TRIM_PKGVAR}/data`（`config.json` + `uploads/`），compose 里整目录挂到 `/app/data`
+- 密码等敏感配置写在 `${TRIM_PKGVAR}/navi.env`，用 `umask 077` + `chmod 600`
+- `uninstall_callback` **只记日志、不删数据**——升级 / 重装 / 误卸载都不至于把导航数据弄没，用户要清理得自己动手
+- `config_callback` 是**逐项合并**：只改标题时不会把密码清掉（密码字段留空 = 保持不变）
+
+### 容器名与端口刻意避开已有部署
+
+包内 `container_name` 是 `navi-fnos`（手工部署通常叫 `navi`），默认端口 `8080`。
+因此两种部署可以并存，互不覆盖。
+
+### 别自己手改生成物
+
+- `dist/` 下是构建产物，删了重跑即可
+- `app/ui/images/icon_*.png` 与两张 `ICON*.PNG` 由 `scripts/build-fpk-icon.cjs` 生成，改了要重跑脚本，别手改
+
+---
+
+## 6. 发版顺序（重要）
+
+`.fpk` 里的镜像标签是**固定版本**，所以**必须先有镜像、再有包**：
+
+1. 改四处版本号（`server.js` / `public/js/app.js` / `test/status.test.js` / `CHANGELOG.md`），改 `deploy/fnos/manifest` 的 `version` 与 `app/docker/docker-compose.yaml` 里的镜像标签
+2. 全量回归：`NODE_PATH=<...> node test/run-all.cjs`
+3. 推 `main`，打 `vX.Y.Z` 标签并推送 → CI 构建并发布 `ghcr.io/damisunshine/navi-homepage:X.Y.Z`（同时推进 `X.Y` 与 `latest`）
+4. 去 GHCR 确认该标签真的存在（用匿名令牌验，别只看 CI 绿灯）
+5. **然后**才 `node scripts/build-fpk.cjs` 出包
+
+顺序颠倒的后果是：包能装、能启动，但 `docker pull` 拉不到那个标签，容器起不来。
+
+> 顺带一提：`push main` 只产 `edge`，只有 `v*.*.*` 标签才会更新 `X.Y.Z` / `X.Y` / `latest`。

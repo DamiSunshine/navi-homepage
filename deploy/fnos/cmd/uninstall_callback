@@ -1,0 +1,11 @@
+#!/bin/bash
+# Navi · 卸载后收尾
+#
+# 刻意不删数据目录：fnOS 的卸载流程是否保留 var 目录由系统与用户选择决定，
+# 应用侧主动删除只会让"手滑卸载"变成不可逆。这里只留一条日志。
+LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+APPNAME="${TRIM_APPNAME:-navi}"
+VAR_DIR="${TRIM_PKGVAR:-/var/apps/${APPNAME}/var}"
+
+echo "Navi 已卸载（容器与镜像可另行清理）。数据目录保留在 ${VAR_DIR}/data。" > "$LOG"
+exit 0

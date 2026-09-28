@@ -1,0 +1,36 @@
+#!/bin/bash
+# Navi · 应用设置变更后生效
+#
+# 设置页允许「只改标题不改密码」，所以这里逐项合并：向导没给的字段沿用旧值，
+# 只有真的提供了新值才覆盖 —— 不能整文件重写，否则一次改标题就会把密码清空。
+LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+APPNAME="${TRIM_APPNAME:-navi}"
+VAR_DIR="${TRIM_PKGVAR:-/var/apps/${APPNAME}/var}"
+ENV_FILE="${VAR_DIR}/navi.env"
+
+OLD_PW=""
+if [ -f "$ENV_FILE" ]; then
+    OLD_PW="$(grep '^NAVI_PASSWORD=' "$ENV_FILE" | head -n1 | cut -d= -f2-)"
+fi
+
+PW="${navi_password:-$OLD_PW}"
+if [ -z "$PW" ]; then
+    echo "未能读取到访问密码，且本次设置未提供新密码。为避免站点变为无鉴权访问，本次修改未生效。" > "$LOG"
+    exit 1
+fi
+
+mkdir -p "$VAR_DIR"
+umask 077
+{
+    echo "NAVI_PASSWORD=${PW}"
+    [ -n "${navi_site_title:-}" ] && echo "SITE_TITLE=${navi_site_title}"
+    [ -n "${navi_site_subtitle:-}" ] && echo "SITE_SUBTITLE=${navi_site_subtitle}"
+    [ -n "${navi_lan_host:-}" ] && echo "NAVI_LAN_HOST=${navi_lan_host}"
+} > "$ENV_FILE" || {
+    echo "写入环境变量文件失败：${ENV_FILE}" > "$LOG"
+    exit 1
+}
+chmod 600 "$ENV_FILE"
+
+echo "Navi 设置已更新：${ENV_FILE}（若密码有变更，请重启应用使其生效）"
+exit 0

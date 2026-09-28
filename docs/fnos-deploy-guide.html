@@ -171,6 +171,7 @@
     <li><a href="#s13">日常运维与升级回滚</a></li>
     <li><a href="#s14">部署检查清单</a></li>
     <li><a href="#s15">命令速查</a></li>
+    <li><a href="#s16">附：fnOS 应用包（.fpk）一键安装</a></li>
   </ol>
 </div>
 
@@ -197,7 +198,7 @@
   </tr>
   <tr>
     <td><strong>③ 可以完全不构建：直接拉预构建镜像</strong></td>
-    <td>镜像已由 GitHub Actions 自动构建并发布到 GHCR：<code class="inline">ghcr.io/mijunyi/navi-homepage</code>（含 <code>amd64</code> 与 <code>arm64</code>）。
+    <td>镜像已由 GitHub Actions 自动构建并发布到 GHCR：<code class="inline">ghcr.io/DamiSunshine/navi-homepage</code>（含 <code>amd64</code> 与 <code>arm64</code>）。
       把它换成同仓库的 <code class="inline">docker-compose.image.yml</code> 即可 —— 该文件不含 <code>build:</code>，只拉镜像起容器。
       <strong>这对 NAS 反而更合适</strong>：飞牛图形界面的 Compose 项目本来就不支持构建，少一个必须绕开的坑。
       完整说明见 <code>docs/image-deploy-guide.html</code>。<br>
@@ -739,9 +740,102 @@ sudo chown -R 1000:1000 /vol1/1000/docker/navi/data</pre>
 
 <div class="warn">第 3 步的 <code class="inline">sed</code> 会把密码<strong>明文写进 shell 历史</strong>。介意的话改用 <code class="inline">vi .env</code> 手动编辑，或在命令前加一个空格（若 shell 配了 <code class="inline">HISTCONTROL=ignorespace</code>）。</div>
 
+<!-- ==================== 16 附：fnOS 应用包 ==================== -->
+<h2 id="s16">16. 附：fnOS 应用包（.fpk）一键安装</h2>
+
+<p>从 Navi 1.1.1 起，项目另外提供 <strong>fnOS 原生应用安装包（<code class="inline">.fpk</code>）</strong>：
+把第 1～15 节要做的事（建目录、写 compose、配密码、拉镜像）收进一个安装向导，在应用中心点几下就装好，
+并自带启动 / 停止、升级、卸载与桌面图标。这一节讲怎么用它；<strong>怎么自己构建这个包</strong>见
+<code class="inline">deploy/fnos/README.md</code>。</p>
+
+<table>
+  <tr>
+    <th style="width:38%">你的情形</th>
+    <th>建议方式</th>
+  </tr>
+  <tr>
+    <td>只想稳定跑起来，不想碰命令行</td>
+    <td><strong>本节（.fpk）</strong>——向导里填个密码就完事</td>
+  </tr>
+  <tr>
+    <td>想改代码、自定义镜像、深度调 compose</td>
+    <td>第 5 节（SSH 命令行部署）</td>
+  </tr>
+  <tr>
+    <td>已经在用 compose 跑着，不想停机迁移</td>
+    <td>保持现状即可——<strong>.fpk 与现有部署可以并存</strong>（见下方「并存」）</td>
+  </tr>
+</table>
+
+<div class="step"><span class="no">1</span><span class="t">拿到 .fpk 文件</span></div>
+<p>两种来源：从项目的 GitHub Release 附件下载 <code class="inline">navi-&lt;版本&gt;.fpk</code>；
+或自己构建（需要官方 <code class="inline">fnpack</code> 工具，步骤见 <code class="inline">deploy/fnos/README.md</code>）。</p>
+
+<div class="step"><span class="no">2</span><span class="t">在应用中心手动安装</span></div>
+<p>打开飞牛「应用中心」→ 右上角<strong>手动安装</strong>→ 选择下载好的 <code class="inline">.fpk</code> 文件。</p>
+
+<div class="step"><span class="no">3</span><span class="t">按向导填站点设置</span></div>
+<p>向导第一步会要四项，其中<strong>只有密码是必填</strong>：</p>
+<table>
+  <tr><th style="width:30%">字段</th><th>说明</th></tr>
+  <tr><td><strong>访问密码</strong></td><td>必填，至少 6 位。<strong>留空会直接中止安装</strong>——这是刻意的，避免装出一个任何拿到地址的人都能改配置的站点。</td></tr>
+  <tr><td>站点标题 / 副标题</td><td>选填，留空用默认值，装完随时可改</td></tr>
+  <tr><td>内网访问地址</td><td>选填，填了卡片在「自动」内外网策略下能识别内网入口</td></tr>
+</table>
+
+<div class="step"><span class="no">4</span><span class="t">安装完成，从应用中心启动</span></div>
+<p>装好后应用中心会显示运行状态，并提供<strong>启动 / 停止 / 卸载</strong>。桌面同时多出一个
+<strong>Navi 导航站</strong>图标，点开即进入站点（以 iframe 内嵌）。</p>
+
+<h3>数据、端口与并存</h3>
+<table>
+  <tr><th style="width:30%">项目</th><th>说明</th></tr>
+  <tr>
+    <td><strong>数据目录</strong></td>
+    <td>位于存储空间根目录的 <code class="inline">@appdata/navi/</code> 下（例如 <code class="inline">/vol1/@appdata/navi/</code>）。
+      其中 <code class="inline">data/config.json</code> 与 <code class="inline">data/uploads/</code> 是导航数据与图片，
+      <code class="inline">navi.env</code> 存放向导里填的密码等（权限 600，仅属主可读）。</td>
+  </tr>
+  <tr>
+    <td><strong>默认端口</strong></td>
+    <td><code class="inline">8080</code>。安装前会检查端口占用；装完也能在「应用设置」里改，改完重启应用生效。</td>
+  </tr>
+  <tr>
+    <td><strong>容器名</strong></td>
+    <td><code class="inline">navi-fnos</code>，与手工部署时的 <code class="inline">navi</code> <strong>刻意区分</strong>——
+      因此两种部署可以同时跑（各自占不同端口、各用各的数据目录），互不覆盖。</td>
+  </tr>
+  <tr>
+    <td><strong>镜像标签</strong></td>
+    <td>包内 compose <strong>固定指向具体版本</strong>（如 <code class="inline">:1.1.1</code>），不用 <code class="inline">latest</code>：
+      避免「装了新版却拉到旧镜像」这种装的时候一切正常、只有行为不对的故障。</td>
+  </tr>
+</table>
+
+<h3>升级与卸载</h3>
+<ul>
+  <li><strong>升级</strong>：拿到新版本 <code class="inline">.fpk</code> → 应用中心手动安装 → 覆盖即可，数据保留。</li>
+  <li><strong>卸载</strong>：应用中心点卸载。<strong>数据目录不会被删除</strong>（刻意设计——避免误点一下就把导航数据清空）。
+    确认不再需要时，自行删除 <code class="inline">@appdata/navi/</code>。</li>
+  <li><strong>改配置</strong>：应用设置里可改标题、副标题、内网地址、端口。只改标题时<strong>不会清掉密码</strong>——
+    密码留空表示「保持不变」。</li>
+</ul>
+
+<div class="warn"><strong>升级前照例备份。</strong>先 <code class="inline">tar czf navi-data.tar.gz -C /vol1/@appdata/navi data</code>
+  再点升级。数据目录是唯一不可再生的东西（镜像随时能重建）。</div>
+
+<h3>排查</h3>
+<table>
+  <tr><th style="width:34%">现象</th><th>怎么办</th></tr>
+  <tr><td>装完打不开</td><td>先在应用中心看运行状态（它是权威）；再看 <code class="inline">docker logs --tail 50 navi-fnos</code></td></tr>
+  <tr><td>提示端口被占用</td><td>应用设置里换一个端口（如 <code class="inline">8081</code>）后重启应用</td></tr>
+  <tr><td>忘了访问密码</td><td>编辑数据目录下的 <code class="inline">navi.env</code>（改 <code class="inline">NAVI_PASSWORD</code>），重启应用</td></tr>
+  <tr><td>应用状态显示「未运行」</td><td><code class="inline">docker ps -a --filter name=navi-fnos</code> 看是否在反复重启；<code class="inline">docker logs</code> 里通常是镜像拉取失败</td></tr>
+</table>
+
 <div class="footer-note">
   Navi 个人导航站 · 飞牛 fnOS 部署指南 — 完 —<br>
-  配套文档：README.md（完整说明） · docs/docker-guide.html（通用 Docker 指南）
+  配套文档：README.md（完整说明） · docs/docker-guide.html（通用 Docker 指南） · deploy/fnos/README.md（打 fpk 包）
 </div>
 
 </body>

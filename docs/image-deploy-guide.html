@@ -138,7 +138,7 @@
   <p><span class="badge">无需构建 · 无需源码 · 双架构 · 一条 pull 命令搞定</span></p>
   <div class="meta">
     适用环境：任意 Linux + Docker（x86_64 / arm64）<br>
-    镜像地址：ghcr.io/mijunyi/navi-homepage<br>
+    镜像地址：ghcr.io/DamiSunshine/navi-homepage<br>
     文档日期：2026 年 9 月 19 日
   </div>
 </div>
@@ -186,7 +186,7 @@
 （<code class="inline">ghcr.io</code>），同时产出 <code class="inline">linux/amd64</code> 与
 <code class="inline">linux/arm64</code> 两种架构。整个构建过程跑在 GitHub 的机器上，<strong>你本地不需要装 Docker</strong>。</p>
 
-<div class="tip"><strong>一个必须先澄清的概念：</strong>代码仓库 <code class="inline">github.com/mijunyi/navi-homepage</code>
+<div class="tip"><strong>一个必须先澄清的概念：</strong>代码仓库 <code class="inline">github.com/DamiSunshine/navi-homepage</code>
 <strong>不是镜像仓库</strong>，不能直接 <code>docker pull</code>。GitHub 提供的镜像托管是另一个服务
 <code class="inline">ghcr.io</code>。源码推上去了 ≠ 镜像就有了——镜像需要额外发布一次（见第 3 节）。</div>
 
@@ -250,11 +250,11 @@
 
 <div class="step"><span class="no">A</span><span class="t">手动触发一次（最快，不需要动代码）</span></div>
 <ol>
-  <li>打开 <code class="inline">https://github.com/mijunyi/navi-homepage/actions</code></li>
+  <li>打开 <code class="inline">https://github.com/DamiSunshine/navi-homepage/actions</code></li>
   <li>左栏选「构建并发布镜像（GHCR）」</li>
   <li>右上角 <strong>Run workflow</strong> → 分支选 <code>main</code> → 点绿色按钮</li>
   <li>等 3～8 分钟（首次要构建两种架构，之后有缓存会快很多）</li>
-  <li>看到两个作业都打勾即可，此时 <code>ghcr.io/mijunyi/navi-homepage:edge</code> 已经可以拉取</li>
+  <li>看到两个作业都打勾即可，此时 <code>ghcr.io/DamiSunshine/navi-homepage:edge</code> 已经可以拉取</li>
 </ol>
 
 <div class="step"><span class="no">B</span><span class="t">打一个正式版本标签</span></div>
@@ -286,11 +286,11 @@ git push origin v1.0.0</pre>
 </table>
 
 <div class="step"><span class="no">1</span><span class="t">把包改成 public</span></div>
-<p>打开 <code class="inline">https://github.com/users/mijunyi/packages/container/navi-homepage/settings</code>，
+<p>打开 <code class="inline">https://github.com/users/DamiSunshine/packages/container/navi-homepage/settings</code>，
 拉到最下方 <strong>Danger Zone → Change package visibility</strong>，选 Public 并确认。</p>
 
 <div class="tip"><strong>怎么判断包当前是不是 private？</strong>在一个没登录过 ghcr.io 的机器上执行
-<code class="inline">docker pull ghcr.io/mijunyi/navi-homepage:edge</code>：
+<code class="inline">docker pull ghcr.io/DamiSunshine/navi-homepage:edge</code>：
 报 <code>unauthorized</code> 或 <code>denied</code> 就是 private（或不存在），能正常下载就是 public。</div>
 
 <div class="warn"><strong>令牌用错会很迷惑：</strong>「访问令牌」不是登录密码。如果目标机器的 Docker 里
@@ -314,8 +314,8 @@ git push origin v1.0.0</pre>
   <tr>
     <td><strong>① 换 GHCR 镜像站</strong><br><span style="color:#6b7280">最省事</span></td>
     <td>编排文件支持用环境变量覆盖镜像地址，不用改文件：<br>
-      <code>NAVI_IMAGE=镜像站域名/mijunyi/navi-homepage docker compose -f docker-compose.image.yml up -d</code><br>
-      或写进 <code>.env</code>：<code class="inline">NAVI_IMAGE=镜像站域名/mijunyi/navi-homepage</code><br>
+      <code>NAVI_IMAGE=镜像站域名/DamiSunshine/navi-homepage docker compose -f docker-compose.image.yml up -d</code><br>
+      或写进 <code>.env</code>：<code class="inline">NAVI_IMAGE=镜像站域名/DamiSunshine/navi-homepage</code><br>
       <span style="color:#9a3412">镜像站的可信度与可用性请自行确认——它会看到你拉取的镜像内容。</span></td>
   </tr>
   <tr>
@@ -328,7 +328,7 @@ git push origin v1.0.0</pre>
   <tr>
     <td><strong>③ 改走跨机导入</strong><br><span style="color:#6b7280">断网也能用</span></td>
     <td>在一台能联网的机器上 <code>docker pull</code> 后导出成文件：
-      <code>docker save ghcr.io/mijunyi/navi-homepage:edge -o navi.tar.gz</code>，
+      <code>docker save ghcr.io/DamiSunshine/navi-homepage:edge -o navi.tar.gz</code>，
       拷到目标机器 <code>docker load -i navi.tar.gz</code>。
       详见飞牛 fnOS 部署指南的「跨机导入镜像」一节。<br>
       <strong>注意：源机器与目标机器的 CPU 架构必须一致。</strong></td>
@@ -395,7 +395,7 @@ mkdir -p /opt/navi/data
 cd /opt/navi
 
 <span class="c"># 从镜像里直接导出示例配置 —— 只依赖镜像仓库，不需要能访问 github.com</span>
-docker run --rm ghcr.io/mijunyi/navi-homepage:latest \
+docker run --rm ghcr.io/DamiSunshine/navi-homepage:latest \
   cat /app/data/config.json &gt; data/config.json
 
 <span class="c"># 确认导出来了（应是一个几百字节到几 KB 的 JSON）</span>
@@ -410,7 +410,7 @@ NAVI_PASSWORD=换成一个足够强的密码
 <span class="c"># 可选：固定版本，避免 latest 漂移</span>
 <span class="c"># NAVI_TAG=1.0.0</span>
 <span class="c"># 可选：国内换用 GHCR 镜像站</span>
-<span class="c"># NAVI_IMAGE=镜像站域名/mijunyi/navi-homepage</span>
+<span class="c"># NAVI_IMAGE=镜像站域名/DamiSunshine/navi-homepage</span>
 <span class="s">EOF</span>
 
 chmod 600 .env        <span class="c"># 密码文件不要给别人读</span></pre>
@@ -424,7 +424,7 @@ chmod 600 .env        <span class="c"># 密码文件不要给别人读</span></p
 <p>把源码仓库里的 <code class="inline">docker-compose.image.yml</code> 放到 <code>/opt/navi/</code>：
 </p>
 <pre><span class="c"># 有源码仓库时直接拷；没有的话从网页下载这一个文件即可</span>
-<span class="c"># https://github.com/mijunyi/navi-homepage/blob/main/docker-compose.image.yml</span>
+<span class="c"># https://github.com/DamiSunshine/navi-homepage/blob/main/docker-compose.image.yml</span>
 cp /path/to/repo/docker-compose.image.yml .</pre>
 
 <div class="step"><span class="no">4</span><span class="t">先 pull，再启动</span></div>
@@ -514,7 +514,7 @@ docker compose -f docker-compose.image.yml up -d</pre>
 <h3>彻底卸载</h3>
 <pre>docker compose -f docker-compose.image.yml down
 <span class="c"># 镜像可以删；data/ 目录请自行确认后再删（那是你唯一的真实数据）</span>
-docker rmi ghcr.io/mijunyi/navi-homepage:latest</pre>
+docker rmi ghcr.io/DamiSunshine/navi-homepage:latest</pre>
 
 <!-- ==================== 11 ==================== -->
 <h2 id="s11">11. 常见问题与排查</h2>
@@ -630,7 +630,7 @@ curl -sS -o /dev/null -w <span class="s">"%{http_code}\n"</span> --max-time 20 h
 
 <span class="c"># 首次：建目录 + 导出初始配置</span>
 mkdir -p /opt/navi/data &amp;&amp; cd /opt/navi
-docker run --rm ghcr.io/mijunyi/navi-homepage:latest cat /app/data/config.json &gt; data/config.json
+docker run --rm ghcr.io/DamiSunshine/navi-homepage:latest cat /app/data/config.json &gt; data/config.json
 
 <span class="c"># 启动 / 升级</span>
 docker compose -f docker-compose.image.yml pull
@@ -644,7 +644,7 @@ docker logs --tail 50 navi
 curl -s http://127.0.0.1:8080/api/health
 
 <span class="c"># 换镜像站 / 固定版本（也可写进 .env）</span>
-NAVI_IMAGE=镜像站域名/mijunyi/navi-homepage NAVI_TAG=1.0.0 \
+NAVI_IMAGE=镜像站域名/DamiSunshine/navi-homepage NAVI_TAG=1.0.0 \
   docker compose -f docker-compose.image.yml up -d
 
 <span class="c"># 备份数据</span>
@@ -661,7 +661,7 @@ docker run -d --name navi --restart unless-stopped \
   -e NAVI_CONFIG_PATH=/app/data/config.json \
   -e NAVI_UPLOAD_DIR=/app/data/uploads \
   -v /opt/navi/data:/app/data \
-  ghcr.io/mijunyi/navi-homepage:latest
+  ghcr.io/DamiSunshine/navi-homepage:latest
 
 <span class="c"># 卸载（保留数据目录）</span>
 docker compose -f docker-compose.image.yml down

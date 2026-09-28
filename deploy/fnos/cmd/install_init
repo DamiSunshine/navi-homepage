@@ -1,0 +1,28 @@
+#!/bin/bash
+# Navi · 安装前检查
+#
+# 只做「装了会立刻失败」的前置校验，把错误写进 TRIM_TEMP_LOGFILE 供用户看到，
+# 而不是等安装到一半才失败。任何检查都不修改系统状态。
+LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+PORT="${TRIM_SERVICE_PORT:-}"
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "未检测到 docker 命令。请先在应用中心安装并启动 Docker，再安装本应用。" > "$LOG"
+    exit 1
+fi
+
+if ! docker info >/dev/null 2>&1; then
+    echo "Docker 服务当前不可用，请先在应用中心启动 Docker。" > "$LOG"
+    exit 1
+fi
+
+# 端口占用检查：manifest.checkport=true 时系统启动前也会查，这里提前告知，
+# 避免用户在安装向导走完才发现端口冲突。
+if [ -n "$PORT" ] && command -v ss >/dev/null 2>&1; then
+    if ss -ltn 2>/dev/null | awk '{print $4}' | grep -q ":${PORT}\$"; then
+        echo "端口 ${PORT} 已被占用。请先释放该端口，或修改 manifest 的 service_port 后重新打包。" > "$LOG"
+        exit 1
+    fi
+fi
+
+exit 0

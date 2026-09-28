@@ -1,0 +1,12 @@
+#!/bin/bash
+# Navi · 升级前检查
+#
+# 升级本身由应用中心处理；这里只确认 Docker 仍可用，并把停止用的提示留好。
+LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+
+if ! docker info >/dev/null 2>&1; then
+    echo "Docker 服务当前不可用，升级可能在启动阶段失败，请先启动 Docker。" > "$LOG"
+    exit 1
+fi
+
+exit 0

@@ -1,0 +1,37 @@
+[
+  {
+    "stepTitle": "修改站点设置",
+    "items": [
+      {
+        "type": "password",
+        "field": "navi_password",
+        "label": "访问密码",
+        "initValue": "",
+        "rules": [
+          {
+            "min": 6,
+            "message": "密码至少 6 位；留空表示不修改"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "field": "navi_site_title",
+        "label": "站点标题",
+        "initValue": "我的导航站"
+      },
+      {
+        "type": "text",
+        "field": "navi_site_subtitle",
+        "label": "副标题",
+        "initValue": "个人导航站"
+      },
+      {
+        "type": "text",
+        "field": "navi_lan_host",
+        "label": "内网地址基址（可选）",
+        "initValue": ""
+      }
+    ]
+  }
+]

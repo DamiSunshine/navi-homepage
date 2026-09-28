@@ -1,0 +1,16 @@
+appname               = navi
+version               = 1.1.1
+display_name          = Navi 导航站
+desc                  = 零依赖自建导航站：容器自动发现、拼音搜索、首页状态板、备份与图标库
+platform              = all
+source                = thirdparty
+maintainer            = DamiSunshine
+maintainer_url        = https://github.com/DamiSunshine/navi-homepage
+distributor           = DamiSunshine
+distributor_url       = https://github.com/DamiSunshine/navi-homepage
+desktop_uidir         = ui
+desktop_applaunchname = navi.main
+service_port          = 8080
+checkport             = true
+ctl_stop              = true
+changelog             = 首个 fnOS 原生安装包：应用中心一键安装/升级/卸载，数据持久化在应用数据目录，桌面图标直达站点

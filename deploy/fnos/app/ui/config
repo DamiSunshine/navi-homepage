@@ -1,0 +1,13 @@
+{
+  ".url": {
+    "navi.main": {
+      "title": "Navi 导航站",
+      "icon": "images/icon_{0}.png",
+      "type": "iframe",
+      "protocol": "http",
+      "port": "8080",
+      "url": "/",
+      "allUsers": true
+    }
+  }
+}

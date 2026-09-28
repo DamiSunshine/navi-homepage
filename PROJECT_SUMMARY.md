@@ -2,7 +2,7 @@
 
 > 记录本次「个人导航页 + Docker 容器化」从需求到上线运行的完整过程，供后续接手者快速了解全貌。
 > 状态：**已于 2026-09-20 完成 v1.1.0 发布并在 NAS 上线运行验证通过**。
-> 代码仓库 `github.com/mijunyi/navi-homepage`（public）｜镜像 `ghcr.io/mijunyi/navi-homepage`（public，匿名可拉）
+> 代码仓库 `github.com/DamiSunshine/navi-homepage`（public）｜镜像 `ghcr.io/DamiSunshine/navi-homepage`（public，匿名可拉）
 
 ---
 
@@ -42,7 +42,7 @@
 | 类别 | 成果 |
 |---|---|
 | 运行时 | `server.js` / `discovery.js` / `status.js` / `zip.js`（四个后端模块，单向依赖无环）+ 原生前端 |
-| 镜像 | `ghcr.io/mijunyi/navi-homepage`：标签 `1.1.0` / `1.1` / `latest` / `edge`，双架构，public |
+| 镜像 | `ghcr.io/DamiSunshine/navi-homepage`：标签 `1.1.0` / `1.1` / `latest` / `edge`，双架构，public |
 | 编排 | `docker-compose.yml`（源码构建）、`docker-compose.image.yml`（纯拉取，`-f` 二选一） |
 | 流水线 | `.github/workflows/docker-publish.yml`：推 main 出 `edge`，打 `v*.*.*` 出 semver + `latest` |
 | 质量 | **19 个测试套件 / 961 项断言 / 0 失败**（其中 9 套为真实浏览器 UI 测试） |

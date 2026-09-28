@@ -1,0 +1,31 @@
+#!/bin/bash
+# Navi · 运行状态查询
+#
+# 启动/停止由飞牛应用中心按 config/resource 的 docker-project 自动处理，
+# 这里只需要如实回答「现在到底跑没跑」，返回码：0=运行中，3=未运行，1=未知命令。
+CONTAINER_NAME="navi-fnos"
+
+case "$1" in
+start)
+    exit 0
+    ;;
+stop)
+    exit 0
+    ;;
+status)
+    state="$(docker inspect -f '{{.State.Status}}' "$CONTAINER_NAME" 2>/dev/null)"
+    if [ "$state" = "running" ]; then
+        exit 0
+    fi
+    if [ -n "$state" ]; then
+        echo "容器 ${CONTAINER_NAME} 当前状态为 ${state}，应用未处于运行状态。" > "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+    else
+        echo "未找到容器 ${CONTAINER_NAME}，应用可能尚未启动或已被移除。" > "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+    fi
+    exit 3
+    ;;
+*)
+    echo "未知命令：$1" > "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+    exit 1
+    ;;
+esac

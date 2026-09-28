@@ -2,7 +2,7 @@
 
 参考 [sun-panel](https://github.com/hslr-s/sun-panel) 核心思路实现的轻量级个人导航面板：**前端可视化编辑 + 零依赖 Node 后端**的 All-in-One Docker 镜像，开箱即用。
 
-> **已经发布预构建镜像**：`ghcr.io/mijunyi/navi-homepage`（含 `linux/amd64` 与 `linux/arm64`）。
+> **已经发布预构建镜像**：`ghcr.io/DamiSunshine/navi-homepage`（含 `linux/amd64` 与 `linux/arm64`）。
 > 不想构建、不想传源码，只想在另一台机器上一条命令跑起来 → 直接看 **[`docs/image-deploy-guide.html`](docs/image-deploy-guide.html)**（拉取镜像部署指南）。
 
 ## 特性
@@ -81,7 +81,7 @@
 mkdir -p data
 
 # ① 从镜像里导出初始配置（挂载会遮住镜像内置的示例配置，这步不能省）
-docker run --rm ghcr.io/mijunyi/navi-homepage:latest cat /app/data/config.json > data/config.json
+docker run --rm ghcr.io/DamiSunshine/navi-homepage:latest cat /app/data/config.json > data/config.json
 
 # ② 写下访问密码（compose 用 ${NAVI_PASSWORD:?...} 强制校验，缺了会直接报错退出）
 echo 'NAVI_PASSWORD=你的强密码' > .env
@@ -162,7 +162,7 @@ docker compose up -d
 | `NAVI_DISCOVER_TIMEOUT` | 单次 Docker API 超时（毫秒） | `2500` |
 | `NAVI_STATUS_BOARD` | 设为 `0` 关闭首页状态板（`/api/status` 只回 `disabled:true`，前端静默隐藏） | `1` |
 | `NAVI_STATUS_TTL` | 状态板数据的服务端缓存时长（毫秒）；前端 30s 轮询，多人打开时会放大 Docker 压力 | `5000` |
-| `NAVI_IMAGE` | **仅 compose 读取**：换用 GHCR 镜像站 / 自建代理（国内直连 ghcr.io 常不通） | `ghcr.io/mijunyi/navi-homepage` |
+| `NAVI_IMAGE` | **仅 compose 读取**：换用 GHCR 镜像站 / 自建代理（国内直连 ghcr.io 常不通） | `ghcr.io/DamiSunshine/navi-homepage` |
 | `NAVI_TAG` | **仅 compose 读取**：固定镜像版本，避免 `latest` 漂移（可填 `1.2.3` / `1.2` / `edge`） | `latest` |
 | `DOCKER_GID` | **仅 compose 读取**：以非 root（`user:`）运行时的 docker 组 GID，用于 `group_add` | 未启用 |
 
@@ -489,6 +489,8 @@ git push origin v1.0.0
 ├── docker-compose.image.yml    # 【纯拉取模式】无 build:，直接拉 ghcr.io 上的预构建镜像（二选一，靠 -f 切换）
 ├── .github/workflows/
 │   └── docker-publish.yml      # 打 tag / 推 main 时自动构建多架构镜像并发布到 GHCR + 冒烟启动验证
+├── deploy/fnos/                # ★ fnOS 应用安装包（.fpk）源工程：manifest / 权限与资源声明 / 生命周期脚本 / 安装向导 / 包内 compose / 图标
+│   └── README.md               #   打 fpk 的完整步骤（fnpack 下载 → 构建 → 校验 → 发版顺序）与踩过的坑
 ├── .gitignore                  # 排除私有/运行时数据（config.json、uploads、data、backups 等），发布 GitHub 前必备
 ├── server.js                   # 静态托管 + /api/config 读写 + 备份/恢复（含 zip）+ 图床库 / Logo 上传 + 服务发现 + 状态板（仅 Node 内置模块）
 ├── discovery.js                # 服务发现模块：Docker Engine API / 本机端口扫描 / 服务指纹库 / 图标匹配 / 地址拼装
@@ -512,6 +514,8 @@ git push origin v1.0.0
 │   ├── publish-github.cjs      # 预检 → 提交 → 建仓 → 推送（凭据从环境变量或 .env 读，不进 argv）
 │   ├── build-pinyin.cjs        # 从 mozillazg/pinyin-data 生成前端拼音表（产物 public/js/pinyin.js 入库）
 │   ├── build-icons.cjs         # ★ 生成内置本地图标库（242 条精选 + 国内站点 favicon 兜底 → public/icons/ + icon-map.js 入库）
+│   ├── build-fpk.cjs           # ★ 打 fnOS 安装包：调 fnpack → 规范化属主/权限与 manifest 换行 → 出厂校验 → deploy/fnos/dist/*.fpk
+│   ├── build-fpk-icon.cjs      # 生成 fpk 用的 64×64 / 256×256 图标（Playwright 渲染，与站点 favicon 同源）
 │   ├── build-share.cjs         # 构建线上预览包 share/（落地页 + preview.html + 截图 + 指南 HTML/PDF）
 │   ├── verify-share.cjs        # 校验 share/ 构建产物完整性
 │   ├── verify-share-ui.cjs     # ★ 用真实浏览器查「线上」预览站：内容新鲜度 + 截图能否解码

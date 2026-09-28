@@ -1,0 +1,26 @@
+{
+  "site": {
+    "title": "Navi",
+    "subtitle": "个人导航站",
+    "footer": "Powered by Navi · IPv4 / IPv6 双栈 · Docker Ready",
+    "defaultEngine": "百度",
+    "searchEngines": [
+      { "name": "百度", "url": "https://www.baidu.com/s?wd=%s" },
+      { "name": "必应", "url": "https://www.bing.com/search?q=%s" },
+      { "name": "Google", "url": "https://www.google.com/search?q=%s" }
+    ]
+  },
+  "groups": [
+    {
+      "name": "常用站点",
+      "items": [
+        {
+          "title": "示例站点",
+          "desc": "安装后请用应用内的「编辑模式」替换成本机服务",
+          "icon": "iconify:simple-icons:homeassistant",
+          "url": "http://192.168.1.10:8123"
+        }
+      ]
+    }
+  ]
+}

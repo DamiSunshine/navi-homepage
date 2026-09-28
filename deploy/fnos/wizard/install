@@ -1,0 +1,51 @@
+[
+  {
+    "stepTitle": "站点设置",
+    "items": [
+      {
+        "type": "password",
+        "field": "navi_password",
+        "label": "访问密码",
+        "initValue": "",
+        "rules": [
+          {
+            "required": true,
+            "message": "请设置访问密码（留空会让站点在无鉴权状态下对外开放）"
+          },
+          {
+            "min": 6,
+            "message": "密码至少 6 位"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "field": "navi_site_title",
+        "label": "站点标题",
+        "initValue": "我的导航站"
+      },
+      {
+        "type": "text",
+        "field": "navi_site_subtitle",
+        "label": "副标题",
+        "initValue": "个人导航站"
+      },
+      {
+        "type": "text",
+        "field": "navi_lan_host",
+        "label": "内网地址基址（可选）",
+        "initValue": "",
+        "helpText": "填 NAS 的内网 IP 或主机名（如 192.168.1.10），留空则自动探测"
+      }
+    ]
+  },
+  {
+    "stepTitle": "安装说明",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "安装完成后：桌面会出现「Navi 导航站」图标，点击即可打开站点；数据保存在应用数据目录，升级与重装都不会清空。若本机已有手动部署的 Navi 容器，两者可以并存（新装的应用使用 8080 端口、容器名 navi-fnos）。"
+      }
+    ]
+  }
+]

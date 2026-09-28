@@ -230,7 +230,7 @@ docker compose ps</pre>
   <tr><td><code>docker-compose.image.yml</code></td><td>不含 <code>build:</code>，只拉 <code>ghcr.io</code> 上的预构建镜像</td><td>只是想把服务跑起来</td></tr>
 </table>
 <pre><span class="c"># 1. 从镜像里导出初始配置（挂载会遮住镜像内置示例，这步不能省）</span>
-docker run --rm ghcr.io/mijunyi/navi-homepage:latest cat /app/data/config.json &gt; data/config.json
+docker run --rm ghcr.io/DamiSunshine/navi-homepage:latest cat /app/data/config.json &gt; data/config.json
 
 <span class="c"># 2. 先 pull 再起（直接 up 会复用本地旧镜像，升级时最容易踩）</span>
 docker compose -f docker-compose.image.yml pull

@@ -34,6 +34,13 @@ yarn-error.log*
 # 云端预览专用启动壳：内含预览实例的密码哈希，严禁入库
 preview-launcher.js
 
+# ---- fnOS 打包（deploy/fnos/） ----
+# fnpack 官方二进制（约 3.9MB，各平台不同，由使用者自行下载，见 deploy/fnos/README.md）
+deploy/fnos/tools/
+# fnpack 的直接产物与最终安装包（由 scripts/build-fpk.cjs 重建）
+deploy/fnos/*.fpk
+*.fpk
+
 # ---- 编辑器 / 系统 ----
 .vscode/
 .idea/

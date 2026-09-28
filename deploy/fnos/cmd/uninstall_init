@@ -1,0 +1,12 @@
+#!/bin/bash
+# Navi · 卸载前检查
+#
+# 不阻止卸载，只确保用户知道自己删掉的是什么：数据目录是唯一不可再生的东西。
+LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+APPNAME="${TRIM_APPNAME:-navi}"
+VAR_DIR="${TRIM_PKGVAR:-/var/apps/${APPNAME}/var}"
+
+echo "卸载将移除应用与容器；站点数据位于 ${VAR_DIR}/data（含 config.json 与 uploads）。" \
+     "如仍需使用，请先备份该目录或导出配置。" > "$LOG"
+
+exit 0

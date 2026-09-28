@@ -1,0 +1,13 @@
+#!/bin/bash
+# Navi · 应用设置变更前检查
+#
+# 设置页提交的是访问密码/站点标题等，没有需要预校验的破坏性动作，
+# 这里只做一次输入合法性复核：密码要么没改，要么给足长度。
+LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+
+if [ -n "${navi_password:-}" ] && [ "${#navi_password}" -lt 6 ]; then
+    echo "访问密码至少 6 位，请重新填写。" > "$LOG"
+    exit 1
+fi
+
+exit 0
