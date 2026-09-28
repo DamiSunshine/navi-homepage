@@ -1,7 +1,8 @@
 # Navi 导航站 · 容器化开发项目总结
 
 > 记录本次「个人导航页 + Docker 容器化」从需求到上线运行的完整过程，供后续接手者快速了解全貌。
-> 状态：**已于 2026-09-20 完成 v1.1.0 发布并在 NAS 上线运行验证通过**。
+> 状态：**v1.1.0 已于 2026-09-20 发布并在 NAS 上线运行验证通过**；
+> v1.1.1（2026-09-28）已发布 —— 新增 fnOS 应用安装包（`.fpk`），运行时代码无变更。
 > 代码仓库 `github.com/DamiSunshine/navi-homepage`（public）｜镜像 `ghcr.io/DamiSunshine/navi-homepage`（public，匿名可拉）
 
 ---
@@ -42,8 +43,9 @@
 | 类别 | 成果 |
 |---|---|
 | 运行时 | `server.js` / `discovery.js` / `status.js` / `zip.js`（四个后端模块，单向依赖无环）+ 原生前端 |
-| 镜像 | `ghcr.io/DamiSunshine/navi-homepage`：标签 `1.1.0` / `1.1` / `latest` / `edge`，双架构，public |
+| 镜像 | `ghcr.io/DamiSunshine/navi-homepage`：标签 `1.1.1` / `1.1` / `latest` / `edge`，双架构，public（旧命名空间 `ghcr.io/mijunyi/…` 已冻结在 1.1.0） |
 | 编排 | `docker-compose.yml`（源码构建）、`docker-compose.image.yml`（纯拉取，`-f` 二选一） |
+| 安装包 | `deploy/fnos/` + `scripts/build-fpk.cjs`：可打出 **fnOS 应用安装包 `.fpk`**（应用中心一键安装 / 升级 / 卸载），产物随 Release 附件分发 |
 | 流水线 | `.github/workflows/docker-publish.yml`：推 main 出 `edge`，打 `v*.*.*` 出 semver + `latest` |
 | 质量 | **19 个测试套件 / 961 项断言 / 0 失败**（其中 9 套为真实浏览器 UI 测试） |
 | 文档 | 门户站点 `docs/site.html`、项目概览 `docs/overview.html`、成果预览 `docs/showcase.html`、路线图 `docs/roadmap.html`、三份部署指南 + 三份 PDF |
@@ -94,6 +96,9 @@
 
 - 补三份站点：门户站点、项目概览、迭代成果预览；同时给它们的数字加护栏断言，防止文档漂移。
 - 发 `v1.1.0`：统一四处硬编码版本号 → 补版本号一致性护栏 → 全量回归 → 重建发布包 → 推 main → 打 tag → 验 GHCR 产出。
+- 发 `v1.1.1`（2026-09-28）：同一套流程，另加两件事 —— 新增 `deploy/fnos/` 打包工程与 `scripts/build-fpk.cjs`
+  （`fnpack` 出包 + 属主权限规范化 + 出厂校验），并创建 Release 把 `.fpk` 作为附件上传；
+  同时把全仓 owner 引用从 `mijunyi` 迁到 `DamiSunshine`（58 处，`docs/roadmap.html` 的审计快照按原样保留）。
 
 ---
 
