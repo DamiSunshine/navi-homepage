@@ -831,6 +831,16 @@ sudo chown -R 1000:1000 /vol1/1000/docker/navi/data</pre>
 <h3>排查</h3>
 <table>
   <tr><th style="width:34%">现象</th><th>怎么办</th></tr>
+  <tr><td><strong>安装直接失败</strong><br>（应用中心弹错，装完在已安装列表里找不到 Navi）</td>
+    <td>飞牛会把失败的安装<strong>完整回滚</strong>——所以事后既看不到 <code class="inline">@appcenter/navi</code>
+      也看不到 <code class="inline">@appdata/navi</code>，这是正常的，<strong>不是「没装过」也不代表有残留要清</strong>。
+      排查入口有两个：应用中心失败弹窗里可展开的日志，以及 <code class="inline">/tmp/navi-lifecycle.log</code>
+      （<strong>不随回滚消失</strong>，里面有执行身份、数据目录是否可写、各步骤的先后顺序）。
+      细节见 <code class="inline">deploy/fnos/README.md</code> 第 7 节。</td></tr>
+  <tr><td>安装报 <code class="inline">env file …navi.env not found</code></td>
+    <td>包内 compose 读取 <code class="inline">navi.env</code> 那一刻文件不存在。1.1.1 的修正版已加
+      「预先创建 → 写入向导真实值 → 启动时救援」<strong>三层保险</strong>，重装最新安装包即可；
+      若仍出现，把 <code class="inline">/tmp/navi-lifecycle.log</code> 发出来即可定位。</td></tr>
   <tr><td>装完打不开</td><td>先在应用中心看运行状态（它是权威）；再看 <code class="inline">docker logs --tail 50 navi-fnos</code></td></tr>
   <tr><td>提示端口被占用</td><td>应用设置里换一个端口（如 <code class="inline">8081</code>）后重启应用</td></tr>
   <tr><td>忘了访问密码</td><td>编辑数据目录下的 <code class="inline">navi.env</code>（改 <code class="inline">NAVI_PASSWORD</code>），重启应用</td></tr>

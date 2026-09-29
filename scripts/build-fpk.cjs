@@ -219,6 +219,25 @@ function verify(fpkPath) {
     }
   }
 
+  // cmd/main 的 start 分支必须能在最后关头补出 compose 的 env_file。
+  // 原因是 install_init 那一步存在一个**无法从官方文档确认**的风险：飞牛调用它时
+  // @appdata/<app> 可能尚未创建、或尚未授权给包用户（社区生产级 fpk 的注释里明确提到；
+  // 本机实测 /vol1/@appdata 是 0755 root:root，非 root 的包用户无法在其中建目录）。
+  // 而 start 一定发生在安装完成之后 —— 那时目录必然已存在且可写，所以它是可靠的救援点。
+  if (mainEntry && !/navi\.env/.test(mainEntry.data.toString("utf8"))) {
+    problems.push("cmd/main 的 start 分支没有兜住 compose 的 env_file：install_init 阶段 @appdata 可能尚未创建，" +
+      "少了这层救援，文件不在时 docker compose 会直接让安装失败（v1.1.1 事故）");
+  }
+
+  // 诊断轨迹必须保留。飞牛安装失败时会**整包回滚**（@appdata/navi 被删），现场随之消失；
+  // v1.1.1 连续两次失败都因为「什么都没留下」而只能靠猜。这条断言防止它被顺手删掉。
+  for (const name of ["cmd/install_init", "cmd/install_callback", "cmd/main"]) {
+    const entry = byName.get(name);
+    if (entry && !/\/tmp\/navi-lifecycle\.log/.test(entry.data.toString("utf8"))) {
+      problems.push(name + " 缺少诊断轨迹（应写 /tmp/navi-lifecycle.log）：安装失败会整包回滚，没有它无法判断卡在哪一步");
+    }
+  }
+
   // 生命周期脚本的两类「退出码 / 日志」事故 —— v1.1.1 第二轮安装失败的真正原因：
   //   ① `[ ... ] && echo ...` 当条件为假时退出码是 1，而 `{ ...; }` 取最后一条命令的退出码，
   //      于是「向导里留空的字段」（内网地址基址默认就是空）会让整组返回 1，

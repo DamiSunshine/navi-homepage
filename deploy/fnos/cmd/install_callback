@@ -31,6 +31,34 @@ WIZ_TITLE="${wizard_navi_site_title:-${navi_site_title:-}}"
 WIZ_SUBTITLE="${wizard_navi_site_subtitle:-${navi_site_subtitle:-}}"
 WIZ_LAN_HOST="${wizard_navi_lan_host:-${navi_lan_host:-}}"
 
+# ── 诊断轨迹 ────────────────────────────────────────────────────────────
+# 飞牛在安装失败时会**整包回滚**（@appdata/navi 会被删掉），现场随之消失 ——
+# v1.1.1 两次失败都因为「什么都没留下」而只能靠猜。
+# 所以轨迹固定另写一份到 /tmp（不随回滚消失），应用中心能看到的日志里也留一份。
+# 只记事实、不记值（其中可能有密码）。
+trace() {
+    _t="$(date '+%F %T' 2>/dev/null)"
+    _w="no"
+    if [ -n "${TRIM_PKGVAR:-}" ] && [ -w "${TRIM_PKGVAR}" ]; then _w="yes"; fi
+    _line="navi/${1} ${_t} status=${TRIM_APP_STATUS:-?} run=${TRIM_RUN_USERNAME:-?}(uid=${TRIM_RUN_UID:-?}) appuser=${TRIM_USERNAME:-?} pkgvar=${TRIM_PKGVAR:-unset} pkgvar_writable=${_w}"
+    echo "${_line}" >> /tmp/navi-lifecycle.log 2>/dev/null
+    if [ -n "${TRIM_TEMP_LOGFILE:-}" ]; then
+        echo "${_line}" >> "${TRIM_TEMP_LOGFILE}" 2>/dev/null
+    fi
+    if [ "${_w}" = "yes" ]; then
+        echo "${_line}" >> "${TRIM_PKGVAR}/lifecycle.log" 2>/dev/null
+    fi
+    return 0
+}
+
+trace "install_callback"
+
+# 向导字段到底有没有传进来：只记名字不记值。
+# 这一行直接决定密码来源（向导值 / 沿用已有 / 降级随机），是排查的第一线索。
+if [ -n "${TRIM_TEMP_LOGFILE:-}" ]; then
+    echo "收到的向导字段：$(env | grep -oE '^(wizard_navi_[a-z_]*|navi_[a-z_]*)' | sort -u | tr '\n' ' ')" >> "$LOG"
+fi
+
 mkdir -p "$DATA_DIR/uploads" || {
     echo "无法创建数据目录 ${DATA_DIR}，请检查存储空间权限。" >> "$LOG"
     exit 1
@@ -86,4 +114,5 @@ echo "Navi 初始化完成：数据目录 ${DATA_DIR}，环境变量文件 ${ENV
 if [ -z "$WIZ_PW" ]; then
     echo "注：本次未取到向导密码，访问密码以 ${DATA_DIR}/PASSWORD.txt 或 ${VAR_DIR}/INITIAL_PASSWORD.txt 为准；改动密码后需在应用中心「停止」再「启动」一次才会生效。" >> "$LOG"
 fi
+trace "install_callback 完成 env_file=$([ -f "$ENV_FILE" ] && echo ok || echo missing) config=$([ -f "${DATA_DIR}/config.json" ] && echo ok || echo missing)"
 exit 0

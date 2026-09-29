@@ -46,6 +46,28 @@ note() {
     return 0
 }
 
+# ── 诊断轨迹 ────────────────────────────────────────────────────────────
+# 飞牛在安装失败时会**整包回滚**（@appdata/navi 会被删掉），现场随之消失 ——
+# v1.1.1 两次失败都因为「什么都没留下」而只能靠猜。
+# 所以轨迹固定另写一份到 /tmp（不随回滚消失），应用中心能看到的日志里也留一份。
+# 只记事实、不记值（其中可能有密码）。
+trace() {
+    _t="$(date '+%F %T' 2>/dev/null)"
+    _w="no"
+    if [ -n "${TRIM_PKGVAR:-}" ] && [ -w "${TRIM_PKGVAR}" ]; then _w="yes"; fi
+    _line="navi/${1} ${_t} status=${TRIM_APP_STATUS:-?} run=${TRIM_RUN_USERNAME:-?}(uid=${TRIM_RUN_UID:-?}) appuser=${TRIM_USERNAME:-?} pkgvar=${TRIM_PKGVAR:-unset} pkgvar_writable=${_w}"
+    echo "${_line}" >> /tmp/navi-lifecycle.log 2>/dev/null
+    if [ -n "${TRIM_TEMP_LOGFILE:-}" ]; then
+        echo "${_line}" >> "${TRIM_TEMP_LOGFILE}" 2>/dev/null
+    fi
+    if [ "${_w}" = "yes" ]; then
+        echo "${_line}" >> "${TRIM_PKGVAR}/lifecycle.log" 2>/dev/null
+    fi
+    return 0
+}
+
+trace "install_init"
+
 # ① Docker 可用性：只做存在性探测。stat 一个 socket 文件不需要任何权限，也不会误判。
 if [ ! -S /var/run/docker.sock ]; then
     note "提示：未看到 /var/run/docker.sock。若 Docker 未安装或未启动，本应用会在启动阶段失败，请先在应用中心装好并启动 Docker。"
@@ -74,13 +96,14 @@ fi
 #    向导字段兼容两种命名：wizard_navi_xxx（当前，官方建议的 wizard_ 前缀）与 navi_xxx（早期版本）。
 WIZ_PW="${wizard_navi_password:-${navi_password:-}}"
 if [ ! -f "$ENV_FILE" ]; then
-    if mkdir -p "$VAR_DIR" 2>/dev/null; then
+    if _mkerr="$(mkdir -p "$VAR_DIR" 2>&1)"; then
         if [ -z "$WIZ_PW" ]; then
             WIZ_PW="$( { date +%s%N; cat /proc/sys/kernel/random/uuid 2>/dev/null; } | sha256sum | cut -c1-16 )"
             RANDOM_PW=1
         fi
         umask 077
-        if printf 'NAVI_PASSWORD=%s\n' "$WIZ_PW" > "$ENV_FILE" 2>/dev/null; then
+        _werr="$( { printf 'NAVI_PASSWORD=%s\n' "$WIZ_PW" > "$ENV_FILE"; } 2>&1 )"
+        if [ -z "$_werr" ] && [ -f "$ENV_FILE" ]; then
             chmod 600 "$ENV_FILE" 2>/dev/null
             if [ "${RANDOM_PW:-0}" = "1" ]; then
                 printf '%s\n' "$WIZ_PW" > "${VAR_DIR}/INITIAL_PASSWORD.txt" 2>/dev/null
@@ -90,16 +113,28 @@ if [ ! -f "$ENV_FILE" ]; then
                 note "已预先创建 ${ENV_FILE}（密码取自安装向导）。"
             fi
         else
-            note "提示：无法写入 ${ENV_FILE}。若随后安装报 env file not found，请检查 ${VAR_DIR} 的属主与写入权限。"
+            note "提示：无法写入 ${ENV_FILE}（${_werr:-无输出}）。"
+            note "      compose 的 env_file 是硬依赖，缺它安装会报 env file not found；"
+            note "      无需手工处理 —— 应用启动时 cmd/main 还会再兜一次（那时目录必然已就绪）。"
         fi
     else
-        note "提示：无法创建数据目录 ${VAR_DIR}。若随后安装报 env file not found，请检查存储空间权限。"
+        note "提示：无法创建数据目录 ${VAR_DIR}（${_mkerr:-无输出}）。"
+        note "      该目录正常由飞牛创建并授权给包用户；本机 /vol1/@appdata 为 0755 root:root，"
+        note "      包用户自身无法在其中新建目录。若随后安装报 env file not found：无需手工处理，"
+        note "      应用启动时 cmd/main 会补写这份文件。"
     fi
 else
     note "已存在环境变量文件 ${ENV_FILE}，保持原样（升级/重装不会覆盖既有密码）。"
 fi
 
-# ⑤ 诊断线索：只记名字不记值（其中可能有密码）。
+# ⑤ 轨迹收尾：一眼看出 env 文件到底落没落下来（这是判断 compose 会不会失败的关键）。
+if [ -f "$ENV_FILE" ]; then
+    trace "install_init 完成 env_file=ok"
+else
+    trace "install_init 完成 env_file=missing（转由 cmd/main start 兜底）"
+fi
+
+# ⑥ 诊断线索：只记名字不记值（其中可能有密码）。
 if [ -n "${TRIM_TEMP_LOGFILE:-}" ]; then
     {
         echo "--- 诊断 ---"

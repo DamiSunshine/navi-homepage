@@ -226,15 +226,31 @@ env file /vol1/@appdata/navi/navi.env not found: stat /vol1/@appdata/navi/navi.e
 
 **为什么「放在 `install_init` 就一定够早」**：compose 文件本身就在 `app.tgz` 里，而 `app.tgz` 是在
 `install_init` **之后**才解包的 —— 飞牛不可能在 compose 文件还不存在的时候就拉起 docker-project。
-所以时间顺序必然是 `install_init` → 解包 → (拉起 docker-project) → `install_callback`，
-只要 `install_init` 写得成这个文件，compose 就一定读得到。反过来说，**不要让 compose 依赖任何
-`install_callback`（或更晚）才会产生的文件**，那是必然的竞态。
+官方文档只保证「`install_init` 在释放文件**前**、`install_callback` 在释放文件**后**」，
+**并没有写明 docker-project 是在这两者之间启动、还是在 `install_callback` 之后启动**。
+所以正确的做法是两头都堵：`install_init` 先把文件落好（只要它写得成，compose 就一定读得到），
+`install_callback` 再用真实值覆盖。反过来说，**绝不要让 compose 依赖任何 `install_callback`
+（或更晚）才会产生的文件** —— 那是必然的竞态。
 
-唯一残留的失败可能是 `install_init` **没权限写** `${TRIM_PKGVAR}`（该目录通常由飞牛创建并 chown 给
-包用户，若被改动过就会失败）。这种情况日志里会留下一句明确的
-`提示：无法创建数据目录 …` / `提示：无法写入 …` —— 见第 6 节的排查入口。
+**三层保险**（v1.1.1 第三轮加固）：
 
-出厂校验会把 compose 的 `env_file` 文件名与 `install_init` 做交叉核对，改了名字忘了同步就打不出包。
+| 层 | 位置 | 触发时机 | 作用 |
+|---|---|---|---|
+| ① | `cmd/install_init` | 安装流程最早一步 | 预先落一份（向导值 → 无则随机值 + `INITIAL_PASSWORD.txt`） |
+| ② | `cmd/install_callback` | 应用文件释放后 | 用向导里的真实值覆盖 |
+| ③ | `cmd/main` 的 `start` 分支 | **每次启动**（含安装完成后） | 文件缺失就补一份；**已存在则一律不动**（绝不覆盖既有密码） |
+
+第 ③ 层是为一个**无法从官方文档确认**的风险准备的。社区那份生产级 fpk 的 `install_init` 里明确写着：
+
+> `# install_init 在 fnOS 调用时，数据目录（@appdata）可能尚未挂载或创建。`
+
+本机实测 `/vol1/@appdata` 是 `drwxr-xr-x root root`（0755）—— **非 root 的包用户无法在其中新建目录**。
+所以 `${TRIM_PKGVAR}` 若在 `install_init` 阶段还不存在，第 ① 层就写不成（脚本会记下
+`提示：无法创建数据目录 …` 并把 `mkdir` 的原文附上）。而 `start` 一定发生在**安装完成之后**，
+那时目录必然已存在且可写，第 ③ 层因此是可靠的兜底。三层全失败才会真的报 `env file not found`。
+
+出厂校验会盯着三件事：compose 的 `env_file` 文件名与 `install_init` 交叉核对（改名忘同步打不出包）、
+`cmd/main` 必须含 `navi.env`（第 ③ 层不能被顺手删掉）、三个关键脚本必须保留诊断轨迹。
 
 ### 向导字段一律加 `wizard_` 前缀
 
@@ -328,6 +344,24 @@ WIZ_PW="${wizard_navi_password:-${navi_password:-}}"
 
 最后一行最有用：**「收到的向导字段」**里有没有 `wizard_navi_password`，直接决定密码从哪来。
 
+**trace 文件（第三轮新增，最可靠的一手证据）**：安装失败会**整包回滚**，`@appdata/navi` 连同里面的
+日志一起消失。所以 `install_init` / `install_callback` / `cmd/main` 都会把一行事实追加到
+
+```
+/tmp/navi-lifecycle.log
+```
+
+它不随回滚消失，一行一次调用，形如：
+
+```
+navi/install_init 2026-09-29 09:43:43 status=INSTALL run=root(uid=0) appuser=docker-navi pkgvar=/vol1/@appdata/navi pkgvar_writable=no
+navi-main/start   2026-09-29 09:43:51 status=START   run=root(uid=0) appuser=docker-navi pkgvar=/vol1/@appdata/navi pkgvar_writable=yes
+```
+
+看三件事：**谁执行**（`run=`）、**数据目录能不能写**（`pkgvar_writable=`）、**各脚本的先后顺序**
+（尤其 `install_callback` 与 `main start` 谁先 —— 这直接决定 compose 拉起时读的是哪一份密码）。
+（`status` 分支刻意不记：应用中心会轮询，会把文件撑大。）
+
 ### 第三步：环境侧确认（只读）
 
 ```bash
@@ -335,6 +369,16 @@ docker compose version                      # 决定能否用「可选的 env_fi
 ls -la /vol1/ | head -20                    # 存储空间布局
 ls /vol1/@appdata/ /vol1/@appcenter/ | head # 别的应用是否也在这里（确认布局没被改过）
 docker ps -a --filter name=navi-fnos        # 有没有残留容器占着 8080
+
+# 关键：@appdata 下的应用目录由谁创建、属主是谁 —— 决定 install_init 能不能写
+ls -ld /vol1/@appdata/docker-komga /vol1/@appdata/1Panel
+# 顺便抄一份「本机官方 docker 应用」的写法（比任何文档都权威）
+cat /vol1/@appcenter/docker-komga/config/resource
+```
+
+```bash
+# 单独验一遍 env 文件到底建不建得出来（把变量换成日志里的实际值）
+sudo install -d -o <包用户名> -g <包用户组> /vol1/@appdata/navi && echo 可写 || echo 不可写
 ```
 
 ```bash

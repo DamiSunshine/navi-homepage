@@ -1,18 +1,37 @@
 #!/bin/bash
-# Navi · 运行状态查询
+# Navi · 运行状态查询 + 启动前兜底
 #
 # 启动/停止由飞牛应用中心按 config/resource 的 docker-project 自动处理，
 # 这里只需要如实回答「现在到底跑没跑」。返回码：0=运行中，3=未运行，1=未知命令。
 #
-# 状态判定分两级，因为生命周期脚本不一定拿得到 Docker：
+# ── 状态判定为什么分两级 ────────────────────────────────────────────────
+# 生命周期脚本不一定拿得到 Docker：
 #   ① 能问 Docker 就问 Docker —— 最准确，还能区分 running / exited / 容器不存在；
 #   ② 问不到时（命令不在 PATH、socket 不可达、执行身份没有权限）**不能直接断言「未运行」**，
 #      否则应用中心会一直显示已停止、用户点启动又没反应。退回与权限无关的探测：
 #      服务端口在监听，而且 HTTP 确实有应答。
 # 命令一律先查 PATH、再查绝对路径：生命周期脚本的 PATH 比用户 SSH 里窄，
 # 只认 PATH 会平白多出一批「命令不存在」的假故障。
+#
+# ── start 分支为什么还有活干 ────────────────────────────────────────────
+# 包内 compose 用 env_file 读 ${TRIM_PKGVAR}/navi.env 注入访问密码，而 compose 对
+# env_file 是**硬依赖**：文件不在，docker compose 直接报 `env file ... not found`，
+# 整个安装失败（v1.1.1 第二次事故）。
+# 文件的第一道保险是 cmd/install_init（流程最早的一步），但它有一个无法从官方文档
+# 确认的风险：**飞牛调用 install_init 时，@appdata/<app> 有可能尚未创建、
+# 或尚未授权给包用户**（社区生产级 fpk 的注释里明确提到这一点；本机实测
+# /vol1/@appdata 是 0755 root:root，非 root 用户无法在其中建目录）。
+# 而 start 一定发生在**安装完成之后** —— 那时该目录必然已存在且可写。
+# 所以这里兜最后一道：文件缺失就补一份，已存在则一律不动。
+# 三层顺序：install_init（最早）→ install_callback（写入向导里的真实值）→ 本处（最后救援）。
+#
+# 约定：start/stop 永远 exit 0（真失败交给飞牛报它自己的错）；本脚本不改动任何既有配置。
+LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
 CONTAINER_NAME="navi-fnos"
 PORT="${TRIM_SERVICE_PORT:-8080}"
+APPNAME="${TRIM_APPNAME:-navi}"
+VAR_DIR="${TRIM_PKGVAR:-/var/apps/${APPNAME}/var}"
+ENV_FILE="${VAR_DIR}/navi.env"
 
 find_cmd() {
     for c in "$@"; do
@@ -21,6 +40,55 @@ find_cmd() {
         if [ -x "/usr/bin/$c" ]; then echo "/usr/bin/$c"; return 0; fi
     done
     return 1
+}
+
+# ── 诊断轨迹 ────────────────────────────────────────────────────────────
+# 飞牛在安装失败时会**整包回滚**（@appdata/navi 会被删掉），现场随之消失 ——
+# v1.1.1 两次失败都因为「什么都没留下」而只能靠猜。
+# 所以轨迹固定另写一份到 /tmp（不随回滚消失），应用中心能看到的 TRIM_TEMP_LOGFILE 里也留一份。
+# 只记事实、不记值（其中可能有密码）。status 分支刻意不记：应用中心会轮询，会把文件撑大。
+trace() {
+    _t="$(date '+%F %T' 2>/dev/null)"
+    _w="no"
+    if [ -n "${TRIM_PKGVAR:-}" ] && [ -w "${TRIM_PKGVAR}" ]; then _w="yes"; fi
+    _line="navi-main/${1} ${_t} status=${TRIM_APP_STATUS:-?} run=${TRIM_RUN_USERNAME:-?}(uid=${TRIM_RUN_UID:-?}) appuser=${TRIM_USERNAME:-?} pkgvar=${TRIM_PKGVAR:-unset} pkgvar_writable=${_w}"
+    echo "${_line}" >> /tmp/navi-lifecycle.log 2>/dev/null
+    if [ -n "${TRIM_TEMP_LOGFILE:-}" ]; then
+        echo "${_line}" >> "${TRIM_TEMP_LOGFILE}" 2>/dev/null
+    fi
+    if [ "${_w}" = "yes" ]; then
+        echo "${_line}" >> "${TRIM_PKGVAR}/lifecycle.log" 2>/dev/null
+    fi
+    return 0
+}
+
+# 最后一道救援：把 compose 的 env_file 补出来。已有则不动（绝不覆盖用户既有密码）。
+ensure_env_file() {
+    if [ -f "$ENV_FILE" ]; then
+        return 0
+    fi
+    if ! mkdir -p "$VAR_DIR" 2>/dev/null; then
+        echo "警告：无法创建数据目录 ${VAR_DIR}，无法补写 ${ENV_FILE}；compose 会因 env file 缺失而起不来。" >> "$LOG"
+        return 1
+    fi
+    _pw=""
+    if [ -f "${VAR_DIR}/INITIAL_PASSWORD.txt" ]; then
+        _pw="$(head -n1 "${VAR_DIR}/INITIAL_PASSWORD.txt" 2>/dev/null)"
+    fi
+    if [ -z "$_pw" ]; then
+        # 绝不写出空密码 —— server.js 在没有 NAVI_PASSWORD 时是开放访问的。
+        _pw="$( { date +%s%N; cat /proc/sys/kernel/random/uuid 2>/dev/null; } | sha256sum | cut -c1-16 )"
+        printf '%s\n' "$_pw" > "${VAR_DIR}/INITIAL_PASSWORD.txt" 2>/dev/null
+        chmod 600 "${VAR_DIR}/INITIAL_PASSWORD.txt" 2>/dev/null
+    fi
+    umask 077
+    if ! printf 'NAVI_PASSWORD=%s\n' "$_pw" > "$ENV_FILE" 2>/dev/null; then
+        echo "警告：无法写入 ${ENV_FILE}；compose 会因 env file 缺失而起不来。" >> "$LOG"
+        return 1
+    fi
+    chmod 600 "$ENV_FILE" 2>/dev/null
+    echo "救援：${ENV_FILE} 原本不存在，已补写。访问密码见 ${VAR_DIR}/INITIAL_PASSWORD.txt（若为向导值则不在此文件中）。" >> "$LOG"
+    return 0
 }
 
 SS_BIN="$(find_cmd ss netstat || true)"
@@ -39,9 +107,13 @@ port_serving() {
 
 case "$1" in
 start)
+    trace "start"
+    # 补 env 文件失败也不阻断启动：让飞牛去报它自己的 compose 错误，比我们静默吞掉好。
+    ensure_env_file || true
     exit 0
     ;;
 stop)
+    trace "stop"
     exit 0
     ;;
 status)
@@ -55,14 +127,14 @@ status)
         exit 0
     fi
     if [ -n "$state" ]; then
-        echo "容器 ${CONTAINER_NAME} 当前状态为 ${state}，应用未处于运行状态。" >> "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+        echo "容器 ${CONTAINER_NAME} 当前状态为 ${state}，应用未处于运行状态。" >> "$LOG"
     else
-        echo "未能通过 Docker 确认容器 ${CONTAINER_NAME} 的状态，且端口 ${PORT} 上没有服务应答。" >> "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+        echo "未能通过 Docker 确认容器 ${CONTAINER_NAME} 的状态，且端口 ${PORT} 上没有服务应答。" >> "$LOG"
     fi
     exit 3
     ;;
 *)
-    echo "未知命令：$1" >> "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+    echo "未知命令：$1" >> "$LOG"
     exit 1
     ;;
 esac
