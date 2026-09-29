@@ -741,9 +741,23 @@ try {
   const vSrv = (readText(path.join(ROOT, "server.js")).match(/const APP_VERSION = "([^"]+)"/) || [])[1];
   const vApp = (readText(path.join(ROOT, "public", "js", "app.js")).match(/var APP_VERSION = "([^"]+)"/) || [])[1];
   const vTest = (readText(path.join(ROOT, "test", "status.test.js")).match(/navi\.version === "([^"]+)"/) || [])[1];
-  const vChg = (readText(path.join(ROOT, "CHANGELOG.md")).match(/^## \[(\d+\.\d+\.\d+)\]/m) || [])[1];
+  // CHANGELOG 的**每个**版本标题都必须是 `## [x.y.z] - YYYY-MM-DD`：曾出现 `## [1.0.0] - 2026-09`
+  // （半截日期）与 1.1.1 沿用 1.1.0 的日期（打 tag 是 09-28 却写 09-20），两处都无任何护栏发现。
+  // 有格式非法的标题就算作「解析不出最新版本号」，于是下面那条「护栏自身有效」当场变红。
+  // 刻意**不新增断言**：只为把已有检查收紧，免得牵动全仓的断言计数同步清单。
+  // （`## [未发布]` 不参与日期校验 —— 它以非数字开头，压根不进 chgHeads。）
+  const chgHeads = (readText(path.join(ROOT, "CHANGELOG.md")).match(/^## \[[\d.]+[^\]]*\][^\n]*$/gm) || [])
+    .map(function (h) { return h.replace(/\r$/, ""); });
+  const badChgHeads = chgHeads.filter(function (h) {
+    return !/^## \[\d+\.\d+\.\d+\] - \d{4}-\d{2}-\d{2}$/.test(h);
+  });
+  const vChg = badChgHeads.length || !chgHeads.length
+    ? undefined
+    : (chgHeads[0].match(/\[(\d+\.\d+\.\d+)\]/) || [])[1];
   check(!!vSrv && !!vApp && !!vTest && !!vChg,
-    "四处版本号都能解析出来（护栏自身有效）", [vSrv, vApp, vTest, vChg].join(" / "));
+    "四处版本号都能解析出来（护栏自身有效；CHANGELOG 各版本标题须为 `## [x.y.z] - YYYY-MM-DD`）",
+    [vSrv, vApp, vTest, vChg].join(" / ") +
+      (badChgHeads.length ? "  ｜格式非法：" + badChgHeads.join(" / ") : ""));
   check(vApp === vSrv && vTest === vSrv,
     "前端 APP_VERSION 与 status.test.js 的断言都跟着 server.js 走",
     "server=" + vSrv + " app=" + vApp + " test=" + vTest);

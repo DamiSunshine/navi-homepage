@@ -2,13 +2,21 @@
 
 参考 [sun-panel](https://github.com/hslr-s/sun-panel) 核心思路实现的轻量级个人导航面板：**前端可视化编辑 + 零依赖 Node 后端**的 All-in-One Docker 镜像，开箱即用。
 
-> **已经发布预构建镜像**：`ghcr.io/DamiSunshine/navi-homepage`（含 `linux/amd64` 与 `linux/arm64`）。
-> 不想构建、不想传源码，只想在另一台机器上一条命令跑起来 → 直接看 **[`docs/image-deploy-guide.html`](docs/image-deploy-guide.html)**（拉取镜像部署指南）。
+**当前版本 [`v1.2.0`](https://github.com/DamiSunshine/navi-homepage/releases/tag/v1.2.0)** · 19 个测试套件 / 981 项断言 / 0 失败 · 变更历史见 [`CHANGELOG.md`](CHANGELOG.md)
+
+三种拿起来就能用的方式，按你的环境挑一条：
+
+| 你的场景 | 用什么 | 看哪份文档 |
+| --- | --- | --- |
+| 有一台装了 Docker 的机器 | 拉预构建镜像 `ghcr.io/DamiSunshine/navi-homepage`（含 `linux/amd64` 与 `linux/arm64`） | **[`docs/image-deploy-guide.html`](docs/image-deploy-guide.html)** |
+| 飞牛 **fnOS**（NAS / 小主机） | 应用中心一键安装 **`.fpk` 安装包**（[下载](https://github.com/DamiSunshine/navi-homepage/releases/tag/v1.2.0)） | **[`docs/fnos-deploy-guide.html`](docs/fnos-deploy-guide.html)** |
+| 想改代码 / 自己构建 | clone 源码 → `docker build` | 本文「方式 B」与 [`docs/docker-guide.html`](docs/docker-guide.html) |
 
 ## 特性
 
 - **前端可视化编辑（类 sun-panel）**：点击右上角「编辑」进入编辑模式——
   - 卡片**拖拽排序**，支持跨分组拖动
+  - **分组整体拖动**：按住分组**标题栏**（或标题栏上的六点拖动柄）就能把**整个分组连同组内所有卡片**拖到新位置，不必再「删掉重建」来调整分组顺序。**按下的位置决定拖什么** —— 按标题栏拖分组、按卡片拖卡片，两种拖动**互不抢事件**；按标题栏上的「重命名 / 添加 / 删除」按钮时谁都不触发拖动，按钮点击照常生效。排序结果随「保存」写回 `config.json`
   - **拖链接建卡**：把地址栏 / 书签 / 聊天窗口里的链接**直接拖到页面上**，即弹出「添加导航项」并自动预填地址与标题（仅编辑模式生效，避免浏览时误触改数据）；只认链接，拖进来一段普通文字不会打扰你
   - 添加 / 修改 / 删除导航项（弹窗表单：名称、描述、外网地址、内网地址、在线图标、本地图床 Logo）
   - 分组添加 / 重命名 / 删除
@@ -132,6 +140,22 @@ docker compose up -d
 >
 > 可用 `node scripts/check-compose.cjs` 自检（会强制校验「纯拉取编排不得含 `build:`」、
 > 密码护栏仍是 `:?`、数据目录是整目录挂载）。
+
+### 方式 C：飞牛 fnOS 应用中心（图形界面一键安装）
+
+在 **fnOS**（飞牛 NAS）上不必碰命令行，直接装原生应用包：
+
+1. 到 [Releases](https://github.com/DamiSunshine/navi-homepage/releases/tag/v1.2.0) 下载 `navi-1.2.0.fpk`；
+2. fnOS → **应用中心 → 手动安装**，选择该文件；
+3. 向导里设**站点密码、站点标题、监听端口**；密码留空也不会装不上——会自动生成一份随机密码，
+   明文存在数据目录的 `INITIAL_PASSWORD.txt` / `PASSWORD.txt`（权限 600），之后可在「应用设置」里改成自己的；
+4. 装好后桌面出现图标，点击直达站点。
+
+数据落在应用数据目录（`/vol1/@appdata/navi/`，含 `data/config.json` 与 `data/uploads/`），**卸载不删除**；
+升级就是同一步覆盖安装。更细的存储路径约定、权限处理与排错见 **[`docs/fnos-deploy-guide.html`](docs/fnos-deploy-guide.html)**。
+
+> 打包源码与出厂校验规则在 `deploy/fnos/`（`README.md` 有从 `fnpack` 下载到发版的完整流程）。
+> 打 `.fpk` 的顺序不能反：**先出镜像、再出包**——包内 compose 固定指向具体版本标签，反过来会「装得上、拉不到镜像」。
 
 访问 `http://localhost:8080` 或 `http://[你的IPv6地址]:8080`。
 
@@ -377,7 +401,7 @@ git push origin v1.0.0
 - **引用关系**：卡片以 `item.logo = "/uploads/<文件名>"` 引用库内图片。「使用中」与删除保护都由服务端扫描当前配置实时计算，不额外持久化。
 - **接口调用**：`GET /api/library` 列库（含引用统计与在线图标推荐，只读不写盘）→ `POST /api/library/upload` 批量入库 → `POST /api/library/delete` 删除（默认带引用保护）。三者均在启用密码保护时强制鉴权。
 - **持久化要求**：上传目录必须挂载在持久卷上（Docker 已整目录挂载 `./data`），否则容器重建后图标会丢失。
-- **与备份的边界**：备份文件（`/api/backup`）只包含 `config.json`，**不打包图片实体**。迁移 / 恢复后请一并拷贝 `data/uploads` 目录；`logo` 指向的图片缺失时卡片会自动回退为字母图标，不会报错。
+- **与备份的边界**：`GET /api/backup` **默认导出 `.json`（只含配置）**；加上 `?format=zip` 即导出**含全部图床图片实体**的完整备份（包内逐项 SHA-256 + 长度校验），**换机迁移请用 zip**，这样不会丢图。若只搬 `.json`，请另行拷贝 `data/uploads` 目录；`logo` 指向的图片缺失时卡片会自动回退为字母图标，不会报错。
 
 ### 批量上传流程
 
@@ -691,6 +715,28 @@ NODE_PATH=<已装 playwright 的 node_modules> node test/page-shots.cjs
 > `test/lib/hermetic.cjs` 统一解决：非本机请求就地应答成一张 1×1 PNG，把套件变成真正自包含；
 > 同时把「资源加载失败」类消息排除出 JS 错误统计——它不是代码缺陷，是网络事实。
 > 注意它只替换**响应**、不替换 URL，所以「图标地址是否正确」的断言依然有效。
+
+## 版本与路线图
+
+完整变更历史见 [`CHANGELOG.md`](CHANGELOG.md)；每个版本在 [Releases](https://github.com/DamiSunshine/navi-homepage/releases) 都有对应的镜像标签与（fnOS 用的）`.fpk` 附件。
+
+| 版本 | 日期 | 主要内容 |
+| --- | --- | --- |
+| **[1.2.0](https://github.com/DamiSunshine/navi-homepage/releases/tag/v1.2.0)** | 2026-09-29 | **编辑模式下分组可整体拖动**（用户反馈修复）。运行时代码有变更，**必须更新镜像**才会生效 |
+| [1.1.1](https://github.com/DamiSunshine/navi-homepage/releases/tag/v1.1.1) | 2026-09-28 | 新增 **fnOS 应用安装包（`.fpk`）**，应用中心一键安装 / 升级 / 卸载；运行时代码无变更 |
+| [1.1.0](https://github.com/DamiSunshine/navi-homepage/releases/tag/v1.1.0) | 2026-09-20 | 图标本地优先（227 个内置、离线可用）、发现来源追踪与失效标记、首页状态板、含图片的 zip 备份 |
+| [1.0.0](https://github.com/DamiSunshine/navi-homepage/releases/tag/v1.0.0) | 2026-09-19 | 首个公开版本：编辑模式、内外网切换、服务发现、密码保护、备份恢复 |
+
+> **1.1.1 的安装包在发布后做过三轮修正**：fnOS 生命周期环境下的 Docker 探测被误当闸门、
+> `env_file` 的创建时序赶不上 compose 拉起、组命令 `{ ...; }` 的退出码被 `||` 误判成「写文件失败」。
+> 三者已全部修掉并在真机验证安装成功，Release 附件为最新版；**要从源码自行构建请用 `main` 分支**
+> （tag `v1.1.1` 仍冻结在修正前的脚本）。
+
+**下一步（已评估、未排期）**：自定义壁纸、通用反代规则导入、发版自动化（自动生成 Release Notes 与附件）、
+更规范的版本节奏。差距分析与取舍理由见 `docs/roadmap.html`。
+
+**一个有意搁置项**：拆分前端单文件（`public/js/app.js`）——纯重构、无行为收益，而它是所有浏览器 UI 套件
+共同依赖的单一文件，风险 / 收益不对称，因此暂不动。
 
 ## License
 
