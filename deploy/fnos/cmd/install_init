@@ -1,27 +1,55 @@
 #!/bin/bash
-# Navi · 安装前检查
+# Navi · 安装前检查（只提示，不阻断）
 #
-# 只做「装了会立刻失败」的前置校验，把错误写进 TRIM_TEMP_LOGFILE 供用户看到，
-# 而不是等安装到一半才失败。任何检查都不修改系统状态。
+# 这里刻意不做任何「阻断式」判定，因为已经踩过一次真实的坑（v1.1.1）：
+#   生命周期脚本的执行身份与环境由飞牛应用中心决定，和用户在 SSH 里看到的环境不是一回事
+#   —— PATH、DOCKER_HOST、docker context、是否在 docker 组，都可能不同。
+#   上一版用 docker info 当闸门并在失败时 exit 1，结果 Docker 明明可用也返回非 0，
+#   安装被直接判失败，应用中心弹出「Docker 服务当前不可用」。误报，且用户无法绕过。
+#   而 Docker 项目（config/resource 里的 docker-project）的拉起本来就由飞牛自己负责，
+#   真失败它会报自己的错。所以这里只留证据、不下结论，任何情况下都 exit 0。
+#
+# 约定：本脚本只读，不修改任何系统状态。
 LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
 PORT="${TRIM_SERVICE_PORT:-}"
 
-if ! command -v docker >/dev/null 2>&1; then
-    echo "未检测到 docker 命令。请先在应用中心安装并启动 Docker，再安装本应用。" > "$LOG"
-    exit 1
+find_cmd() {
+    for c in "$@"; do
+        if command -v "$c" >/dev/null 2>&1; then echo "$c"; return 0; fi
+        if [ -x "/usr/bin/$c" ]; then echo "/usr/bin/$c"; return 0; fi
+        if [ -x "/usr/local/bin/$c" ]; then echo "/usr/local/bin/$c"; return 0; fi
+    done
+    return 1
+}
+
+note() {
+    # 同时写标准错误（应用中心统一收集）与 TRIM_TEMP_LOGFILE（用户在应用中心能看到）
+    echo "$1" >&2
+    [ -n "${TRIM_TEMP_LOGFILE:-}" ] && echo "$1" >> "${TRIM_TEMP_LOGFILE}" 2>/dev/null
+    return 0
+}
+
+# ① Docker 可用性：只做存在性探测。stat 一个 socket 文件不需要任何权限，也不会误判。
+if [ ! -S /var/run/docker.sock ]; then
+    note "提示：未看到 /var/run/docker.sock。若 Docker 未安装或未启动，本应用会在启动阶段失败，请先在应用中心装好并启动 Docker。"
 fi
 
-if ! docker info >/dev/null 2>&1; then
-    echo "Docker 服务当前不可用，请先在应用中心启动 Docker。" > "$LOG"
-    exit 1
+# ② 顺手把 docker info 的失败原文记进日志 —— 不阻断安装，只为下次排查留下确切依据。
+DOCKER_BIN="$(find_cmd docker || true)"
+if [ -n "$DOCKER_BIN" ]; then
+    if ! DOCKER_INFO_ERR="$("$DOCKER_BIN" info 2>&1 >/dev/null)"; then
+        note "提示：本脚本环境下 docker info 未能连通 Docker（不影响安装，容器由应用中心启动）："
+        note "      ${DOCKER_INFO_ERR:-（无输出）}"
+    fi
+else
+    note "提示：本脚本环境里找不到 docker 命令（不影响安装，容器由应用中心启动）。"
 fi
 
-# 端口占用检查：manifest.checkport=true 时系统启动前也会查，这里提前告知，
-# 避免用户在安装向导走完才发现端口冲突。
-if [ -n "$PORT" ] && command -v ss >/dev/null 2>&1; then
-    if ss -ltn 2>/dev/null | awk '{print $4}' | grep -q ":${PORT}\$"; then
-        echo "端口 ${PORT} 已被占用。请先释放该端口，或修改 manifest 的 service_port 后重新打包。" > "$LOG"
-        exit 1
+# ③ 端口占用：manifest 的 checkport=true 已经让系统自己查过，这里只提示，不阻断。
+SS_BIN="$(find_cmd ss netstat || true)"
+if [ -n "$PORT" ] && [ -n "$SS_BIN" ]; then
+    if "$SS_BIN" -ltn 2>/dev/null | awk '{print $4}' | grep -qE "[:.]${PORT}\$"; then
+        note "提示：端口 ${PORT} 当前已被占用。若启动失败，请释放该端口或改动 manifest.service_port 后重新打包。"
     fi
 fi
 

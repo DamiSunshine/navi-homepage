@@ -187,6 +187,36 @@ function verify(fpkPath) {
     }
   }
 
+  // 生命周期脚本：安装/升级前的检查不得把「环境探测」当闸门。
+  // 真实事故（v1.1.1）：install_init 用 `docker info` 判定 Docker 可用性并在失败时 exit 1，
+  // 结果 Docker 明明正常，安装却被直接判失败，应用中心弹出「Docker 服务当前不可用」。
+  // 真因是生命周期脚本的执行身份/环境与用户 SSH 里不是一回事（PATH、DOCKER_HOST、
+  // docker context、docker 组成员关系都可能不同），这种探测天然会误报。
+  // 拉起 docker-project 是飞牛自己的事，真失败它会报自己的错 —— 安装前只应提示、不应阻断。
+  for (const name of ["cmd/install_init", "cmd/upgrade_init"]) {
+    const entry = byName.get(name);
+    if (!entry) continue;
+    const text = entry.data.toString("utf8");
+    if (/^\s*exit\s+[1-9]/m.test(text)) {
+      problems.push(name + " 里有非零退出：安装/升级前的检查只能提示，阻断会因执行环境差异误判（v1.1.1 事故）");
+    }
+    if (!/^\s*exit\s+0\s*$/m.test(text)) {
+      problems.push(name + " 没有以 exit 0 结束，生命周期脚本必须可重复执行且返回成功");
+    }
+  }
+
+  // cmd/main status：必须有与权限无关的兜底，否则应用中心会把运行中的应用一直显示成已停止。
+  // 用「必须存在」的正向断言而不是「先匹配 docker inspect 再检查兜底」——
+  // 后者一旦脚本改成通过变量调用（"$DOCKER_BIN" inspect），字面量就匹配不上，
+  // 护栏会静默退化成永远不触发的空断言（这条坑当场踩过一次）。
+  const mainEntry = byName.get("cmd/main");
+  if (mainEntry) {
+    const text = mainEntry.data.toString("utf8");
+    if (!(/-ltn/.test(text) && /curl/.test(text))) {
+      problems.push("cmd/main 缺少不依赖 Docker 的状态兜底（需要「端口在监听 + HTTP 有应答」）：拿不到 Docker 时会把运行中的应用误报成未运行");
+    }
+  }
+
   if (entries.some((e) => /\.DS_Store$/.test(e.name))) problems.push("包里混入了 .DS_Store");
 
   return { entries, problems, manifest: manifestEntry ? manifestEntry.data.toString("utf8") : "" };

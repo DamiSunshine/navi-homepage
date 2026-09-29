@@ -56,7 +56,7 @@ deploy/fnos/
 │       ├── docker-compose.yaml   # 应用中心据此起停容器
 │       └── bootstrap/config.json # 首次安装的初始配置模板
 ├── cmd/                      # 生命周期钩子（无扩展名的 shell 脚本）
-│   ├── main                  # 必需：status（exit 0 运行中 / 3 未运行）
+│   ├── main                  # 必需：status（exit 0 运行中 / 3 未运行；拿不到 Docker 时用端口+HTTP 兜底）
 │   ├── install_init / _callback
 │   ├── upgrade_init / _callback
 │   ├── uninstall_init / _callback
@@ -108,6 +108,8 @@ node scripts/build-fpk.cjs --skip-build
    - `app.tgz` 内含 `ui/config`、`ui/images/icon_*.png`、`docker/docker-compose.yaml`、`docker/bootstrap/config.json`
    - `app/ui/config` 是合法 JSON 且 `.url` 里至少有一个入口
    - compose 里**不得出现 `:latest`**，且镜像标签必须**等于** `manifest.version`
+   - `cmd/install_init` 与 `cmd/upgrade_init` 里**没有非零退出**，且都以 `exit 0` 结束（安装 / 升级前的检查只提示、不阻断）
+   - `cmd/main` 用 `docker inspect` 判状态时，**必须同时保留端口 + HTTP 兜底**
    - 包里没有混进 `.DS_Store`
 
    最后一条特别重要：**版本升了却忘了改 compose 里的镜像标签**，装出来的包会去拉上一版镜像——装的时候一切正常，只有行为不对。
@@ -142,11 +144,44 @@ node scripts/build-fpk.cjs --skip-build
 
 ### docker-project 的起停不由我们管
 
-声明了 `config/resource` 的 `docker-project` 之后，**启动 / 停止由应用中心负责**（它自己调 compose），`cmd/main` 只需要回答「现在是否在运行」：
+声明了 `config/resource` 的 `docker-project` 之后，**启动 / 停止由应用中心负责**（它自己调 compose），`cmd/main` 只需要回答「现在是否在运行」。判定要分两级：
 
 ```sh
-docker inspect -f '{{.State.Status}}' navi-fnos   # running → exit 0，否则 exit 3
+# ① 能问 Docker 就问（最准确，能区分 running / exited / 容器不存在）
+docker inspect -f '{{.State.Status}}' navi-fnos   # running → exit 0
+
+# ② 问不到时（命令不在 PATH / socket 不可达 / 执行身份没有权限）不能直接报「未运行」，
+#    否则应用中心会一直显示已停止。退回与权限无关的探测：
+#    端口在监听 + HTTP 确实有应答
 ```
+
+### 生命周期脚本只提示、不阻断 ⚠️
+
+**这是 v1.1.1 安装失败的真因**，写下来免得再犯。
+
+当时的 `install_init` 用 `docker info` 当闸门，失败就 `exit 1`：
+
+```sh
+# ❌ 错的写法
+if ! docker info >/dev/null 2>&1; then
+    echo "Docker 服务当前不可用，请先在应用中心启动 Docker。" > "$LOG"
+    exit 1
+fi
+```
+
+结果在 **Docker 明明可用**的机器上，应用中心弹出「无法安装 navi：Docker 服务当前不可用」，安装被直接中断，用户也没有办法绕过。
+
+原因不是 Docker 坏了，而是**生命周期脚本的执行身份与环境，和用户在 SSH 里看到的不是一回事**：`PATH` 更窄、没有交互式 shell 的 `DOCKER_HOST` / docker context、可能不在 `docker` 组、`HOME` 也不同。任何「探测外部服务」的判定在这种环境里都天然会误报。
+
+所以现在的规则是：
+
+- `install_init` / `upgrade_init` **不做任何阻断式判定**，永远 `exit 0`，只把事实写进 `TRIM_TEMP_LOGFILE` 与标准错误（应用中心会统一收集）。
+- 想知道到底为什么连不上，就把 `docker info` 的**原文**记进日志（保留诊断能力），但不拿它当闸门。
+- 判断 Docker 是否在，用 `[ -S /var/run/docker.sock ]` —— `stat` 一个 socket 文件不需要任何权限，不会误判。
+- 命令一律**先查 `PATH`、再查 `/usr/bin`、`/usr/local/bin`**：生命周期环境的 `PATH` 窄，只认 `PATH` 会平白多出一批「命令不存在」的假故障。
+- 真正的失败交给飞牛：docker-project 是它负责拉起的，它会报自己的错。
+
+这三条已经写进 `scripts/build-fpk.cjs` 的出厂校验，改回阻断式写法**打不出包**。
 
 ### 数据放在 `TRIM_PKGVAR`，且刻意不随卸载删除
 

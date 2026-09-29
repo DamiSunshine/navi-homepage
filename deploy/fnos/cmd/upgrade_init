@@ -1,12 +1,35 @@
 #!/bin/bash
-# Navi · 升级前检查
+# Navi · 升级前检查（只提示，不阻断）
 #
-# 升级本身由应用中心处理；这里只确认 Docker 仍可用，并把停止用的提示留好。
+# 与 install_init 同一套原则：文件替换与容器重启由应用中心负责，
+# 这里不做任何可能误判的阻断（原因见 install_init 顶部的说明）。
 LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
 
-if ! docker info >/dev/null 2>&1; then
-    echo "Docker 服务当前不可用，升级可能在启动阶段失败，请先启动 Docker。" > "$LOG"
-    exit 1
+find_cmd() {
+    for c in "$@"; do
+        if command -v "$c" >/dev/null 2>&1; then echo "$c"; return 0; fi
+        if [ -x "/usr/bin/$c" ]; then echo "/usr/bin/$c"; return 0; fi
+        if [ -x "/usr/local/bin/$c" ]; then echo "/usr/local/bin/$c"; return 0; fi
+    done
+    return 1
+}
+
+note() {
+    echo "$1" >&2
+    [ -n "${TRIM_TEMP_LOGFILE:-}" ] && echo "$1" >> "${TRIM_TEMP_LOGFILE}" 2>/dev/null
+    return 0
+}
+
+if [ ! -S /var/run/docker.sock ]; then
+    note "提示：未看到 /var/run/docker.sock。若 Docker 未启动，升级后应用会启动失败，请先在应用中心启动 Docker。"
+fi
+
+DOCKER_BIN="$(find_cmd docker || true)"
+if [ -n "$DOCKER_BIN" ]; then
+    if ! DOCKER_INFO_ERR="$("$DOCKER_BIN" info 2>&1 >/dev/null)"; then
+        note "提示：本脚本环境下 docker info 未能连通 Docker（不影响升级）："
+        note "      ${DOCKER_INFO_ERR:-（无输出）}"
+    fi
 fi
 
 exit 0

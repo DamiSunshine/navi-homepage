@@ -2,8 +2,40 @@
 # Navi · 运行状态查询
 #
 # 启动/停止由飞牛应用中心按 config/resource 的 docker-project 自动处理，
-# 这里只需要如实回答「现在到底跑没跑」，返回码：0=运行中，3=未运行，1=未知命令。
+# 这里只需要如实回答「现在到底跑没跑」。返回码：0=运行中，3=未运行，1=未知命令。
+#
+# 状态判定分两级，因为生命周期脚本不一定拿得到 Docker：
+#   ① 能问 Docker 就问 Docker —— 最准确，还能区分 running / exited / 容器不存在；
+#   ② 问不到时（命令不在 PATH、socket 不可达、执行身份没有权限）**不能直接断言「未运行」**，
+#      否则应用中心会一直显示已停止、用户点启动又没反应。退回与权限无关的探测：
+#      服务端口在监听，而且 HTTP 确实有应答。
+# 命令一律先查 PATH、再查绝对路径：生命周期脚本的 PATH 比用户 SSH 里窄，
+# 只认 PATH 会平白多出一批「命令不存在」的假故障。
 CONTAINER_NAME="navi-fnos"
+PORT="${TRIM_SERVICE_PORT:-8080}"
+
+find_cmd() {
+    for c in "$@"; do
+        if command -v "$c" >/dev/null 2>&1; then echo "$c"; return 0; fi
+        if [ -x "/usr/sbin/$c" ]; then echo "/usr/sbin/$c"; return 0; fi
+        if [ -x "/usr/bin/$c" ]; then echo "/usr/bin/$c"; return 0; fi
+    done
+    return 1
+}
+
+SS_BIN="$(find_cmd ss netstat || true)"
+CURL_BIN="$(find_cmd curl || true)"
+DOCKER_BIN="$(find_cmd docker || true)"
+
+port_serving() {
+    [ -n "$PORT" ] || return 1
+    [ -n "$SS_BIN" ] || return 1
+    "$SS_BIN" -ltn 2>/dev/null | awk '{print $4}' | grep -qE "[:.]${PORT}\$" || return 1
+    # 端口在听还不算数，能应答 HTTP 才认（避免同端口的别的服务造成假阳性）。
+    [ -n "$CURL_BIN" ] || return 0
+    code="$("$CURL_BIN" -s -m 3 -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/" 2>/dev/null)"
+    [ -n "$code" ] && [ "$code" != "000" ]
+}
 
 case "$1" in
 start)
@@ -13,14 +45,19 @@ stop)
     exit 0
     ;;
 status)
-    state="$(docker inspect -f '{{.State.Status}}' "$CONTAINER_NAME" 2>/dev/null)"
+    state=""
+    [ -n "$DOCKER_BIN" ] && state="$("$DOCKER_BIN" inspect -f '{{.State.Status}}' "$CONTAINER_NAME" 2>/dev/null)"
     if [ "$state" = "running" ]; then
+        exit 0
+    fi
+    # state 为空 = 问不到 Docker（不代表没在跑），交给不依赖权限的兜底判定。
+    if [ -z "$state" ] && port_serving; then
         exit 0
     fi
     if [ -n "$state" ]; then
         echo "容器 ${CONTAINER_NAME} 当前状态为 ${state}，应用未处于运行状态。" > "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
     else
-        echo "未找到容器 ${CONTAINER_NAME}，应用可能尚未启动或已被移除。" > "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+        echo "未能通过 Docker 确认容器 ${CONTAINER_NAME} 的状态，且端口 ${PORT} 上没有服务应答。" > "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
     fi
     exit 3
     ;;
