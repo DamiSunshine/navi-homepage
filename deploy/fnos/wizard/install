@@ -4,7 +4,7 @@
     "items": [
       {
         "type": "password",
-        "field": "navi_password",
+        "field": "wizard_navi_password",
         "label": "访问密码",
         "initValue": "",
         "rules": [
@@ -20,19 +20,19 @@
       },
       {
         "type": "text",
-        "field": "navi_site_title",
+        "field": "wizard_navi_site_title",
         "label": "站点标题",
         "initValue": "我的导航站"
       },
       {
         "type": "text",
-        "field": "navi_site_subtitle",
+        "field": "wizard_navi_site_subtitle",
         "label": "副标题",
         "initValue": "个人导航站"
       },
       {
         "type": "text",
-        "field": "navi_lan_host",
+        "field": "wizard_navi_lan_host",
         "label": "内网地址基址（可选）",
         "initValue": "",
         "helpText": "填 NAS 的内网 IP 或主机名（如 192.168.1.10），留空则自动探测"

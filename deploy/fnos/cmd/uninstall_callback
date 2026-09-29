@@ -7,5 +7,5 @@ LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
 APPNAME="${TRIM_APPNAME:-navi}"
 VAR_DIR="${TRIM_PKGVAR:-/var/apps/${APPNAME}/var}"
 
-echo "Navi 已卸载（容器与镜像可另行清理）。数据目录保留在 ${VAR_DIR}/data。" > "$LOG"
+echo "Navi 已卸载（容器与镜像可另行清理）。数据目录保留在 ${VAR_DIR}/data。" >> "$LOG"
 exit 0

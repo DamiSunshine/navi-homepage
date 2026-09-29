@@ -3,34 +3,58 @@
 #
 # 设置页允许「只改标题不改密码」，所以这里逐项合并：向导没给的字段沿用旧值，
 # 只有真的提供了新值才覆盖 —— 不能整文件重写，否则一次改标题就会把密码清空。
+#
+# 向导字段兼容两种命名：wizard_navi_xxx（当前，官方建议的 wizard_ 前缀）与 navi_xxx（早期版本）。
 LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
 APPNAME="${TRIM_APPNAME:-navi}"
 VAR_DIR="${TRIM_PKGVAR:-/var/apps/${APPNAME}/var}"
 ENV_FILE="${VAR_DIR}/navi.env"
 
+WIZ_PW="${wizard_navi_password:-${navi_password:-}}"
+WIZ_TITLE="${wizard_navi_site_title:-${navi_site_title:-}}"
+WIZ_SUBTITLE="${wizard_navi_site_subtitle:-${navi_site_subtitle:-}}"
+WIZ_LAN_HOST="${wizard_navi_lan_host:-${navi_lan_host:-}}"
+
 OLD_PW=""
+OLD_TITLE=""
+OLD_SUBTITLE=""
+OLD_LAN_HOST=""
 if [ -f "$ENV_FILE" ]; then
-    OLD_PW="$(grep '^NAVI_PASSWORD=' "$ENV_FILE" | head -n1 | cut -d= -f2-)"
+    OLD_PW="$(grep '^NAVI_PASSWORD=' "$ENV_FILE" 2>/dev/null | head -n1 | cut -d= -f2-)"
+    OLD_TITLE="$(grep '^SITE_TITLE=' "$ENV_FILE" 2>/dev/null | head -n1 | cut -d= -f2-)"
+    OLD_SUBTITLE="$(grep '^SITE_SUBTITLE=' "$ENV_FILE" 2>/dev/null | head -n1 | cut -d= -f2-)"
+    OLD_LAN_HOST="$(grep '^NAVI_LAN_HOST=' "$ENV_FILE" 2>/dev/null | head -n1 | cut -d= -f2-)"
 fi
 
-PW="${navi_password:-$OLD_PW}"
+# 密码：向导给了就用向导的，没给就沿用旧的。两边都没有属于异常情况，
+# 此时既不写空密码（会关掉鉴权），也不必中止整个设置流程 —— 如实报告即可。
+PW="${WIZ_PW:-$OLD_PW}"
 if [ -z "$PW" ]; then
-    echo "未能读取到访问密码，且本次设置未提供新密码。为避免站点变为无鉴权访问，本次修改未生效。" > "$LOG"
+    echo "未能读取到访问密码，且本次设置未提供新密码。为避免站点变为无鉴权访问，密码项保持原状，其余设置已忽略，请重新提交并在密码栏填写新密码。" >> "$LOG"
     exit 1
 fi
 
+TITLE="${WIZ_TITLE:-$OLD_TITLE}"
+SUBTITLE="${WIZ_SUBTITLE:-$OLD_SUBTITLE}"
+LAN_HOST="${WIZ_LAN_HOST:-$OLD_LAN_HOST}"
+
 mkdir -p "$VAR_DIR"
+# ⚠️ 组内一律用 if 语句，不要用 `[ -n "$X" ] && echo ...` —— 条件为假时退出码是 1，
+#    会让 `{ ...; }` 整组返回 1，被 `||` 误判成「写文件失败」（详见 cmd/install_callback 的注释）。
 umask 077
 {
     echo "NAVI_PASSWORD=${PW}"
-    [ -n "${navi_site_title:-}" ] && echo "SITE_TITLE=${navi_site_title}"
-    [ -n "${navi_site_subtitle:-}" ] && echo "SITE_SUBTITLE=${navi_site_subtitle}"
-    [ -n "${navi_lan_host:-}" ] && echo "NAVI_LAN_HOST=${navi_lan_host}"
+    if [ -n "$TITLE" ]; then echo "SITE_TITLE=${TITLE}"; fi
+    if [ -n "$SUBTITLE" ]; then echo "SITE_SUBTITLE=${SUBTITLE}"; fi
+    if [ -n "$LAN_HOST" ]; then echo "NAVI_LAN_HOST=${LAN_HOST}"; fi
 } > "$ENV_FILE" || {
-    echo "写入环境变量文件失败：${ENV_FILE}" > "$LOG"
+    echo "写入环境变量文件失败：${ENV_FILE}" >> "$LOG"
     exit 1
 }
 chmod 600 "$ENV_FILE"
 
-echo "Navi 设置已更新：${ENV_FILE}（若密码有变更，请重启应用使其生效）"
+echo "Navi 设置已更新：${ENV_FILE}"
+if [ -n "$WIZ_PW" ] && [ "$WIZ_PW" != "$OLD_PW" ]; then
+    echo "注：访问密码已变更，需在应用中心「停止」再「启动」一次才会生效。" >> "$LOG"
+fi
 exit 0

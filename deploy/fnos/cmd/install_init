@@ -1,16 +1,29 @@
 #!/bin/bash
-# Navi · 安装前检查（只提示，不阻断）
+# Navi · 安装前准备（只提示、不阻断）
 #
-# 这里刻意不做任何「阻断式」判定，因为已经踩过一次真实的坑（v1.1.1）：
-#   生命周期脚本的执行身份与环境由飞牛应用中心决定，和用户在 SSH 里看到的环境不是一回事
-#   —— PATH、DOCKER_HOST、docker context、是否在 docker 组，都可能不同。
-#   上一版用 docker info 当闸门并在失败时 exit 1，结果 Docker 明明可用也返回非 0，
-#   安装被直接判失败，应用中心弹出「Docker 服务当前不可用」。误报，且用户无法绕过。
-#   而 Docker 项目（config/resource 里的 docker-project）的拉起本来就由飞牛自己负责，
-#   真失败它会报自己的错。所以这里只留证据、不下结论，任何情况下都 exit 0。
+# 这里的两条规矩，来自同一个包上踩的两次真实故障：
 #
-# 约定：本脚本只读，不修改任何系统状态。
+#   ① 【外部依赖探测只能当提示，不能当闸门】v1.1.1 第一次安装失败的真因 ——
+#      install_init 曾用 `docker info` 判定 Docker 可用性、失败就 exit 1，
+#      于是「Docker 明明正常」的机器上安装被直接判失败（应用中心弹「Docker 服务当前不可用」），
+#      用户无法绕过。根因是生命周期脚本的执行身份/环境由飞牛应用中心决定，
+#      和用户在 SSH 里看到的不是一回事（HOME 不同、PATH 更窄、可能不在 docker 组、
+#      缺 DOCKER_HOST / docker context）。真正的失败交给飞牛 —— docker-project 本就是它拉起的。
+#
+#   ② 【不能让 compose 依赖「运行时才生成」的文件】v1.1.1 第二次安装失败的真因 ——
+#      compose 的 env_file 指向 ${TRIM_PKGVAR}/navi.env，而该文件原本只由 install_callback 创建。
+#      只要应用中心在 install_callback 之前拉起 docker-project，docker compose 就会
+#      因文件不存在而整包失败：
+#          env file /vol1/@appdata/navi/navi.env not found: ... no such file or directory
+#      所以在本脚本（流程最早的一步）就先把文件落好；install_callback 随后用向导里的
+#      真实值覆盖它。能拿到向导值就用向导值，拿不到就用随机密码 ——
+#      任何情况下都不写出空密码（那等于关掉鉴权）。
+#
+# 约定：除「准备 ${TRIM_PKGVAR}/navi.env」外不改动系统状态；无论发生什么都 exit 0。
 LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+APPNAME="${TRIM_APPNAME:-navi}"
+VAR_DIR="${TRIM_PKGVAR:-/var/apps/${APPNAME}/var}"
+ENV_FILE="${VAR_DIR}/navi.env"
 PORT="${TRIM_SERVICE_PORT:-}"
 
 find_cmd() {
@@ -25,7 +38,11 @@ find_cmd() {
 note() {
     # 同时写标准错误（应用中心统一收集）与 TRIM_TEMP_LOGFILE（用户在应用中心能看到）
     echo "$1" >&2
-    [ -n "${TRIM_TEMP_LOGFILE:-}" ] && echo "$1" >> "${TRIM_TEMP_LOGFILE}" 2>/dev/null
+    # 用 if 而不是 `[ ... ] && echo`：后者条件为假时退出码是 1，
+    # 一旦被放进组命令，整组会被 `||` 误判成失败（同类事故见 cmd/install_callback 的注释）。
+    if [ -n "${TRIM_TEMP_LOGFILE:-}" ]; then
+        echo "$1" >> "${TRIM_TEMP_LOGFILE}" 2>/dev/null
+    fi
     return 0
 }
 
@@ -51,6 +68,45 @@ if [ -n "$PORT" ] && [ -n "$SS_BIN" ]; then
     if "$SS_BIN" -ltn 2>/dev/null | awk '{print $4}' | grep -qE "[:.]${PORT}\$"; then
         note "提示：端口 ${PORT} 当前已被占用。若启动失败，请释放该端口或改动 manifest.service_port 后重新打包。"
     fi
+fi
+
+# ④ 预备 compose 要读的 env 文件（见文件头 ②）。
+#    向导字段兼容两种命名：wizard_navi_xxx（当前，官方建议的 wizard_ 前缀）与 navi_xxx（早期版本）。
+WIZ_PW="${wizard_navi_password:-${navi_password:-}}"
+if [ ! -f "$ENV_FILE" ]; then
+    if mkdir -p "$VAR_DIR" 2>/dev/null; then
+        if [ -z "$WIZ_PW" ]; then
+            WIZ_PW="$( { date +%s%N; cat /proc/sys/kernel/random/uuid 2>/dev/null; } | sha256sum | cut -c1-16 )"
+            RANDOM_PW=1
+        fi
+        umask 077
+        if printf 'NAVI_PASSWORD=%s\n' "$WIZ_PW" > "$ENV_FILE" 2>/dev/null; then
+            chmod 600 "$ENV_FILE" 2>/dev/null
+            if [ "${RANDOM_PW:-0}" = "1" ]; then
+                printf '%s\n' "$WIZ_PW" > "${VAR_DIR}/INITIAL_PASSWORD.txt" 2>/dev/null
+                chmod 600 "${VAR_DIR}/INITIAL_PASSWORD.txt" 2>/dev/null
+                note "已预先创建 ${ENV_FILE}：本次未取到向导密码，暂用随机密码，明文见 ${VAR_DIR}/INITIAL_PASSWORD.txt；安装向导里的密码会在下一步覆盖它。"
+            else
+                note "已预先创建 ${ENV_FILE}（密码取自安装向导）。"
+            fi
+        else
+            note "提示：无法写入 ${ENV_FILE}。若随后安装报 env file not found，请检查 ${VAR_DIR} 的属主与写入权限。"
+        fi
+    else
+        note "提示：无法创建数据目录 ${VAR_DIR}。若随后安装报 env file not found，请检查存储空间权限。"
+    fi
+else
+    note "已存在环境变量文件 ${ENV_FILE}，保持原样（升级/重装不会覆盖既有密码）。"
+fi
+
+# ⑤ 诊断线索：只记名字不记值（其中可能有密码）。
+if [ -n "${TRIM_TEMP_LOGFILE:-}" ]; then
+    {
+        echo "--- 诊断 ---"
+        echo "运行身份 TRIM_RUN_USERNAME=${TRIM_RUN_USERNAME:-（未设置）} / 应用用户 TRIM_USERNAME=${TRIM_USERNAME:-（未设置）}"
+        echo "数据目录 TRIM_PKGVAR=${TRIM_PKGVAR:-（未设置）} → 实际使用 ${VAR_DIR}"
+        echo "收到的向导字段：$(env | grep -oE '^(wizard_navi_[a-z_]*|navi_[a-z_]*|TRIM_[A-Z_]*)' | sort -u | tr '\n' ' ')"
+    } >> "${TRIM_TEMP_LOGFILE}" 2>/dev/null
 fi
 
 exit 0

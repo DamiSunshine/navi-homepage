@@ -1,13 +1,22 @@
 #!/bin/bash
 # Navi · 安装后初始化
 #
-# 做三件事，缺一不可：
-#   ① 建数据目录并落地一份初始 config.json —— compose 整目录挂载会遮住镜像内置示例，
-#      宿主机没有 config.json 时服务启动即失败（这是本项目最经典的部署坑）；
-#   ② 把向导里收集的密码/标题写进 ${TRIM_PKGVAR}/navi.env，供 compose 的 env_file 注入；
-#      密码只落在这个 600 权限的文件里，不进镜像、不进 fpk 包；
-#   ③ 空密码直接中止安装 —— NAVI_PASSWORD 为空会让站点变成无鉴权开放访问，
-#      宁可装不上，也不能悄悄装出一个裸奔的站点。
+# 做三件事：
+#   ① 建数据目录并落地一份初始 config.json —— compose 是整目录挂载，
+#      会遮住镜像内置的示例配置，宿主机没有 config.json 时服务启动即失败
+#      （这是本项目最经典的部署坑）；
+#   ② 把向导里的密码/标题写进 ${TRIM_PKGVAR}/navi.env，供 compose 的 env_file 注入；
+#      密码只落在 600 权限的文件里，不进镜像、不进 fpk 包；
+#   ③ 绝不让站点在无鉴权状态下运行 —— 但「保证有密码」不等于「拿不到密码就中止安装」。
+#
+# 关于 ③ 的取舍（v1.1.1 两次安装失败后的结论）：
+#   老写法是「向导密码为空 → exit 1 中止安装」。但向导字段名一旦对不上
+#   （官方建议自定义字段用 wizard_ 前缀，早期版本用的是 navi_ 前缀），
+#   安装就会因为一个纯粹命名的原因整包失败，而用户完全无从判断。
+#   现在的策略是「降级而不是中止」：读不到向导密码就沿用 install_init 已经落好的那份，
+#   连它也没有才生成随机密码并写一份明文到数据目录。站点始终有密码，
+#   用户最坏情况只是「密码不是自己填的那个」，看 INITIAL_PASSWORD.txt 即可，
+#   也可以在装好后从「应用设置」里改。
 LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
 APPNAME="${TRIM_APPNAME:-navi}"
 VAR_DIR="${TRIM_PKGVAR:-/var/apps/${APPNAME}/var}"
@@ -16,39 +25,65 @@ DATA_DIR="${VAR_DIR}/data"
 ENV_FILE="${VAR_DIR}/navi.env"
 BOOTSTRAP="${APPDEST}/docker/bootstrap/config.json"
 
-if [ -z "${navi_password:-}" ]; then
-    echo "未收到访问密码（向导字段 navi_password 为空）。为避免站点在无鉴权状态下对外开放，安装已中止，请重新安装并在向导中填写密码。" > "$LOG"
-    exit 1
-fi
+# 向导字段兼容两种命名：wizard_navi_xxx（当前）与 navi_xxx（v1.1.1 早期）。
+WIZ_PW="${wizard_navi_password:-${navi_password:-}}"
+WIZ_TITLE="${wizard_navi_site_title:-${navi_site_title:-}}"
+WIZ_SUBTITLE="${wizard_navi_site_subtitle:-${navi_site_subtitle:-}}"
+WIZ_LAN_HOST="${wizard_navi_lan_host:-${navi_lan_host:-}}"
 
 mkdir -p "$DATA_DIR/uploads" || {
-    echo "无法创建数据目录 ${DATA_DIR}，请检查存储空间权限。" > "$LOG"
+    echo "无法创建数据目录 ${DATA_DIR}，请检查存储空间权限。" >> "$LOG"
     exit 1
 }
 
 if [ ! -f "${DATA_DIR}/config.json" ]; then
     if [ -f "$BOOTSTRAP" ]; then
         cp "$BOOTSTRAP" "${DATA_DIR}/config.json" || {
-            echo "写入初始配置失败：${DATA_DIR}/config.json" > "$LOG"
+            echo "写入初始配置失败：${DATA_DIR}/config.json" >> "$LOG"
             exit 1
         }
     else
-        echo "安装包内缺少初始配置模板（${BOOTSTRAP}），无法初始化站点配置。" > "$LOG"
+        echo "安装包内缺少初始配置模板（${BOOTSTRAP}），无法初始化站点配置。" >> "$LOG"
         exit 1
     fi
 fi
 
+# 密码来源依次为：向导值 → install_init 已写好的那份 → 新生成随机密码。
+PW="$WIZ_PW"
+if [ -z "$PW" ] && [ -f "$ENV_FILE" ]; then
+    PW="$(grep '^NAVI_PASSWORD=' "$ENV_FILE" 2>/dev/null | head -n1 | cut -d= -f2-)"
+fi
+if [ -z "$PW" ]; then
+    if [ -f "${VAR_DIR}/INITIAL_PASSWORD.txt" ]; then
+        PW="$(head -n1 "${VAR_DIR}/INITIAL_PASSWORD.txt" 2>/dev/null)"
+    fi
+fi
+if [ -z "$PW" ]; then
+    PW="$( { date +%s%N; cat /proc/sys/kernel/random/uuid 2>/dev/null; } | sha256sum | cut -c1-16 )"
+    printf '%s\n' "$PW" > "${DATA_DIR}/PASSWORD.txt" 2>/dev/null
+    chmod 600 "${DATA_DIR}/PASSWORD.txt" 2>/dev/null
+    echo "警告：安装向导未传来访问密码（字段 wizard_navi_password / navi_password 均为空），已生成随机密码并保存到 ${DATA_DIR}/PASSWORD.txt。可在「应用设置」里改成自己的密码。" >> "$LOG"
+fi
+
+# ⚠️ 组内一律用 if 语句，不要用 `[ -n "$X" ] && echo ...`：
+#    后者的退出码在「条件为假」时是 1，而 `{ ...; }` 的退出码取最后一条命令 ——
+#    于是「内网地址基址」留空（向导里的默认值就是空）会让整组返回 1，
+#    被后面的 `|| { exit 1; }` 误判成「写文件失败」，安装直接失败，
+#    而文件其实早就写好了。v1.1.1 连续两次安装失败，这是第二个真因。
 umask 077
 {
-    echo "NAVI_PASSWORD=${navi_password}"
-    [ -n "${navi_site_title:-}" ] && echo "SITE_TITLE=${navi_site_title}"
-    [ -n "${navi_site_subtitle:-}" ] && echo "SITE_SUBTITLE=${navi_site_subtitle}"
-    [ -n "${navi_lan_host:-}" ] && echo "NAVI_LAN_HOST=${navi_lan_host}"
+    echo "NAVI_PASSWORD=${PW}"
+    if [ -n "$WIZ_TITLE" ]; then echo "SITE_TITLE=${WIZ_TITLE}"; fi
+    if [ -n "$WIZ_SUBTITLE" ]; then echo "SITE_SUBTITLE=${WIZ_SUBTITLE}"; fi
+    if [ -n "$WIZ_LAN_HOST" ]; then echo "NAVI_LAN_HOST=${WIZ_LAN_HOST}"; fi
 } > "$ENV_FILE" || {
-    echo "写入环境变量文件失败：${ENV_FILE}" > "$LOG"
+    echo "写入环境变量文件失败：${ENV_FILE}" >> "$LOG"
     exit 1
 }
 chmod 600 "$ENV_FILE"
 
 echo "Navi 初始化完成：数据目录 ${DATA_DIR}，环境变量文件 ${ENV_FILE}"
+if [ -z "$WIZ_PW" ]; then
+    echo "注：本次未取到向导密码，访问密码以 ${DATA_DIR}/PASSWORD.txt 或 ${VAR_DIR}/INITIAL_PASSWORD.txt 为准；改动密码后需在应用中心「停止」再「启动」一次才会生效。" >> "$LOG"
+fi
 exit 0

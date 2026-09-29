@@ -4,6 +4,11 @@
 # 升级只会替换 app/（包内文件），${TRIM_PKGVAR} 里的数据与环境文件本应原样保留。
 # 但"本应"不等于"一定"：只要其中任何一样丢了，新版本就会起不来或者起成无鉴权站点。
 # 所以这里逐项兜底，宁可少跑一次也要把状态补齐。
+#
+# 向导字段兼容两种命名：wizard_navi_xxx（当前，官方建议的 wizard_ 前缀）与 navi_xxx（早期版本）。
+#
+# ⚠️ 写 env 文件的组命令里一律用 if 语句，不要用 `[ -n "$X" ] && echo ...`：
+#    条件为假时退出码是 1，会让整组返回 1（详见 cmd/install_callback 的注释）。
 LOG="${TRIM_TEMP_LOGFILE:-/dev/stderr}"
 APPNAME="${TRIM_APPNAME:-navi}"
 VAR_DIR="${TRIM_PKGVAR:-/var/apps/${APPNAME}/var}"
@@ -12,15 +17,20 @@ DATA_DIR="${VAR_DIR}/data"
 ENV_FILE="${VAR_DIR}/navi.env"
 BOOTSTRAP="${APPDEST}/docker/bootstrap/config.json"
 
+WIZ_PW="${wizard_navi_password:-${navi_password:-}}"
+WIZ_TITLE="${wizard_navi_site_title:-${navi_site_title:-}}"
+WIZ_SUBTITLE="${wizard_navi_site_subtitle:-${navi_site_subtitle:-}}"
+WIZ_LAN_HOST="${wizard_navi_lan_host:-${navi_lan_host:-}}"
+
 mkdir -p "$DATA_DIR/uploads" 2>/dev/null
 
 # ① 配置缺失：用包内模板补一份（老配置若还在则完全不动）
 if [ ! -f "${DATA_DIR}/config.json" ]; then
     if [ -f "$BOOTSTRAP" ]; then
         cp "$BOOTSTRAP" "${DATA_DIR}/config.json" 2>/dev/null
-        echo "原配置缺失，已用初始模板重建：${DATA_DIR}/config.json" > "$LOG"
+        echo "原配置缺失，已用初始模板重建：${DATA_DIR}/config.json" >> "$LOG"
     else
-        echo "数据目录缺少 config.json 且包内没有模板，站点将无法启动。" > "$LOG"
+        echo "数据目录缺少 config.json 且包内没有模板，站点将无法启动。" >> "$LOG"
         exit 1
     fi
 fi
@@ -29,25 +39,25 @@ fi
 #    绝不为了"能起来"而写出空密码 —— 那等于关掉鉴权。
 if [ ! -f "$ENV_FILE" ]; then
     umask 077
-    if [ -n "${navi_password:-}" ]; then
+    if [ -n "$WIZ_PW" ]; then
         {
-            echo "NAVI_PASSWORD=${navi_password}"
-            [ -n "${navi_site_title:-}" ] && echo "SITE_TITLE=${navi_site_title}"
-            [ -n "${navi_site_subtitle:-}" ] && echo "SITE_SUBTITLE=${navi_site_subtitle}"
-            [ -n "${navi_lan_host:-}" ] && echo "NAVI_LAN_HOST=${navi_lan_host}"
+            echo "NAVI_PASSWORD=${WIZ_PW}"
+            if [ -n "$WIZ_TITLE" ]; then echo "SITE_TITLE=${WIZ_TITLE}"; fi
+            if [ -n "$WIZ_SUBTITLE" ]; then echo "SITE_SUBTITLE=${WIZ_SUBTITLE}"; fi
+            if [ -n "$WIZ_LAN_HOST" ]; then echo "NAVI_LAN_HOST=${WIZ_LAN_HOST}"; fi
         } > "$ENV_FILE"
         chmod 600 "$ENV_FILE"
-        echo "环境变量文件缺失，已按向导值重建：${ENV_FILE}" > "$LOG"
+        echo "环境变量文件缺失，已按向导值重建：${ENV_FILE}" >> "$LOG"
     else
         NEW_PW="$( { date +%s%N; cat /proc/sys/kernel/random/uuid 2>/dev/null; } | sha256sum | cut -c1-16 )"
         {
             echo "NAVI_PASSWORD=${NEW_PW}"
-            [ -n "${navi_site_title:-}" ] && echo "SITE_TITLE=${navi_site_title}"
+            if [ -n "$WIZ_TITLE" ]; then echo "SITE_TITLE=${WIZ_TITLE}"; fi
         } > "$ENV_FILE"
         chmod 600 "$ENV_FILE"
         echo "$NEW_PW" > "${DATA_DIR}/PASSWORD.txt"
         chmod 600 "${DATA_DIR}/PASSWORD.txt"
-        echo "环境变量文件缺失且向导未提供密码，已生成随机密码并保存到 ${DATA_DIR}/PASSWORD.txt，请及时修改。" > "$LOG"
+        echo "环境变量文件缺失且向导未提供密码，已生成随机密码并保存到 ${DATA_DIR}/PASSWORD.txt，请及时修改。" >> "$LOG"
     fi
 fi
 

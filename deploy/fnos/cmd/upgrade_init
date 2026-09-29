@@ -16,7 +16,10 @@ find_cmd() {
 
 note() {
     echo "$1" >&2
-    [ -n "${TRIM_TEMP_LOGFILE:-}" ] && echo "$1" >> "${TRIM_TEMP_LOGFILE}" 2>/dev/null
+    # 用 if 而不是 `[ ... ] && echo`（原因见 install_init 的同名函数）。
+    if [ -n "${TRIM_TEMP_LOGFILE:-}" ]; then
+        echo "$1" >> "${TRIM_TEMP_LOGFILE}" 2>/dev/null
+    fi
     return 0
 }
 

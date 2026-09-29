@@ -55,14 +55,14 @@ status)
         exit 0
     fi
     if [ -n "$state" ]; then
-        echo "容器 ${CONTAINER_NAME} 当前状态为 ${state}，应用未处于运行状态。" > "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+        echo "容器 ${CONTAINER_NAME} 当前状态为 ${state}，应用未处于运行状态。" >> "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
     else
-        echo "未能通过 Docker 确认容器 ${CONTAINER_NAME} 的状态，且端口 ${PORT} 上没有服务应答。" > "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+        echo "未能通过 Docker 确认容器 ${CONTAINER_NAME} 的状态，且端口 ${PORT} 上没有服务应答。" >> "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
     fi
     exit 3
     ;;
 *)
-    echo "未知命令：$1" > "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
+    echo "未知命令：$1" >> "${TRIM_TEMP_LOGFILE:-/dev/stderr}"
     exit 1
     ;;
 esac

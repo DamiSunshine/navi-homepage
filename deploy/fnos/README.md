@@ -183,6 +183,70 @@ fi
 
 这三条已经写进 `scripts/build-fpk.cjs` 的出厂校验，改回阻断式写法**打不出包**。
 
+### 组命令里别用 `[ ... ] && echo` ⚠️
+
+**这是 v1.1.1 第二次安装失败的真因**，比上面那条更隐蔽 —— 因为文件其实写成功了。
+
+```sh
+# ❌ 错的写法
+{
+    echo "NAVI_PASSWORD=${navi_password}"
+    [ -n "${navi_site_title:-}" ] && echo "SITE_TITLE=${navi_site_title}"
+    [ -n "${navi_lan_host:-}" ] && echo "NAVI_LAN_HOST=${navi_lan_host}"
+} > "$ENV_FILE" || { echo "写入环境变量文件失败"; exit 1; }
+```
+
+`[ -n "$X" ] && echo ...` 在条件为假时**退出码是 1**，而 `{ ...; }` 的退出码取**最后一条命令**。
+向导里「内网地址基址」的默认值就是空 → 整组返回 1 → 被 `||` 判成「写文件失败」并 `exit 1`。
+文件早已写好，安装却被判失败。
+
+```sh
+# ✅ 对的写法：一律用 if，退出码恒为 0
+{
+    echo "NAVI_PASSWORD=${navi_password}"
+    if [ -n "${navi_site_title:-}" ]; then echo "SITE_TITLE=${navi_site_title}"; fi
+    if [ -n "${navi_lan_host:-}" ]; then echo "NAVI_LAN_HOST=${navi_lan_host}"; fi
+} > "$ENV_FILE" || { echo "写入环境变量文件失败"; exit 1; }
+```
+
+出厂校验会拦下这种写法。
+
+### `env_file` 指向的文件必须由 `install_init` 预先落好 ⚠️
+
+compose 里 `env_file: ${TRIM_PKGVAR}/navi.env` 是**硬依赖**：文件不存在时 docker compose 直接报错并
+**令整个安装失败**：
+
+```
+env file /vol1/@appdata/navi/navi.env not found: stat /vol1/@appdata/navi/navi.env: no such file or directory
+```
+
+而这个文件原本只由 `install_callback` 创建 —— 只要应用中心拉起 docker-project 的时点早于它，安装就必然失败。
+所以现在由**流程最早的 `install_init`** 先落一份（能拿到向导密码就用向导密码，拿不到用随机密码并写
+`INITIAL_PASSWORD.txt`），`install_callback` 随后用真实值覆盖。
+
+出厂校验会把 compose 的 `env_file` 文件名与 `install_init` 做交叉核对，改了名字忘了同步就打不出包。
+
+### 向导字段一律加 `wizard_` 前缀
+
+官方文档写的是「`field` 成为同名环境变量」，但同时**建议自定义字段用 `wizard_` 前缀**。
+早期版本用的是 `navi_` 前缀，为了不因命名差异丢掉用户填的密码，现在的脚本**两种都认**：
+
+```sh
+WIZ_PW="${wizard_navi_password:-${navi_password:-}}"
+```
+
+### 取不到向导密码时降级，不要中止安装
+
+「密码为空 → `exit 1`」的老写法，结果是用户面对一个完全无从判断的失败。
+现在的顺序是：向导值 → `install_init` 已写好的那份 → 现场生成随机密码并写 `PASSWORD.txt`。
+**站点任何时候都不会裸奔**（永远有密码），最坏情况只是「密码不是自己填的那个」——
+看 `PASSWORD.txt` 就能用，之后还能在「应用设置」里改。
+
+### 日志一律用 `>>` 追加
+
+`TRIM_TEMP_LOGFILE` 在同一个脚本里可能被写多次。用 `>` 会把前面写的内容清掉，
+真正的原因句会被最后一句提示覆盖，排查时看不到关键信息。
+
 ### 数据放在 `TRIM_PKGVAR`，且刻意不随卸载删除
 
 - 数据目录：`${TRIM_PKGVAR}/data`（`config.json` + `uploads/`），compose 里整目录挂到 `/app/data`

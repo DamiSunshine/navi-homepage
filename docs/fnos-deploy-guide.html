@@ -780,7 +780,9 @@ sudo chown -R 1000:1000 /vol1/1000/docker/navi/data</pre>
 <p>向导第一步会要四项，其中<strong>只有密码是必填</strong>：</p>
 <table>
   <tr><th style="width:30%">字段</th><th>说明</th></tr>
-  <tr><td><strong>访问密码</strong></td><td>必填，至少 6 位。<strong>留空会直接中止安装</strong>——这是刻意的，避免装出一个任何拿到地址的人都能改配置的站点。</td></tr>
+  <tr><td><strong>访问密码</strong></td><td>必填，至少 6 位，向导会拦下空值。<br>
+    万一它没能传到后端（字段名对不上之类的），后端<strong>不会中止安装</strong>，而是改用随机密码并把明文写进数据目录的
+    <code class="inline">PASSWORD.txt</code>——<strong>任何情况下都不会装出一个无鉴权站点</strong>，最坏情况只是密码不是你填的那个。</td></tr>
   <tr><td>站点标题 / 副标题</td><td>选填，留空用默认值，装完随时可改</td></tr>
   <tr><td>内网访问地址</td><td>选填，填了卡片在「自动」内外网策略下能识别内网入口</td></tr>
 </table>

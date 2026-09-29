@@ -131,6 +131,7 @@ function verify(fpkPath) {
 
   const manifestEntry = byName.get("manifest");
   const appEntry = byName.get("app.tgz");
+  let composeText = ""; // 后面要拿 compose 的 env_file 与 cmd/install_init 交叉校验
   if (manifestEntry && appEntry) {
     const text = manifestEntry.data.toString("utf8");
     const declared = (text.match(/^checksum\s*=\s*([0-9a-f]+)/m) || [])[1] || "";
@@ -163,6 +164,7 @@ function verify(fpkPath) {
     const compose = innerEntries.find((e) => e.name === "docker/docker-compose.yaml");
     if (compose) {
       const text = compose.data.toString("utf8");
+      composeText = text;
       if (/:latest\b/.test(text)) {
         problems.push("compose 里出现了 :latest 浮动标签，包内应固定版本标签");
       }
@@ -214,6 +216,55 @@ function verify(fpkPath) {
     const text = mainEntry.data.toString("utf8");
     if (!(/-ltn/.test(text) && /curl/.test(text))) {
       problems.push("cmd/main 缺少不依赖 Docker 的状态兜底（需要「端口在监听 + HTTP 有应答」）：拿不到 Docker 时会把运行中的应用误报成未运行");
+    }
+  }
+
+  // 生命周期脚本的两类「退出码 / 日志」事故 —— v1.1.1 第二轮安装失败的真正原因：
+  //   ① `[ ... ] && echo ...` 当条件为假时退出码是 1，而 `{ ...; }` 取最后一条命令的退出码，
+  //      于是「向导里留空的字段」（内网地址基址默认就是空）会让整组返回 1，
+  //      被外面的 `|| { exit 1; }` 误判成「写文件失败」—— 文件其实早已写好，安装却失败了。
+  //   ② 用 `>` 写 TRIM_TEMP_LOGFILE：同一脚本内多处写日志会互相覆盖，把真正的原因句冲掉，
+  //      排查时只能看到最后一句提示。
+  for (const e of entries) {
+    if (!/^cmd\//.test(e.name)) continue;
+    const text = e.data.toString("utf8");
+    const risky = text.split("\n")
+      .map((l, i) => ({ line: l, no: i + 1 }))
+      .filter(({ line }) => /^\s*\[[^\]]*\]\s*&&\s*(echo|printf)\b/.test(line));
+    if (risky.length) {
+      problems.push(e.name + " 第 " + risky.map((r) => r.no).join("/") + " 行用了 `[ ... ] && echo` 写法：" +
+        "条件为假时退出码为 1，会让所在组命令被 `||` 误判成失败（v1.1.1 事故），请改用 if 语句");
+    }
+    if (/(^|[^>])>\s*"\$\{?TRIM_TEMP_LOGFILE/.test(text) || /(^|[^>])>\s*"\$LOG"/.test(text)) {
+      problems.push(e.name + " 用 `>` 写日志文件：同脚本内多处写会互相覆盖，应改成追加 `>>`");
+    }
+    if (/>>>/.test(text)) problems.push(e.name + " 出现了 `>>>` 重定向（改写事故）");
+  }
+
+  // compose 的 env_file 指向的文件必须由 cmd/install_init 预先落好。
+  // 真实事故：env_file 指向 ${TRIM_PKGVAR}/navi.env，而该文件原本只由 install_callback 创建 ——
+  // 只要应用中心拉起 docker-project 的时点早于 install_callback，docker compose 就会直接
+  // 报 `env file ... not found` 并让整个安装失败。文件必须由流程最早的一步准备好。
+  const installInit = byName.get("cmd/install_init");
+  const envFileRef = composeText.match(/env_file\s*:[\s\S]{0,200}?-\s*(\S+)/);
+  if (envFileRef && installInit) {
+    const base = path.basename(envFileRef[1].replace(/["']/g, ""));
+    if (!installInit.data.toString("utf8").includes(base)) {
+      problems.push("compose 的 env_file 指向 " + base + "，但 cmd/install_init 没有预先创建它：" +
+        "文件不存在时 docker compose 会直接让安装失败（v1.1.1 事故）");
+    }
+  }
+
+  // 取不到向导密码时必须降级（沿用已有 / 生成随机），而不是中止安装 ——
+  // 中止会让「装不上」，而裸奔会被随机密码挡住。PASSWORD.txt 是这个降级链的落点。
+  const installCallback = byName.get("cmd/install_callback");
+  if (installCallback) {
+    const text = installCallback.data.toString("utf8");
+    if (!/PASSWORD\.txt/.test(text)) {
+      problems.push("cmd/install_callback 缺少随机密码兜底（PASSWORD.txt）：取不到向导密码时既不能中止安装，也不能写出空密码");
+    }
+    if (!/navi\.env/.test(text)) {
+      problems.push("cmd/install_callback 没有写 navi.env：站点会拿不到访问密码");
     }
   }
 
