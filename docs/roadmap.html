@@ -261,6 +261,17 @@
           按钮上按下不武装、一次只武装一个、松开即收回；并用真实鼠标序列验证拖拽真的生效
           （原生 HTML5 拖拽在自动化环境里一步到位 50% 不触发，改成「按下 → 小步起步并停顿 → 再移向目标」后 8/8 稳定）</td>
       </tr>
+      <tr>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>发版</strong><br><span style="color:#6b7280;font-size:9pt">2026-09-29</span></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><code>v1.2.0</code></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已发布</span> ——
+          跟随反馈修复一起发出：四处硬编码版本号（<code>server.js</code> / <code>public/js/app.js</code> /
+          <code>test/status.test.js</code> / <code>CHANGELOG.md</code>）统一升到 <code>1.2.0</code>，
+          <code>deploy/fnos/manifest</code> 与包内 compose 的镜像标签同步指向 <code>1.2.0</code>，
+          打 <code>v1.2.0</code> 标签后由流水线产出 <code>1.2.0</code> / <code>1.2</code> / <code>latest</code> 三个镜像标签。<br>
+          ⚠️ 本版改的是<strong>运行时代码</strong>，只重装 <code>.fpk</code> 拿不到修复，必须让容器
+          <code>pull</code> 到新镜像并重建。自动发版（按节点产 Release Notes）仍未实施，本次仍为人工打标签。</td>
+      </tr>
     </tbody>
   </table>
   <p style="margin-top:14px;font-size:9.5pt;color:#6b7280">

@@ -33,7 +33,7 @@
 # ============================================================
 services:
   navi:
-    image: ghcr.io/damisunshine/navi-homepage:1.1.1
+    image: ghcr.io/damisunshine/navi-homepage:1.2.0
     container_name: navi-fnos
     restart: unless-stopped
 

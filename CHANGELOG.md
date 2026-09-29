@@ -7,7 +7,12 @@
 > （semver 会剥掉前缀 `v`，所以 `docker pull …:v1.2.3` 是不存在的标签）。
 > 本文件里的版本号与 `server.js` 的 `APP_VERSION` 保持一致。
 
-## [未发布]
+## [1.2.0] - 2026-09-29
+
+本版为**用户反馈修复**而发：编辑模式下分组可整体拖动。运行时代码有变更
+（`public/js/app.js`、`public/css/style.css`），**必须更新镜像**才会生效。
+
+> 打 `v1.2.0` 标签会推送 `1.2.0` / `1.2` / `latest` 三个镜像标签。
 
 ### 修正
 
@@ -28,8 +33,9 @@
   `docs/docker-guide.html` 与发布包新鲜度校验里的数字同步更新，旧值一律进 `mustNots`。
 
 > ⚠️ 本次改的是**运行时代码**（`public/js/app.js`、`public/css/style.css`，都在镜像里），
-> 所以要拿到这个修复必须**发一个新版本镜像**：只重装安装包不够。
-> 版本号与镜像标签未动，等下一次发版一并处理。
+> 所以要拿到这个修复必须**更新镜像**：只重装安装包不够。
+> 版本号四处硬编码（`server.js` / `public/js/app.js` / `test/status.test.js` / 本文件）已一并升到
+> `1.2.0`，`deploy/fnos/manifest` 与包内 compose 的镜像标签同步指向 `1.2.0`。
 
 ## [1.1.1] - 2026-09-20
 
@@ -237,7 +243,8 @@
 支持分组导航、编辑模式、图床库、访问密码保护、IPv4/IPv6 双栈、Docker 一键部署，
 并提供 `linux/amd64` 与 `linux/arm64` 多架构预构建镜像。
 
-[未发布]: https://github.com/DamiSunshine/navi-homepage/compare/v1.1.1...HEAD
+[未发布]: https://github.com/DamiSunshine/navi-homepage/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/DamiSunshine/navi-homepage/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/DamiSunshine/navi-homepage/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/DamiSunshine/navi-homepage/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DamiSunshine/navi-homepage/releases/tag/v1.0.0

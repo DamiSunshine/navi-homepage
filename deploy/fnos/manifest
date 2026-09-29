@@ -1,5 +1,5 @@
 appname               = navi
-version               = 1.1.1
+version               = 1.2.0
 display_name          = Navi 导航站
 desc                  = 零依赖自建导航站：容器自动发现、拼音搜索、首页状态板、备份与图标库
 platform              = all
@@ -13,4 +13,4 @@ desktop_applaunchname = navi.main
 service_port          = 8080
 checkport             = true
 ctl_stop              = true
-changelog             = 首个 fnOS 原生安装包：应用中心一键安装/升级/卸载，数据持久化在应用数据目录，桌面图标直达站点
+changelog             = 编辑模式下分组可整体拖动（按在分组标题栏或拖动手柄即拖整组，按在卡片上仍是拖卡片）；升级前请先备份应用数据目录

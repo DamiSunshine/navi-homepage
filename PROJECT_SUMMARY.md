@@ -3,6 +3,7 @@
 > 记录本次「个人导航页 + Docker 容器化」从需求到上线运行的完整过程，供后续接手者快速了解全貌。
 > 状态：**v1.1.0 已于 2026-09-20 发布并在 NAS 上线运行验证通过**；
 > v1.1.1（2026-09-28）已发布 —— 新增 fnOS 应用安装包（`.fpk`），运行时代码无变更。
+> v1.2.0（2026-09-29）已发布 —— 编辑模式下分组可整体拖动（运行时代码有变更，**需更新镜像**）。
 > 代码仓库 `github.com/DamiSunshine/navi-homepage`（public）｜镜像 `ghcr.io/DamiSunshine/navi-homepage`（public，匿名可拉）
 
 ---
@@ -43,11 +44,11 @@
 | 类别 | 成果 |
 |---|---|
 | 运行时 | `server.js` / `discovery.js` / `status.js` / `zip.js`（四个后端模块，单向依赖无环）+ 原生前端 |
-| 镜像 | `ghcr.io/DamiSunshine/navi-homepage`：标签 `1.1.1` / `1.1` / `latest` / `edge`，双架构，public（旧命名空间 `ghcr.io/mijunyi/…` 已冻结在 1.1.0） |
+| 镜像 | `ghcr.io/DamiSunshine/navi-homepage`：标签 `1.2.0` / `1.2` / `latest` / `edge`，双架构，public（旧命名空间 `ghcr.io/mijunyi/…` 已冻结在 1.1.0） |
 | 编排 | `docker-compose.yml`（源码构建）、`docker-compose.image.yml`（纯拉取，`-f` 二选一） |
 | 安装包 | `deploy/fnos/` + `scripts/build-fpk.cjs`：可打出 **fnOS 应用安装包 `.fpk`**（应用中心一键安装 / 升级 / 卸载），产物随 Release 附件分发 |
 | 流水线 | `.github/workflows/docker-publish.yml`：推 main 出 `edge`，打 `v*.*.*` 出 semver + `latest` |
-| 质量 | **19 个测试套件 / 961 项断言 / 0 失败**（其中 9 套为真实浏览器 UI 测试） |
+| 质量 | **19 个测试套件 / 981 项断言 / 0 失败**（其中 9 套为真实浏览器 UI 测试） |
 | 文档 | 门户站点 `docs/site.html`、项目概览 `docs/overview.html`、成果预览 `docs/showcase.html`、路线图 `docs/roadmap.html`、三份部署指南 + 三份 PDF |
 | 线上 | `http://10.10.10.18:18880`（飞牛 NAS），版本 1.1.0，服务发现 18/19 容器在线 |
 
@@ -99,6 +100,10 @@
 - 发 `v1.1.1`（2026-09-28）：同一套流程，另加两件事 —— 新增 `deploy/fnos/` 打包工程与 `scripts/build-fpk.cjs`
   （`fnpack` 出包 + 属主权限规范化 + 出厂校验），并创建 Release 把 `.fpk` 作为附件上传；
   同时把全仓 owner 引用从 `mijunyi` 迁到 `DamiSunshine`（58 处，`docs/roadmap.html` 的审计快照按原样保留）。
+- 发 `v1.2.0`（2026-09-29）：修用户反馈的「编辑模式下分组无法整体拖动」。改法是「按下的位置决定拖什么」——
+  按分组标题栏（或拖动手柄）时临时武装该分组可拖拽、松开即收回，按在卡片上仍是拖卡片。
+  新增 20 项断言（`ui.test.cjs` 103 → 123），基线 961 → 981；`deploy/fnos/manifest` 与包内 compose
+  的镜像标签同步升到 `1.2.0`。
 
 ---
 
