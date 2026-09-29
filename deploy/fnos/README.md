@@ -224,6 +224,16 @@ env file /vol1/@appdata/navi/navi.env not found: stat /vol1/@appdata/navi/navi.e
 所以现在由**流程最早的 `install_init`** 先落一份（能拿到向导密码就用向导密码，拿不到用随机密码并写
 `INITIAL_PASSWORD.txt`），`install_callback` 随后用真实值覆盖。
 
+**为什么「放在 `install_init` 就一定够早」**：compose 文件本身就在 `app.tgz` 里，而 `app.tgz` 是在
+`install_init` **之后**才解包的 —— 飞牛不可能在 compose 文件还不存在的时候就拉起 docker-project。
+所以时间顺序必然是 `install_init` → 解包 → (拉起 docker-project) → `install_callback`，
+只要 `install_init` 写得成这个文件，compose 就一定读得到。反过来说，**不要让 compose 依赖任何
+`install_callback`（或更晚）才会产生的文件**，那是必然的竞态。
+
+唯一残留的失败可能是 `install_init` **没权限写** `${TRIM_PKGVAR}`（该目录通常由飞牛创建并 chown 给
+包用户，若被改动过就会失败）。这种情况日志里会留下一句明确的
+`提示：无法创建数据目录 …` / `提示：无法写入 …` —— 见第 6 节的排查入口。
+
 出厂校验会把 compose 的 `env_file` 文件名与 `install_init` 做交叉核对，改了名字忘了同步就打不出包。
 
 ### 向导字段一律加 `wizard_` 前缀
@@ -279,3 +289,56 @@ WIZ_PW="${wizard_navi_password:-${navi_password:-}}"
 顺序颠倒的后果是：包能装、能启动，但 `docker pull` 拉不到那个标签，容器起不来。
 
 > 顺带一提：`push main` 只产 `edge`，只有 `v*.*.*` 标签才会更新 `X.Y.Z` / `X.Y` / `latest`。
+
+---
+
+## 7. 安装失败时怎么定位
+
+**先记住一件事：安装失败会被完整回滚。** 所以事后去看 `/vol1/@appcenter/navi/`
+与 `/vol1/@appdata/navi/` 通常是「都不存在」—— 这不代表「从来没装过」，只是被清掉了，
+**没有任何残留要清理**（手工部署的同名容器也不受影响）。
+
+### 第一步：分辨报错是谁发的
+
+| 报错文案 | 出处 | 含义 |
+|---|---|---|
+| `Docker 服务当前不可用…` | 本包的 `cmd/install_init`（v1.1.1 旧版才有） | 旧版用 `docker info` 当闸门，已改为只提示 |
+| `env file …/navi.env not found` | **docker compose 本身** | env 文件那一刻不存在（见第 5 节） |
+| `写入环境变量文件失败：…` | 本包 `cmd/install_callback` | 写文件真的失败了（**不是** `{}` 退出码那个 bug，那个只会在文件已写好时误报） |
+| 其他 | 飞牛应用中心 | 多为校验不过（manifest / 图标 / JSON 格式） |
+
+判断依据很简单：**这句话是从哪个文件里 echo 出来的** —— 全仓 grep 一下就能确认归属。
+
+### 第二步：拿到日志
+
+应用中心的失败弹窗里能展开日志；磁盘上则找 `TRIM_TEMP_LOGFILE` 指向的文件。本包的脚本
+都会往这个文件里写诊断线索（且**日志一律用 `>>` 追加**，不会被互相覆盖），关键几行长得像：
+
+```
+提示：未看到 /var/run/docker.sock …
+提示：本脚本环境下 docker info 未能连通 Docker（不影响安装…）
+      <docker info 的原文>
+已预先创建 /vol1/@appdata/navi/navi.env（密码取自安装向导）。
+提示：无法创建数据目录 /vol1/@appdata/navi …        ← 出现这句就是权限问题
+--- 诊断 ---
+运行身份 TRIM_RUN_USERNAME=… / 应用用户 TRIM_USERNAME=…
+数据目录 TRIM_PKGVAR=/vol1/@appdata/navi → 实际使用 /vol1/@appdata/navi
+收到的向导字段：TRIM_APPNAME TRIM_PKGVAR … wizard_navi_password …
+```
+
+最后一行最有用：**「收到的向导字段」**里有没有 `wizard_navi_password`，直接决定密码从哪来。
+
+### 第三步：环境侧确认（只读）
+
+```bash
+docker compose version                      # 决定能否用「可选的 env_file」等新语法
+ls -la /vol1/ | head -20                    # 存储空间布局
+ls /vol1/@appdata/ /vol1/@appcenter/ | head # 别的应用是否也在这里（确认布局没被改过）
+docker ps -a --filter name=navi-fnos        # 有没有残留容器占着 8080
+```
+
+```bash
+# 单独验一遍 env 文件到底建不建得出来（把变量换成日志里的实际值）
+sudo install -d -o <包用户名> -g <包用户组> /vol1/@appdata/navi && echo 可写 || echo 不可写
+```
+
