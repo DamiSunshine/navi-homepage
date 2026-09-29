@@ -8,7 +8,7 @@
 
 | 你的场景 | 用什么 | 看哪份文档 |
 | --- | --- | --- |
-| 有一台装了 Docker 的机器 | 拉预构建镜像 `ghcr.io/DamiSunshine/navi-homepage`（含 `linux/amd64` 与 `linux/arm64`） | **[`docs/image-deploy-guide.html`](docs/image-deploy-guide.html)** |
+| 有一台装了 Docker 的机器 | 拉预构建镜像 `ghcr.io/DamiSunshine/navi-homepage`（含 `linux/x86` 与 `linux/arm64`） | **[`docs/image-deploy-guide.html`](docs/image-deploy-guide.html)** |
 | 飞牛 **fnOS**（NAS / 小主机） | 应用中心一键安装 **`.fpk` 安装包**（[下载](https://github.com/DamiSunshine/navi-homepage/releases/tag/v1.2.0)） | **[`docs/fnos-deploy-guide.html`](docs/fnos-deploy-guide.html)** |
 | 想改代码 / 自己构建 | clone 源码 → `docker build` | 本文「方式 B」与 [`docs/docker-guide.html`](docs/docker-guide.html) |
 
