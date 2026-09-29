@@ -593,7 +593,7 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
 
     <div class="stats">
       <div class="stat"><b>19<span class="u">套</span></b><span>测试套件</span></div>
-      <div class="stat"><b>961<span class="u">项</span></b><span>断言全通过 · 0 失败</span></div>
+      <div class="stat"><b>981<span class="u">项</span></b><span>断言全通过 · 0 失败</span></div>
       <div class="stat"><b>0<span class="u">个</span></b><span>第三方运行时依赖</span></div>
       <div class="stat"><b>13<span class="u">个</span></b><span>API 接口</span></div>
       <div class="stat"><b>IPv6<span class="u">双栈</span></b><span>默认监听</span></div>
@@ -853,7 +853,7 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
           <tr><td><code>discover.test.js</code></td><td>接口集成</td><td>99</td><td>纯函数 + <strong>伪造 Docker API 端到端</strong> + 降级 + 鉴权 + <strong>图标探测协议与并发</strong> + <strong>失效判定（源侧消失只标记 / 未接入绝不误判）</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>library.test.js</code></td><td>接口集成</td><td>41</td><td>图床列库 / 批量上传 / 魔数校验 / 超限 / <strong>内置本地图标库 ≥200 且离线可用</strong> / 删除引用保护</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>icons.test.js</code></td><td>接口集成</td><td>47</td><td><strong>本地图标库自洽</strong>（目录自洽 / slug 唯一 / 文件魔数真为图片 / 国内站点 favicon 已落地 / icon-map 与目录一致 / 前端「本地优先」接线 / <code>/icons/*</code> 可静态托管）</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
-          <tr><td><code>ui.test.cjs</code></td><td>真实浏览器</td><td>103</td><td>渲染 / 主题切换 / <strong>拼音与首字母搜索</strong> / <strong>Ctrl+K 命令面板与引擎跳转</strong> / <strong>卡片级内外网策略与可达性探测</strong> / <strong>图标本地优先解析契约</strong> / 编辑增删改 / 保存写回</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
+          <tr><td><code>ui.test.cjs</code></td><td>真实浏览器</td><td>123</td><td>渲染 / 主题切换 / <strong>拼音与首字母搜索</strong> / <strong>Ctrl+K 命令面板与引擎跳转</strong> / <strong>卡片级内外网策略与可达性探测</strong> / <strong>图标本地优先解析契约</strong> / 编辑增删改 / 保存写回 / <strong>分组整体拖动排序（与卡片拖动、拖链接建卡三方不冲突）</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>ui-theme.test.cjs</code></td><td>真实浏览器</td><td>8</td><td>日 / 夜模式切换与持久化</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>ui-auth.test.cjs</code></td><td>真实浏览器</td><td>8</td><td>登录页字段校验、错误提示、联合登录</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>ui-backup.test.cjs</code></td><td>真实浏览器</td><td>32</td><td>备份格式选择弹窗 / 导出导入往返 / <strong>zip 完整备份导入</strong> / Logo 上传 / <strong>非安全上下文（局域网 HTTP）导入</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
@@ -864,7 +864,7 @@ footer.pfoot .row { display: flex; gap: 16px; justify-content: center; flex-wrap
           <tr><td><code>ui-tags.test.cjs</code></td><td>真实浏览器</td><td>40</td><td><strong>卡片标签与跨分组检索</strong>：归一化规则（全角逗号 / 去重 / 超长截断 / 上限 8 个）+ 卡片标签行与 <code>+n</code> 折叠 + <strong>点标签即跨分组筛选</strong> + <strong>标签的拼音检索</strong> + Ctrl+K 面板命中与「标签」徽章 + 编辑回填 / 保存收敛 / 空标签不落库</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>checkdeploy.test.cjs</code></td><td>部署判定</td><td>22</td><td>「部署的是不是新代码」探针自检：<strong>正反双向</strong>（新代码判新 / 旧行为判旧）+ <strong>无密码时降级判定</strong> + 参数异常</td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
           <tr><td><code>imagecompose.test.cjs</code></td><td>发布契约</td><td>146</td><td>「拉预构建镜像」这条路不变量：<strong>多架构构建 + 推送 GHCR + 冒烟启动容器</strong>、镜像编排<strong>不得含 build:</strong>、两条部署路径不得漂移、<strong>server.js 的每个本地依赖都必须被 Dockerfile COPY（否则本地全绿而容器起不来）</strong>、<strong>冒烟作业必须真的请求新模块的接口（状态板 / zip 备份）</strong>、<strong>对外发布的截图只有一个生产者且不得被测试套件覆盖</strong>、<strong>反向验证自检脚本能抓到护栏被拆</strong>、<strong>x86 部署指引（32 位 / SSE4.2 / SELinux）</strong>、<strong>项目概览文档的模块表 / 套件表 / 路由表必须与代码事实一致</strong>、<strong>项目门户站点（docs/site.html）的每个站内链接与截图都必须指向真实文件</strong></td><td class="ok"><span class="pass">✅ 通过</span></td></tr>
-          <tr><td colspan="2"><strong>合计 19 套</strong></td><td><strong>961</strong></td><td colspan="2" class="ok"><span class="pass">✅ 全部通过 · 0 失败</span></td></tr>
+          <tr><td colspan="2"><strong>合计 19 套</strong></td><td><strong>981</strong></td><td colspan="2" class="ok"><span class="pass">✅ 全部通过 · 0 失败</span></td></tr>
         </tbody>
       </table>
     </div>

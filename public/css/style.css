@@ -520,6 +520,20 @@ body.edit-mode .card:active { cursor: grabbing; }
 .group-tools { display: inline-flex; gap: 6px; margin-left: 6px; }
 .group-tools .mini-btn { width: 26px; height: 26px; }
 
+/* 分组拖动（编辑模式）：整条标题栏是拖拽区，手柄只是「哪里能拖」的显式提示。
+   .mini-btn 的通用规则把 svg 设成描边无填充，手柄是实心圆点，需要单独覆盖。 */
+.group-drag-handle { cursor: grab; }
+.group-drag-handle svg { fill: currentColor; stroke: none; }
+.group-drag-handle:active { cursor: grabbing; }
+body.edit-mode .group-title { cursor: grab; user-select: none; }
+body.edit-mode .group-title:active { cursor: grabbing; }
+/* 被拖起来的分组：整块变淡（含其下所有卡片），与卡片拖动时的 .dragging 是同一套视觉语言 */
+.group.dragging-group { opacity: 0.4; }
+.group.dragging-group .group-title { cursor: grabbing; }
+/* 拖分组时别让卡片抢走指针事件：否则鼠标掠过分组的瞬间，dragover 的 target
+   会落到卡片上，分组自己反而失去高亮/反馈 */
+.group.dragging-group .card { pointer-events: none; }
+
 .add-group-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   width: 100%; margin-top: 22px;

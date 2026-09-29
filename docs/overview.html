@@ -112,7 +112,7 @@
   <div>
     <span class="badge">4 个后端模块</span>
     <span class="badge">零 package.json</span>
-    <span class="badge">19 个测试套件 / 961 项断言</span>
+    <span class="badge">19 个测试套件 / 981 项断言</span>
     <span class="badge">amd64 + arm64 镜像</span>
   </div>
 </div>
@@ -442,17 +442,17 @@ POST /api/backup/restore → 自动识别 ZIP / JSON → 校验 → 覆盖写回
   <tr>
     <td><strong>拼音搜索</strong></td>
     <td>离线拼音表（20924 字）+ <strong>音节边界对齐</strong>的首字母匹配，避免 <code>ty</code> 命中 <code>jtyy</code> 这类跨音节噪音；全拼支持从音节边界起的命中，长查询才启用「松散兜底」</td>
-    <td><code>ui.test.cjs</code> 103</td>
+    <td><code>ui.test.cjs</code> 123</td>
   </tr>
   <tr>
     <td><strong><code>Ctrl/⌘+K</code> 命令面板</strong></td>
     <td>与网格<strong>共用</strong> <code>matchRank</code>（两处判定不可能不一致）；↑↓ 选择、Enter 打开；面板内可把关键词直接交给搜索引擎（<code>%s</code> / <code>{q}</code> 占位）</td>
-    <td><code>ui.test.cjs</code> 103</td>
+    <td><code>ui.test.cjs</code> 123</td>
   </tr>
   <tr>
     <td><strong>卡片级内外网 <code>netMode</code> + 异步探测</strong></td>
     <td>每张卡片独立策略（auto/lan/wan）；内网可达性异步探测并缓存，<strong>不阻塞渲染</strong>；<code>crypto.subtle</code> 等浏览器能力缺失时<strong>降级跳过判定</strong>而不是误判为失败</td>
-    <td><code>ui.test.cjs</code> · <code>server.test.js</code> 50</td>
+    <td><code>ui.test.cjs</code> 123 · <code>server.test.js</code> 50</td>
   </tr>
   <tr>
     <td><strong>含图片的备份</strong></td>
@@ -499,6 +499,13 @@ POST /api/backup/restore → 自动识别 ZIP / JSON → 校验 → 覆盖写回
     <td><strong>卡片标签</strong></td>
     <td>给「类别记得、名字忘了」的场景兜底；标签进匹配链并<strong>支持拼音</strong>；点标签即跨分组筛选；面板命中时标注命中原因</td>
     <td><code>ui-tags.test.cjs</code> 40</td>
+  </tr>
+  <tr>
+    <td><strong>分组整体拖动</strong></td>
+    <td>编辑模式下拖分组标题栏（或标题栏里的手柄）即可整体换位，组内卡片跟着搬家。分组<strong>不写死
+      <code>draggable</code></strong>：按住标题栏时才临时武装、松开即收回，否则按在「删除分组」按钮上也会被判成拖分组；
+      卡片拖动靠「卡片自己更靠近按下点」自然优先，三方（分组拖动 / 卡片拖动 / 拖链接建卡）互不抢事件</td>
+    <td><code>ui.test.cjs</code> · <code>ui-firstrun.test.cjs</code> 33</td>
   </tr>
   <tr>
     <td><strong><code>DOCKER_GID</code> 说明</strong></td>
@@ -550,14 +557,14 @@ POST /api/backup/restore → 自动识别 ZIP / JSON → 校验 → 覆盖写回
 <!-- ==================== 十 ==================== -->
 <h2>十、测试与发布体系</h2>
 
-<h3>测试：19 个套件 / 961 项断言</h3>
+<h3>测试：19 个套件 / 981 项断言</h3>
 <p><code class="inline">node test/run-all.cjs</code> 会先用<strong>临时 config + 临时 uploads</strong> 在 8633 端口拉起一个隔离实例，再按需把地址传给需要的套件——<strong>不会碰真实数据</strong>；也可以只跑某几套（按文件名过滤）。</p>
 
 <!-- guard:suites -->
 <table>
   <tr><th style="width:26%">套件</th><th style="width:14%">类型</th><th class="num" style="width:9%">断言</th><th>覆盖重点</th></tr>
   <tr><td><code>server.test.js</code></td><td>接口集成</td><td class="num">50</td><td>配置读写、静态托管、错误处理、健康检查、资源版本号自动推导、可选字段写入口校验与往返</td></tr>
-  <tr><td><code>ui.test.cjs</code></td><td>真实浏览器</td><td class="num">103</td><td>主界面：渲染 / 搜索 / 拼音 / 命令面板 / 编辑保存 / 主题 / 内外网切换</td></tr>
+  <tr><td><code>ui.test.cjs</code></td><td>真实浏览器</td><td class="num">123</td><td>主界面：渲染 / 搜索 / 拼音 / 命令面板 / 编辑保存 / 主题 / 内外网切换 / <strong>分组与卡片拖动排序（真实鼠标）</strong></td></tr>
   <tr><td><code>ui-theme.test.cjs</code></td><td>真实浏览器</td><td class="num">8</td><td>日 / 夜主题切换与持久化</td></tr>
   <tr><td><code>ui-backup.test.cjs</code></td><td>真实浏览器</td><td class="num">32</td><td>备份 / 导入 UI 全流程（会真实点击按钮）</td></tr>
   <tr><td><code>auth.test.js</code></td><td>自包含</td><td class="num">27</td><td>密码保护、会话、联合登录、限流</td></tr>
@@ -575,7 +582,7 @@ POST /api/backup/restore → 自动识别 ZIP / JSON → 校验 → 覆盖写回
   <tr><td><code>ui-tags.test.cjs</code></td><td>真实浏览器</td><td class="num">40</td><td>卡片标签：回填、徽章、点击筛选、搜索命中、跨分组</td></tr>
   <tr><td><code>checkdeploy.test.cjs</code></td><td>自包含</td><td class="num">22</td><td>「线上跑的是不是新代码」判定探针自检</td></tr>
   <tr><td><code>imagecompose.test.cjs</code></td><td>自包含</td><td class="num">146</td><td>镜像契约：Dockerfile COPY 清单 ↔ 代码 require、compose 护栏、发布截图唯一生产者、<strong>概览文档与代码结构一致</strong></td></tr>
-  <tr><td colspan="2"><strong>合计 19 套</strong></td><td class="num"><strong>961</strong></td><td>全部通过 · 0 失败</td></tr>
+  <tr><td colspan="2"><strong>合计 19 套</strong></td><td class="num"><strong>981</strong></td><td>全部通过 · 0 失败</td></tr>
 </table>
 <!-- /guard:suites -->
 

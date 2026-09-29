@@ -497,6 +497,132 @@ function check(name, cond, extra) {
   check("非法方案 url 未被写入服务器（数据未被污染）",
     !afterSave.groups.flatMap((g) => g.items).some((i) => i.url === "ftp://example.com"));
 
+  /* ---------- 拖拽排序：分组整体拖动 + 与卡片拖动互不冲突 ----------
+     放在整套最后、先把视口放宽、每个子用例都重新加载页面，原因只有一个：
+     原生 HTML5 拖拽的「发起」对页面状态敏感 —— 同一个页面里反复拖会偶发不发起，
+     换新页面能把成功率拉稳。鼠标序列也刻意做成「按下 → 先小步移动并停顿 → 再移向目标」：
+     一步跳到目标时 Chromium 约有一半概率不判定为拖拽（实测 dragTo 3/6，小步序列 24/24；
+     卡片 / 手柄 / 标题栏三种拖拽源各 8/8）。 */
+  console.log("== 拖拽排序：分组与卡片 ==");
+  await page.setViewportSize({ width: 1280, height: 1000 });   // 让最后一个分组也完整露出来
+
+  const groupNames = () => page.$$eval(".group", (els) => els.map((e) => e.getAttribute("data-name")));
+  const draftNames = () => page.evaluate(() => (window.NaviApp.draftOrder() || []).map((g) => g.name));
+  const draftItems = (n) => page.evaluate((i) => ((window.NaviApp.draftOrder() || [])[i] || {}).items || [], n);
+  const cardTitles = () => page.$$eval(".group:first-child .card .card-title", (els) => els.map((e) => e.textContent));
+  const boxOf = async (sel, nth) => page.locator(sel).nth(nth || 0).boundingBox();
+
+  async function freshEditMode() {
+    await page.goto(BASE + "/", { waitUntil: "domcontentloaded" });
+    await page.waitForSelector(".group", { timeout: 10000 });
+    await page.click("#editToggle");
+    await page.waitForTimeout(250);
+  }
+  async function dragWithMouse(from, to) {
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 6, from.y + 2, { steps: 3 });
+    await page.waitForTimeout(40);
+    await page.mouse.move(to.x, to.y, { steps: 12 });
+    await page.waitForTimeout(40);
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+  }
+
+  const baseNames = apiCfg.groups.map((g) => g.name);
+  const baseFirstItems = apiCfg.groups[0].items.map((i) => i.title);
+  // 把第 1 个分组换到第 2 位之后应有的顺序；分组数不足 2 时下面会明确报错而不是抛异常
+  const wantMoved = baseNames.length >= 2
+    ? [baseNames[1], baseNames[0]].concat(baseNames.slice(2)) : baseNames;
+
+  check("配置里至少有 2 个分组（拖拽换位用例的前提）", baseNames.length >= 2, String(baseNames.length));
+
+  if (baseNames.length >= 2) {
+    // A. 结构：分组不该写死 draggable —— 写死的话，按在工具按钮上也会被判成拖分组
+    await freshEditMode();
+    const allGroups = page.locator(".group");
+    check("分组默认不带 draggable（按下时才临时武装，避免抢卡片的事件）",
+      (await allGroups.first().getAttribute("draggable")) === null);
+    check("每个分组都有一个拖动手柄",
+      (await page.locator(".group-drag-handle").count()) === baseNames.length);
+    check("手柄的提示文案说明了拖拽区（标题栏也能拖）",
+      /标题栏/.test(await page.locator(".group-drag-handle").first().getAttribute("title") || ""));
+    check("手柄画的是实心圆点（通用 mini-btn 规则会把 svg 统一设成空心描边）",
+      (await page.locator(".group-drag-handle svg").first().evaluate((s) => getComputedStyle(s).fill)) !== "none");
+    check("编辑模式下标题栏光标提示可抓取",
+      (await page.locator(".group-title").first().evaluate((e) => getComputedStyle(e).cursor)) === "grab");
+
+    // B. 拖标题栏：把第 1 个分组拖到第 2 个分组的后半段 → 两者换位
+    const t0 = await boxOf(".group-title", 0);
+    const g1box = await boxOf(".group", 1);
+    await dragWithMouse({ x: t0.x + 60, y: t0.y + t0.height / 2 },
+                        { x: g1box.x + 60, y: g1box.y + g1box.height - 12 });
+    const namesMoved = await groupNames();
+    check("拖标题栏后整个分组换位（拖第 1 个到第 2 个之后）",
+      namesMoved.join("|") === wantMoved.join("|"), namesMoved.join("|"));
+    check("分组拖动是整组一起搬家：组内导航项跟着走",
+      (await draftItems(1)).join("|") === baseFirstItems.join("|"), (await draftItems(1)).join("|"));
+    check("分组新顺序已写回草稿（不只是 DOM 顺序变了）",
+      (await draftNames()).join("|") === wantMoved.join("|"), (await draftNames()).join("|"));
+    check("分组拖动不会误触发「拖入链接建卡」弹窗", await page.locator("#itemModal").isHidden());
+
+    // C. 拖手柄：把第 2 个分组的手柄拖到第 1 个分组的前半段 → 结果同为两者换位
+    await freshEditMode();
+    const h1 = await boxOf(".group-drag-handle", 1);
+    const g0box = await boxOf(".group", 0);
+    await dragWithMouse({ x: h1.x + h1.width / 2, y: h1.y + h1.height / 2 },
+                        { x: g0box.x + 60, y: g0box.y + 8 });
+    check("拖手柄同样能整体换位分组",
+      (await groupNames()).join("|") === wantMoved.join("|"), (await groupNames()).join("|"));
+    check("拖手柄的结果也已写回草稿",
+      (await draftNames()).join("|") === wantMoved.join("|"));
+
+    // D. 卡片拖动排序必须仍然可用，且不能顺带把分组也挪了
+    await freshEditMode();
+    const titlesBefore = await cardTitles();
+    const c0 = await boxOf(".card", 0);
+    const c1 = await boxOf(".card", 1);
+    await dragWithMouse({ x: c1.x + 60, y: c1.y + c1.height / 2 },
+                        { x: c0.x + 10, y: c0.y + c0.height / 2 });
+    const titlesAfter = await cardTitles();
+    check("卡片拖动排序仍然生效（把第 2 张插到第 1 张之前）",
+      titlesAfter[0] === titlesBefore[1] && titlesAfter.join("|") !== titlesBefore.join("|"),
+      titlesBefore.slice(0, 2).join(",") + " -> " + titlesAfter.slice(0, 2).join(","));
+    check("卡片新顺序已写回草稿", (await draftItems(0)).join("|") === titlesAfter.join("|"));
+    check("拖卡片不会顺带改变分组顺序", (await groupNames()).join("|") === baseNames.join("|"));
+
+    // E. 标题栏里的工具按钮：按下不等于要拖分组，点击必须照常生效
+    await freshEditMode();
+    const renBtn = await boxOf('[data-act="rename-group"]', 0);
+    await page.mouse.move(renBtn.x + renBtn.width / 2, renBtn.y + renBtn.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(60);
+    check("在工具按钮上按下不会武装分组拖动（否则点按钮会变成拖分组）",
+      (await page.locator(".group").first().getAttribute("draggable")) === null);
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    check("工具按钮的点击照常生效（重命名弹窗打开）", await page.locator("#groupModal").isVisible());
+    await page.click('[data-close="groupModal"]');
+    await page.waitForTimeout(150);
+
+    // F. 武装与收回：只武装被按住的那一个，松开立刻收回
+    await freshEditMode();
+    const t0b = await boxOf(".group-title", 0);
+    await page.mouse.move(t0b.x + 60, t0b.y + t0b.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(60);
+    check("在标题栏按下时才临时武装分组拖动",
+      (await page.locator(".group").first().getAttribute("draggable")) === "true");
+    check("一次只武装被按住的那一个分组",
+      (await page.locator('.group[draggable="true"]').count()) === 1);
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+    check("松开鼠标后武装态立即收回（不长期占着可拖状态）",
+      (await page.locator('.group[draggable="true"]').count()) === 0);
+  }
+
+  await page.setViewportSize({ width: 1280, height: 720 });   // 还原视口
+
   console.log("== 页面错误 ==");
   const fatal = pageErrors.filter((e) => !/net::|Failed to load resource|ERR_INTERNET|favicon/i.test(e));
   check("无 JS 运行时错误", fatal.length === 0, fatal.join(" | ").slice(0, 200));

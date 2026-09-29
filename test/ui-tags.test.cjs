@@ -20,7 +20,11 @@ const { spawn } = require("child_process");
 const { chromium } = require("playwright");
 const { stubExternal, isNotJsError } = require("./lib/hermetic.cjs");
 
-const PORT = 8683;
+// 端口可用环境变量覆盖：本机 8683 曾被第三方程序（WPS 云服务 wpscloudsvr）长期占着，
+// 表现**不是**「端口占用」这种一目了然的报错，而是本套件整体挂掉 ——
+// 子进程 bind 失败 → 立刻退出 → 这里抛「服务提前退出 1」，看起来像产品代码坏了。
+// 换端口跑：NAVI_TEST_PORT=8697 node test/ui-tags.test.cjs
+const PORT = Number(process.env.NAVI_TEST_PORT || 8683);
 const BASE = "http://127.0.0.1:" + PORT;
 
 let passed = 0, failed = 0;

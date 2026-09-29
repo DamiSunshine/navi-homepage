@@ -583,12 +583,20 @@
       if (!visible.length && !state.editMode) return;
       totalShown += visible.length;
 
-      html += '<section class="group" data-name="' + escapeAttr(group.name) + '">';
+      // data-gi 是「这个分组的草稿下标」：分组拖动排序时按它回写，比按名字匹配可靠
+      // （名字可以重复，下标不会）。data-name 仍保留 —— 卡片跨分组拖动那条路径在用。
+      html += '<section class="group" data-gi="' + gi + '" data-name="' + escapeAttr(group.name) + '">';
       html += '<h2 class="group-title">' + escapeHtml(group.name) +
               '<span class="group-count">' + visible.length + "</span>";
 
       if (state.editMode) {
         html += '<span class="group-tools">' +
+                // 拖动手柄：编辑模式下按住整条标题栏也能拖，这个手柄是给「哪里能拖」一个显式提示
+                '<button type="button" class="mini-btn group-drag-handle" title="按住拖动，调整分组顺序（也可直接拖标题栏）">' +
+                  '<svg viewBox="0 0 24 24"><circle cx="9.5" cy="6" r="1.5"/><circle cx="14.5" cy="6" r="1.5"/>' +
+                  '<circle cx="9.5" cy="12" r="1.5"/><circle cx="14.5" cy="12" r="1.5"/>' +
+                  '<circle cx="9.5" cy="18" r="1.5"/><circle cx="14.5" cy="18" r="1.5"/></svg>' +
+                '</button>' +
                 '<button type="button" class="mini-btn" data-act="rename-group" data-gi="' + gi + '" title="重命名分组">' +
                   '<svg viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>' +
                 '</button>' +
@@ -743,6 +751,14 @@
     // 首次引导是否应该出现（只读判断，便于测试；不触发任何 UI）
     shouldShowFirstRun: function () {
       return !!state.apiAvailable && !firstRunDismissed() && configItemCount(state.config) === 0;
+    },
+    // 当前草稿的顺序快照（只读）。卡片 / 分组拖动都是在 dragend 里把 DOM 顺序回写进
+    // 草稿的，只看 DOM 读不出「到底有没有写进去」—— dom 顺序与草稿顺序可能只是碰巧一致。
+    draftOrder: function () {
+      var d = state.draft || state.config;
+      return ((d && d.groups) || []).map(function (g) {
+        return { name: g.name, items: ((g && g.items) || []).map(function (it) { return it.title; }) };
+      });
     }
   };
 
@@ -2603,21 +2619,80 @@
     }
   });
 
-  /* ---------- 拖拽排序（支持跨分组） ---------- */
-  var dragEl = null;
+  /* ---------- 拖拽排序（支持跨分组） ----------
+     编辑模式下有两种拖拽，靠**按下的位置**区分，互不干扰：
+
+       · 卡片拖动：按在卡片上  → 拖动单张卡片（可在分组之间移动）
+       · 分组拖动：按在分组标题栏上 → 整个分组（含其下所有卡片）一起移动
+       · 外部链接拖入：从浏览器外拖进来 → 预填「添加导航项」弹窗（下面第三个处理器）
+
+     为什么分组不写成 <section draggable="true"> 一劳永逸：
+     看一个元素能不能拖，浏览器找的是「离按下点最近的那个 draggable 祖先」，
+     按在卡片上时卡片更近、不会误拖分组；但**按在标题栏的删除按钮上**时，
+     最近的可拖拽祖先就成了 section —— 松手前只要鼠标动了就会被判成拖分组，
+     点按钮反而变成拖分组。所以这里改成「按下时再武装」：
+     只有按在标题栏（且不是标题栏里的操作按钮）时才给 section 加上 draggable，
+     松开或拖拽结束立刻收回。 */
+  var dragEl = null;        // 正在拖动的卡片
+  var dragGroupEl = null;   // 正在拖动的分组
+
+  // 取消「整条标题栏可拖」的武装态。render() 会整块重建 DOM，旧节点随之作废，
+  // 所以这里不缓存节点，每次按需扫一遍现存的分组（数量是十位数级别，开销可忽略）。
+  function armGroupDrag(sec) {
+    var armed = navRoot.querySelectorAll('.group[draggable="true"]');
+    for (var i = 0; i < armed.length; i++) {
+      if (armed[i] !== sec) armed[i].removeAttribute("draggable");
+    }
+    if (sec) sec.setAttribute("draggable", "true");
+  }
+
+  // 只有「按在分组标题栏、且不是工具按钮」才算分组拖动的起手式。
+  // 必须在 mousedown 时记下意图：等到 dragstart，event.target 已经是
+  // 「最近的可拖拽祖先」，从它身上看不出用户当初按的是标题还是删除按钮。
+  navRoot.addEventListener("mousedown", function (e) {
+    if (!state.editMode || e.button !== 0) { armGroupDrag(null); return; }
+    if (e.target.closest(".card")) { armGroupDrag(null); return; }        // 卡片优先
+    var title = e.target.closest(".group-title");
+    if (!title || e.target.closest(".group-tools [data-act]")) {
+      armGroupDrag(null);                                                // 标题栏之外 / 工具按钮上
+      return;
+    }
+    armGroupDrag(title.closest(".group"));
+  });
+  // 松开鼠标就收回武装态：否则标题栏会一直处于「不可选文本」的可拖状态
+  document.addEventListener("mouseup", function () {
+    if (!dragGroupEl) armGroupDrag(null);
+  });
 
   navRoot.addEventListener("dragstart", function (e) {
     if (!state.editMode) { e.preventDefault(); return; }
+
     var card = e.target.closest(".card");
-    if (!card) { e.preventDefault(); return; }
-    dragEl = card;
-    card.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-    try { e.dataTransfer.setData("text/plain", ""); } catch (err) {}
+    if (card) {
+      dragEl = card;
+      dragGroupEl = null;
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      try { e.dataTransfer.setData("text/plain", ""); } catch (err) {}
+      return;
+    }
+
+    var sec = e.target.closest(".group");
+    if (sec && sec.getAttribute("draggable") === "true") {
+      dragGroupEl = sec;
+      dragEl = null;
+      sec.classList.add("dragging-group");
+      e.dataTransfer.effectAllowed = "move";
+      try { e.dataTransfer.setData("text/plain", ""); } catch (err) {}
+      return;
+    }
+
+    e.preventDefault();   // 既不是卡片也不是已武装的分组：不产生拖拽
   });
 
   navRoot.addEventListener("dragover", function (e) {
-    if (!state.editMode || !dragEl) return;
+    if (!state.editMode || dragGroupEl) return;   // 分组拖动交给下面那个处理器
+    if (!dragEl) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
 
@@ -2634,7 +2709,47 @@
     }
   });
 
+  // 分组排序：上下移动整个 <section>。判据只看纵向中线 —— 分组是整行块级元素，
+  // 沿用卡片那套「同一行看左右」的判定在这里没有意义。
+  navRoot.addEventListener("dragover", function (e) {
+    if (!state.editMode || !dragGroupEl) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+
+    var over = e.target.closest(".group");
+    if (!over || over === dragGroupEl) return;
+    var r = over.getBoundingClientRect();
+    var before = e.clientY < r.top + r.height / 2;
+    over.parentNode.insertBefore(dragGroupEl, before ? over : over.nextSibling);
+  });
+
+  // 按 DOM 顺序回写分组顺序。用 data-gi（草稿下标）而不是分组名：
+  // 名字允许重复，下标不会；而且按下标取的是**同一个对象引用**，
+  // 不会像按名字重建那样丢掉分组上可能新加的字段。
+  function commitGroupOrder() {
+    var draft = state.draft;
+    var byIndex = {};
+    draft.groups.forEach(function (g, i) { byIndex[i] = g; });
+    var ordered = [];
+    navRoot.querySelectorAll(".group").forEach(function (sec) {
+      var gi = +sec.getAttribute("data-gi");
+      if (byIndex[gi]) { ordered.push(byIndex[gi]); delete byIndex[gi]; }
+    });
+    // 理论上不该有剩余（编辑模式下所有分组都会渲染），兜底保留，绝不因为一次拖动丢分组
+    draft.groups.forEach(function (g) { if (ordered.indexOf(g) < 0) ordered.push(g); });
+    draft.groups = ordered;
+  }
+
   navRoot.addEventListener("dragend", function () {
+    if (dragGroupEl) {
+      dragGroupEl.classList.remove("dragging-group");
+      dragGroupEl = null;
+      armGroupDrag(null);
+      commitGroupOrder();
+      markDirty();
+      render();
+      return;
+    }
     if (!dragEl) return;
     dragEl.classList.remove("dragging");
     dragEl = null;
@@ -2723,14 +2838,16 @@
   }
 
   navRoot.addEventListener("dragover", function (e) {
-    if (!state.editMode || dragEl) return;          // 排序中的拖拽交给上面的处理器
+    // 站内拖拽（卡片 / 分组）交给上面的处理器；两者都会往 dataTransfer 里塞 text/plain，
+    // 不排除掉的话这里会把它当成「外部拖进来的链接」而显示成复制光标。
+    if (!state.editMode || dragEl || dragGroupEl) return;
     if (!externalDragHasLink(e)) return;
     e.preventDefault();                             // 不 preventDefault 就不会触发 drop
     e.dataTransfer.dropEffect = "copy";
   });
 
   navRoot.addEventListener("drop", function (e) {
-    if (!state.editMode || dragEl) return;
+    if (!state.editMode || dragEl || dragGroupEl) return;
     if (!externalDragHasLink(e)) return;
     var uri = "", plain = "";
     try { uri = e.dataTransfer.getData("text/uri-list") || ""; } catch (err) {}

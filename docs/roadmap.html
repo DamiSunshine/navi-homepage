@@ -170,7 +170,7 @@
   <h2 style="font-size:15pt;color:#0d9488;border-left:4px solid #0d9488;padding-left:10px;margin-bottom:14px">实施进度更新（2026-09-20）</h2>
   <p style="color:#6b7280;font-size:9.5pt;margin-bottom:14px">
     本页第 3、4 章里的「13 个套件 / 435 项断言」等数字是<strong>审计当时（2026-09-19）的快照</strong>，保留原样以维持对照价值。
-    实际实施进展记录如下（最新全量回归：<strong>19 个套件 / 961 项断言 / 0 失败</strong>）。
+    实际实施进展记录如下（最新全量回归：<strong>19 个套件 / 981 项断言 / 0 失败</strong>）。
   </p>
   <table style="width:100%;border-collapse:collapse;font-size:10pt">
     <thead>
@@ -237,7 +237,7 @@
           <code>ui-tags.test.cjs</code> 40 项断言守着。<br>
           <span style="color:#b45309;font-weight:700">仍未实施 5 项</span>（均已逐条核查为「代码中无对应实现」，不是估计）：
           <strong>① 拆前端单文件</strong>（刻意搁置：纯重构、无行为收益，且 <code>app.js</code> 是唯一被 5 个 UI 套件
-          直接依赖的文件，风险/收益不对称 —— 安全网 <strong>961 项断言 / 0 失败</strong> 已具备，要做应独立一轮）；
+          直接依赖的文件，风险/收益不对称 —— 安全网 <strong>981 项断言 / 0 失败</strong> 已具备，要做应独立一轮）；
           <strong>② 自定义壁纸</strong>（前端与样式表均无 wallpaper 分支）；
           <strong>③ 通用反代规则导入</strong>（无对应解析入口）；
           <strong>④ Release Notes</strong>（<code>docker-publish.yml</code> 仍未接入自动发版说明；
@@ -246,6 +246,20 @@
           流水线不会按节点自动发 <code>v1.2.0</code> 等后续版本）。
           另有 <strong>功能一览与截图</strong>属<strong>部分完成</strong>（<code>preview.html</code> 已有 10 张真实截图画廊与功能说明、
           share 落地页有「页面效果预览」，但尚未做成运维口径的「功能一览」专章）。</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><strong>使用反馈修复</strong><br><span style="color:#6b7280;font-size:9pt">2026-09-29</span></td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px">编辑模式下分组无法整体拖动</td>
+        <td style="border:1px solid #e5e7eb;padding:7px 9px"><span style="color:#0d9488;font-weight:700">已完成</span> ——
+          原先只有卡片带 <code>draggable</code>，分组只能靠「重命名 / 删除」维护，顺序完全动不了。<br>
+          现在改成分组不写死 <code>draggable</code>，而是<strong>按下的位置决定拖什么</strong>：按在标题栏（或标题栏里的手柄）时
+          临时给该分组加上 <code>draggable</code>，松开立即收回；按在卡片上仍是拖卡片（卡片离按下点更近，天然优先）；
+          按在「重命名 / 添加 / 删除」按钮上则两边都不武装，按钮点击照常生效。
+          收尾时按 DOM 顺序把新顺序写回草稿（用 <code>data-gi</code> 下标而不是分组名 —— 名字允许重复，下标不会）。<br>
+          拖链接建卡那条路径加了显式互斥（站内拖拽期间不认外部链接），三方不抢事件。
+          新增 <strong>20 项断言</strong>（<code>ui.test.cjs</code> 103 → 123），其中三项专门盯「不冲突」：
+          按钮上按下不武装、一次只武装一个、松开即收回；并用真实鼠标序列验证拖拽真的生效
+          （原生 HTML5 拖拽在自动化环境里一步到位 50% 不触发，改成「按下 → 小步起步并停顿 → 再移向目标」后 8/8 稳定）</td>
       </tr>
     </tbody>
   </table>
