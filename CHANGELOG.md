@@ -83,8 +83,40 @@
   `cmd/main` 必须能兜住 `env_file`、三个关键脚本必须保留诊断轨迹、
   `install_callback` 必须有随机密码兜底），并以旧版本为坏样本做过反向验证 ——
   **旧脚本会一次性触发 4 条护栏、打不出包**。
-- **本版 Release 附件里的 `.fpk` 已替换为修正后的包**（`79024 B`，sha256 `660ddb03…`）。
-  包版本仍是 `1.1.1`、镜像标签未变，已装过的用户无需重新拉取镜像，重装安装包即可。
+- **【根治】`env_file` 是硬依赖 —— 前三轮的修复方向本身就是错的**。
+  上面那条「三层保险」依赖一个前提：**能抢在 compose 拉起之前把 `navi.env` 写出来**。
+  实测证明这个前提不成立，`/tmp/navi-lifecycle.log` 把顺序钉死了：
+
+  ```
+  navi/install_init     ... pkgvar_writable=no     ← 最早的一步，@appdata/navi 尚未创建/授权
+  navi/install_callback ... pkgvar_writable=yes    ← 只有安装成功时才会出现这一行
+  ```
+
+  失败的那几次，轨迹里**只有 `install_init` 的行**：飞牛在 `install_init` 之后即拉起
+  docker-project，compose 一报错就整包回滚 —— `install_callback` 与 `cmd/main` 的 `start`
+  **根本没被调用过**。所以前两层赶不上，第三层排在 compose 后面同样赶不上。
+
+  真正的解法是**让 compose 不依赖任何文件**：把用户输入交给 compose 做**变量插值**直接注入 ——
+
+  ```yaml
+  environment:
+    - NAVI_PASSWORD=${wizard_navi_password:-}
+  ```
+
+  依据来自报错信息本身：`env file /vol1/@appdata/navi/navi.env not found` 里的 `${TRIM_PKGVAR}`
+  **已被正确展开**，证明飞牛确实把环境变量交给了 docker compose；向导字段与 `TRIM_*` 出自同一批环境。
+  现在包内 compose 里**不再出现 `env_file`**。`install_callback` 仍会把向导值写一份到 `navi.env`
+  （作为手动部署与"将来时机变了"的备份），但**它已不在关键路径上**。
+  实机验证：新包装上后应用正常留存、容器 `navi-fnos` 运行中，访问首页返回 **302 跳登录页**
+  （= 密码已生效），`navi.env` 里的值与安装向导里填的完全一致。
+- **出厂校验相应改写为两条正向断言**（并以上一版 compose 为坏样本反向验证）：
+  compose 必须含 `${wizard_navi_password}` 插值；compose 里若出现 `env_file`，**必须**同时声明
+  `required: false`（Docker Compose 2.24+ 起支持，本机实测 NAS 为 v2.40.3）。
+  旧版 compose 会同时触发这两条、打不出包。
+- **本版 Release 附件里的 `.fpk` 已替换为最终修正版**（`80102 B`，
+  sha256 `e9aae0ed3359ac45d719668d8fddaae52919f3d561e3171ce8a13430b80b7ec1`）。
+  包版本仍是 `1.1.1`、**镜像标签未变** —— 本次只改包内 compose 与出厂校验脚本，运行时代码与镜像都没动，
+  已装过的用户无需重新拉取镜像，重装安装包即可。
 
 ## [1.1.0] - 2026-09-20
 

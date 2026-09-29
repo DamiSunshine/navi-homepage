@@ -7,6 +7,29 @@
 #   ② 容器名 navi-fnos 与手动部署用的 navi 区分开 —— 两者可以并存，不会撞名。
 #   ③ 数据目录挂在 ${TRIM_PKGVAR}（应用运行时数据目录）而不是包内 ——
 #      升级/重装 fpk 不会碰它，卸载时也由系统决定是否保留。
+#
+# ── 用户输入为什么不走 env_file（v1.1.1 三次安装事故的最终结论） ──────────
+# compose 对 env_file 是**硬依赖**：文件不在，直接报
+#   `env file /vol1/@appdata/navi/navi.env not found`，整包回滚。
+# 而「提前把文件写出来」的每一个时机都赶不上，这是实测得出的顺序：
+#
+#   install_init  ← 跑得最早，但此时 @appdata/<app> 尚未创建/授权
+#                   （实测轨迹：pkgvar=/vol1/@appdata/navi pkgvar_writable=no）
+#        ↓
+#   飞牛拉起 docker-project（compose）  ← 失败就回滚，后面两步根本没机会跑
+#        ↓
+#   install_callback / cmd/main start   ← 都在 compose 之后，永远来不及
+#
+# 证据：/tmp/navi-lifecycle.log 里只有 install_init 的行，install_callback
+# 与 cmd/main 的行一行都没有 —— 它们在回滚前就没被调用过。
+#
+# 改成把向导字段**直接经 compose 变量插值**注入。飞牛确实把环境变量交给了
+# docker compose —— 上面那句报错里的 `${TRIM_PKGVAR}` 已被正确展开为
+# `/vol1/@appdata/navi`，这就是实证。
+#
+# ⚠️ 变量未定义时 `${VAR:-}` 会得到**空串**。空密码意味着 server.js 开放访问，
+# 所以 cmd/install_callback 仍会把向导值写一份到 ${TRIM_PKGVAR}/navi.env
+# （给"以后时机变了"或手动部署留通路），而本文件不再依赖它。
 # ============================================================
 services:
   navi:
@@ -14,13 +37,16 @@ services:
     container_name: navi-fnos
     restart: unless-stopped
 
-    # 访问密码 / 站点标题等用户输入不写进包，改由管理侧生成的环境文件注入。
-    # 该文件由 cmd/install_callback、cmd/config_callback 写入并 chmod 600。
-    env_file:
-      - ${TRIM_PKGVAR}/navi.env
-
+    # ⚠️ 这里**刻意不写 env_file**：它对 compose 是硬依赖，缺文件＝安装失败。
+    #    用户输入改由下面的 environment 变量插值注入，零文件依赖。
     environment:
-      # 把"写文件"从镜像内置目录迁到挂载的数据目录（可持久化）
+      # ── 用户输入（向导字段，飞牛以环境变量形式交给 docker compose） ──
+      - NAVI_PASSWORD=${wizard_navi_password:-}
+      - NAVI_USERNAME=${wizard_navi_username:-}
+      - SITE_TITLE=${wizard_navi_site_title:-}
+      - SITE_SUBTITLE=${wizard_navi_site_subtitle:-}
+      - NAVI_LAN_HOST=${wizard_navi_lan_host:-}
+      # ── 固定项：把"写文件"从镜像内置目录迁到挂载的数据目录（可持久化） ──
       - NAVI_CONFIG_PATH=/app/data/config.json
       - NAVI_UPLOAD_DIR=/app/data/uploads
       # 服务发现：读取 Docker Socket 自动识别容器并生成卡片

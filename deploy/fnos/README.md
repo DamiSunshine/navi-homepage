@@ -211,46 +211,54 @@ fi
 
 出厂校验会拦下这种写法。
 
-### `env_file` 指向的文件必须由 `install_init` 预先落好 ⚠️
+### 用户输入一律走 compose 变量插值 —— `env_file` 是陷阱 ⚠️
 
-compose 里 `env_file: ${TRIM_PKGVAR}/navi.env` 是**硬依赖**：文件不存在时 docker compose 直接报错并
-**令整个安装失败**：
+**这是本项目最贵的一条教训。** v1.1.1 连续三次安装失败，报错都是 docker compose 自己抛的：
 
 ```
 env file /vol1/@appdata/navi/navi.env not found: stat /vol1/@appdata/navi/navi.env: no such file or directory
 ```
 
-而这个文件原本只由 `install_callback` 创建 —— 只要应用中心拉起 docker-project 的时点早于它，安装就必然失败。
-所以现在由**流程最早的 `install_init`** 先落一份（能拿到向导密码就用向导密码，拿不到用随机密码并写
-`INITIAL_PASSWORD.txt`），`install_callback` 随后用真实值覆盖。
+compose 对 `env_file` 是**硬依赖** —— 文件不在，直接报错并**整包回滚**。
 
-**为什么「放在 `install_init` 就一定够早」**：compose 文件本身就在 `app.tgz` 里，而 `app.tgz` 是在
-`install_init` **之后**才解包的 —— 飞牛不可能在 compose 文件还不存在的时候就拉起 docker-project。
-官方文档只保证「`install_init` 在释放文件**前**、`install_callback` 在释放文件**后**」，
-**并没有写明 docker-project 是在这两者之间启动、还是在 `install_callback` 之后启动**。
-所以正确的做法是两头都堵：`install_init` 先把文件落好（只要它写得成，compose 就一定读得到），
-`install_callback` 再用真实值覆盖。反过来说，**绝不要让 compose 依赖任何 `install_callback`
-（或更晚）才会产生的文件** —— 那是必然的竞态。
+而「提前把文件写出来」的每一个时机都赶不上。这不是推测，是 `/tmp/navi-lifecycle.log` 实测出的顺序：
 
-**三层保险**（v1.1.1 第三轮加固）：
+| 时机 | 写 `@appdata/navi` | 说明 |
+|---|---|---|
+| `install_init` | ❌ `pkgvar_writable=no` | 跑得最早，但那时 `@appdata/<app>` **尚未创建/授权** |
+| ↓ 飞牛拉起 docker-project（compose） | — | **失败即整包回滚 —— 后面两步根本没机会执行** |
+| `install_callback` | ✅ `pkgvar_writable=yes` | 轨迹里**一行都没有** → 它压根没被调用过 |
+| `cmd/main` 的 `start` | ✅ | 同上 |
 
-| 层 | 位置 | 触发时机 | 作用 |
-|---|---|---|---|
-| ① | `cmd/install_init` | 安装流程最早一步 | 预先落一份（向导值 → 无则随机值 + `INITIAL_PASSWORD.txt`） |
-| ② | `cmd/install_callback` | 应用文件释放后 | 用向导里的真实值覆盖 |
-| ③ | `cmd/main` 的 `start` 分支 | **每次启动**（含安装完成后） | 文件缺失就补一份；**已存在则一律不动**（绝不覆盖既有密码） |
+同一次安装、同一台机器上的两组轨迹，把因果钉死了：
 
-第 ③ 层是为一个**无法从官方文档确认**的风险准备的。社区那份生产级 fpk 的 `install_init` 里明确写着：
+```
+navi/install_init     ... pkgvar_writable=no     ← 最早的一步，写不成
+navi/install_callback ... pkgvar_writable=yes    ← 只有安装成功时才会出现这一行
+```
 
-> `# install_init 在 fnOS 调用时，数据目录（@appdata）可能尚未挂载或创建。`
+所以此前「三层保险」的**整个前提就是错的**：前两层赶不上，第三层排在 compose 后面同样赶不上。
 
-本机实测 `/vol1/@appdata` 是 `drwxr-xr-x root root`（0755）—— **非 root 的包用户无法在其中新建目录**。
-所以 `${TRIM_PKGVAR}` 若在 `install_init` 阶段还不存在，第 ① 层就写不成（脚本会记下
-`提示：无法创建数据目录 …` 并把 `mkdir` 的原文附上）。而 `start` 一定发生在**安装完成之后**，
-那时目录必然已存在且可写，第 ③ 层因此是可靠的兜底。三层全失败才会真的报 `env file not found`。
+**改对了的做法**：把用户输入**直接交给 compose 做变量插值**，彻底不碰文件。
 
-出厂校验会盯着三件事：compose 的 `env_file` 文件名与 `install_init` 交叉核对（改名忘同步打不出包）、
-`cmd/main` 必须含 `navi.env`（第 ③ 层不能被顺手删掉）、三个关键脚本必须保留诊断轨迹。
+```yaml
+environment:
+  - NAVI_PASSWORD=${wizard_navi_password:-}
+  - SITE_TITLE=${wizard_navi_site_title:-}
+```
+
+**为什么它一定拿得到值**：飞牛确实会把环境变量交给 docker compose —— 上面那句报错里的
+`${TRIM_PKGVAR}` 已被正确展开成 `/vol1/@appdata/navi`，这就是实证（否则报错里会是一串未展开的变量名）。
+向导字段与 `TRIM_*` 出自同一批环境。**现在的 compose 里已经不写 `env_file` 了。**
+
+> ⚠️ 变量未定义时 `${VAR:-}` 会得到**空串**，而空密码意味着站点是开放访问的。
+> 所以 `cmd/install_callback` **仍会**把向导值写一份到 `${TRIM_PKGVAR}/navi.env`
+> （给手动部署或"以后时机变了"留通路），但它只是**备份**，compose 不再依赖它。
+> `cmd/main` 的 `start` 与 `install_init` 里那两层写入也一并留作尽力而为，写不成不会再影响安装。
+
+出厂校验盯着两条（都用**上一版 compose 反向验证**过，确认拦得住）：
+compose 必须含 `${wizard_navi_password}` 插值；compose 里若出现 `env_file`，**必须**同时声明
+`required: false`（Docker Compose 2.24+ 起支持，本机 NAS 实测 v2.40.3）。
 
 ### 向导字段一律加 `wizard_` 前缀
 
@@ -318,9 +326,9 @@ WIZ_PW="${wizard_navi_password:-${navi_password:-}}"
 
 | 报错文案 | 出处 | 含义 |
 |---|---|---|
-| `Docker 服务当前不可用…` | 本包的 `cmd/install_init`（v1.1.1 旧版才有） | 旧版用 `docker info` 当闸门，已改为只提示 |
-| `env file …/navi.env not found` | **docker compose 本身** | env 文件那一刻不存在（见第 5 节） |
-| `写入环境变量文件失败：…` | 本包 `cmd/install_callback` | 写文件真的失败了（**不是** `{}` 退出码那个 bug，那个只会在文件已写好时误报） |
+| `Docker 服务当前不可用…` | 本包 `cmd/install_init`（v1.1.1 早期版才有） | 旧版用 `docker info` 当闸门，已改为只提示 |
+| `env file …/navi.env not found` | **docker compose 本身** | compose 曾把 `env_file` 当硬依赖；**现已移除该依赖，不可能再出现**（见第 5 节） |
+| `写入环境变量文件失败：…` | 本包 `cmd/install_callback` | 写文件真的失败了（**不是** `{}` 退出码那个 bug）。现在它只在安装**成功之后**执行、且只是备份写入，失败不影响站点运行 |
 | 其他 | 飞牛应用中心 | 多为校验不过（manifest / 图标 / JSON 格式） |
 
 判断依据很简单：**这句话是从哪个文件里 echo 出来的** —— 全仓 grep 一下就能确认归属。
@@ -334,8 +342,10 @@ WIZ_PW="${wizard_navi_password:-${navi_password:-}}"
 提示：未看到 /var/run/docker.sock …
 提示：本脚本环境下 docker info 未能连通 Docker（不影响安装…）
       <docker info 的原文>
-已预先创建 /vol1/@appdata/navi/navi.env（密码取自安装向导）。
-提示：无法创建数据目录 /vol1/@appdata/navi …        ← 出现这句就是权限问题
+已预先创建 /vol1/@appdata/navi/navi.env（密码取自安装向导）。   ← 老版写法，现已不是关键路径
+提示：无法创建数据目录 /vol1/@appdata/navi …   ← ⚠️ 在 install_init 阶段看到这句是**正常的**：
+                                                  那时 @appdata/<app> 还没建（实测 pkgvar_writable=no）。
+                                                  它**不再影响安装** —— 密码改由 compose 变量插值注入
 --- 诊断 ---
 运行身份 TRIM_RUN_USERNAME=… / 应用用户 TRIM_USERNAME=…
 数据目录 TRIM_PKGVAR=/vol1/@appdata/navi → 实际使用 /vol1/@appdata/navi
@@ -354,35 +364,29 @@ WIZ_PW="${wizard_navi_password:-${navi_password:-}}"
 它不随回滚消失，一行一次调用，形如：
 
 ```
-navi/install_init 2026-09-29 09:43:43 status=INSTALL run=root(uid=0) appuser=docker-navi pkgvar=/vol1/@appdata/navi pkgvar_writable=no
-navi-main/start   2026-09-29 09:43:51 status=START   run=root(uid=0) appuser=docker-navi pkgvar=/vol1/@appdata/navi pkgvar_writable=yes
+navi/install_init     2026-09-29 10:07:06 status=INSTALL run=docker-navi(uid=913) appuser=docker-navi pkgvar=/vol1/@appdata/navi pkgvar_writable=no
+navi/install_callback 2026-09-29 10:31:12 status=INSTALL run=docker-navi(uid=913) appuser=docker-navi pkgvar=/vol1/@appdata/navi pkgvar_writable=yes
 ```
 
-看三件事：**谁执行**（`run=`）、**数据目录能不能写**（`pkgvar_writable=`）、**各脚本的先后顺序**
-（尤其 `install_callback` 与 `main start` 谁先 —— 这直接决定 compose 拉起时读的是哪一份密码）。
+这两行是**同一次安装**上真实取到的，信息量极大：
+
+| 看什么 | 怎么判 |
+|---|---|
+| **`install_callback` 这一行在不在** | **不在 = 安装已失败并回滚**（compose 排在它前面）。这是最快的定性判据 |
+| `pkgvar_writable=` | `install_init` 阶段**恒为 `no`**（目录还没建），这是正常的；到 `install_callback` 才变 `yes` |
+| `run=` | 执行身份。`docker-navi(uid=913)` 即 `config/privilege` 里的 `run-as` |
+
 （`status` 分支刻意不记：应用中心会轮询，会把文件撑大。）
 
 ### 第三步：环境侧确认（只读）
 
 ```bash
-docker compose version                      # 决定能否用「可选的 env_file」等新语法
-ls -la /vol1/ | head -20                    # 存储空间布局
-ls /vol1/@appdata/ /vol1/@appcenter/ | head # 别的应用是否也在这里（确认布局没被改过）
+docker compose version                      # 本机实测 v2.40.3（支持 env_file 的 required: false）
+ls -la /vol1/ | head -20                    # 存储空间布局（@appdata 为 0755 root:root，属正常）
 docker ps -a --filter name=navi-fnos        # 有没有残留容器占着 8080
-
-# 关键：@appdata 下的应用目录由谁创建、属主是谁 —— 决定 install_init 能不能写
-ls -ld /vol1/@appdata/docker-komga /vol1/@appdata/1Panel
-# 顺便抄一份「本机官方 docker 应用」的写法（比任何文档都权威）
-cat /vol1/@appcenter/docker-komga/config/resource
+ls -ld /vol1/@appdata/docker-komga          # ★ 对照已装成功的应用：属主就是它自己
 ```
 
-```bash
-# 单独验一遍 env 文件到底建不建得出来（把变量换成日志里的实际值）
-sudo install -d -o <包用户名> -g <包用户组> /vol1/@appdata/navi && echo 可写 || echo 不可写
-```
-
-```bash
-# 单独验一遍 env 文件到底建不建得出来（把变量换成日志里的实际值）
-sudo install -d -o <包用户名> -g <包用户组> /vol1/@appdata/navi && echo 可写 || echo 不可写
-```
+> 最后那条对照命令很关键：它证明 `@appdata/<app>` **确实会被创建并授权给应用用户** ——
+> 只不过时机在 `install_init` **之后**。这也正是为什么"提前写文件"这条路的每一个时机都赶不上。
 

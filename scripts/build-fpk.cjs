@@ -260,18 +260,24 @@ function verify(fpkPath) {
     if (/>>>/.test(text)) problems.push(e.name + " 出现了 `>>>` 重定向（改写事故）");
   }
 
-  // compose 的 env_file 指向的文件必须由 cmd/install_init 预先落好。
-  // 真实事故：env_file 指向 ${TRIM_PKGVAR}/navi.env，而该文件原本只由 install_callback 创建 ——
-  // 只要应用中心拉起 docker-project 的时点早于 install_callback，docker compose 就会直接
-  // 报 `env file ... not found` 并让整个安装失败。文件必须由流程最早的一步准备好。
-  const installInit = byName.get("cmd/install_init");
-  const envFileRef = composeText.match(/env_file\s*:[\s\S]{0,200}?-\s*(\S+)/);
-  if (envFileRef && installInit) {
-    const base = path.basename(envFileRef[1].replace(/["']/g, ""));
-    if (!installInit.data.toString("utf8").includes(base)) {
-      problems.push("compose 的 env_file 指向 " + base + "，但 cmd/install_init 没有预先创建它：" +
-        "文件不存在时 docker compose 会直接让安装失败（v1.1.1 事故）");
-    }
+  // ── compose 与「写文件时机」的护栏（v1.1.1 三次安装事故的最终结论） ──────
+  // 事故链：compose 的 env_file 指向 ${TRIM_PKGVAR}/navi.env，而 compose 对 env_file 是
+  // **硬依赖** —— 文件不在就报 `env file ... not found`，整包回滚。
+  // 而「提前写出这个文件」的每一个时机都赶不上，这是实测顺序（见 /tmp/navi-lifecycle.log）：
+  //   install_init       @appdata/<app> 尚未创建/授权（实测 pkgvar_writable=no，写不成）
+  //     → 飞牛拉起 docker-project（compose）  失败即整包回滚
+  //       → install_callback / cmd/main start 已无机会执行（轨迹里一行都没有）
+  // 所以规则反过来定：用户输入**必须**经 compose 变量插值注入 —— 飞牛确实把环境变量
+  // 交给了 docker compose，报错里 `${TRIM_PKGVAR}` 已被展开成 /vol1/@appdata/navi 即为实证；
+  // 且 compose 里若出现 env_file，**必须**声明 required: false，缺文件不得再致命。
+  // ⚠️ 护栏必须拿旧版本反向验证一次（把上一版 compose 喂进来应当报错），否则不知道它拦不拦得住。
+  if (!/\$\{wizard_navi_password/.test(composeText)) {
+    problems.push("compose 没有用 ${wizard_navi_password} 变量插值注入访问密码：" +
+      "写 env_file 的时机永远赶不上 compose 拉起（v1.1.1 三次事故），用户输入只能靠插值传进去");
+  }
+  if (/env_file\s*:/.test(composeText) && !/required\s*:\s*false/.test(composeText)) {
+    problems.push("compose 用了 env_file 却没声明 required: false：" +
+      "文件缺失时 docker compose 会直接报 `env file ... not found` 并让整个安装失败（v1.1.1 事故）");
   }
 
   // 取不到向导密码时必须降级（沿用已有 / 生成随机），而不是中止安装 ——

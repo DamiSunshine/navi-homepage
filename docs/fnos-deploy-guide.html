@@ -798,7 +798,8 @@ sudo chown -R 1000:1000 /vol1/1000/docker/navi/data</pre>
     <td><strong>数据目录</strong></td>
     <td>位于存储空间根目录的 <code class="inline">@appdata/navi/</code> 下（例如 <code class="inline">/vol1/@appdata/navi/</code>）。
       其中 <code class="inline">data/config.json</code> 与 <code class="inline">data/uploads/</code> 是导航数据与图片，
-      <code class="inline">navi.env</code> 存放向导里填的密码等（权限 600，仅属主可读）。</td>
+      <code class="inline">navi.env</code> 是向导值的<strong>备份</strong>（权限 600，仅属主可读）。
+      站点实际使用的密码由包内 compose 经<strong>变量插值</strong>直接注入容器，<strong>不依赖这个文件</strong>。</td>
   </tr>
   <tr>
     <td><strong>默认端口</strong></td>
@@ -837,13 +838,15 @@ sudo chown -R 1000:1000 /vol1/1000/docker/navi/data</pre>
       排查入口有两个：应用中心失败弹窗里可展开的日志，以及 <code class="inline">/tmp/navi-lifecycle.log</code>
       （<strong>不随回滚消失</strong>，里面有执行身份、数据目录是否可写、各步骤的先后顺序）。
       细节见 <code class="inline">deploy/fnos/README.md</code> 第 7 节。</td></tr>
-  <tr><td>安装报 <code class="inline">env file …navi.env not found</code></td>
-    <td>包内 compose 读取 <code class="inline">navi.env</code> 那一刻文件不存在。1.1.1 的修正版已加
-      「预先创建 → 写入向导真实值 → 启动时救援」<strong>三层保险</strong>，重装最新安装包即可；
-      若仍出现，把 <code class="inline">/tmp/navi-lifecycle.log</code> 发出来即可定位。</td></tr>
+  <tr><td>（历史）安装报 <code class="inline">env file …navi.env not found</code></td>
+    <td>1.1.1 早期版的包内 compose 把 <code class="inline">navi.env</code> 当<strong>硬依赖</strong>，
+      而那一刻文件还不存在 —— 飞牛创建并授权 <code class="inline">@appdata/navi</code> 的时机
+      <strong>晚于</strong>安装脚本，所以"提前写文件"这条路永远赶不上。
+      现已<strong>彻底移除该依赖</strong>：用户输入改由 compose 变量插值注入，compose 不再读任何环境文件，
+      这条报错不可能再出现。重装最新安装包即可。</td></tr>
   <tr><td>装完打不开</td><td>先在应用中心看运行状态（它是权威）；再看 <code class="inline">docker logs --tail 50 navi-fnos</code></td></tr>
   <tr><td>提示端口被占用</td><td>应用设置里换一个端口（如 <code class="inline">8081</code>）后重启应用</td></tr>
-  <tr><td>忘了访问密码</td><td>编辑数据目录下的 <code class="inline">navi.env</code>（改 <code class="inline">NAVI_PASSWORD</code>），重启应用</td></tr>
+  <tr><td>忘了访问密码</td><td>在应用中心「应用设置」里重设（密码栏留空 = 保持不变），再<strong>停止</strong>后<strong>启动</strong>一次即生效</td></tr>
   <tr><td>应用状态显示「未运行」</td><td><code class="inline">docker ps -a --filter name=navi-fnos</code> 看是否在反复重启；<code class="inline">docker logs</code> 里通常是镜像拉取失败</td></tr>
 </table>
 
